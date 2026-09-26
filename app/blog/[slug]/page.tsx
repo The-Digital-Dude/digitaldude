@@ -96,14 +96,16 @@ Scaling e-commerce revenue requires treating performance engineering as a primar
 async function getPost(slug: string) {
   try {
     const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('slug', slug)
+        .eq('status', 'published')
+        .single();
 
-    if (!error && data) return data;
+      if (!error && data) return data;
+    }
   } catch {}
 
   if (fallbackArticles[slug]) return fallbackArticles[slug];

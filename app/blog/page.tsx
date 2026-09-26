@@ -74,14 +74,18 @@ export default async function BlogPage() {
 
   try {
     const supabase = getSupabaseServerClient();
-    const { data, error } = await supabase
-      .from('posts')
-      .select('id, title, slug, excerpt, category, cover_image, read_time, published_at, author')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false });
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, title, slug, excerpt, category, cover_image, read_time, published_at, author')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      posts = data as Post[];
+      if (!error && data && data.length > 0) {
+        posts = data as Post[];
+      } else {
+        posts = fallbackPosts;
+      }
     } else {
       posts = fallbackPosts;
     }
