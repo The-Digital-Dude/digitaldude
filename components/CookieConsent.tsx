@@ -29,7 +29,7 @@ export function CookieConsent() {
     setReady(true);
   }, []);
 
-  if (pathname?.startsWith("/admin")) {
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/proposals/")) {
     return null;
   }
 
@@ -47,7 +47,7 @@ export function CookieConsent() {
       {consent === "accepted" && <GoogleAnalytics />}
 
       {ready && consent === null && (
-        <div className="fixed inset-x-0 bottom-16 z-50 border-t border-black/10 bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:bottom-0">
+        <div className="fixed inset-x-0 bottom-16 z-50 border-t border-black/10 bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:bottom-0 print:hidden">
           <div className="mx-auto flex max-w-content flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-navy/70">
               We use cookies to see how visitors use this site (Google Analytics). No marketing or

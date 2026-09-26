@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { Proposal, ArchitectureModule, DeliverablePhase } from "@/lib/content/proposals";
 
+import Image from "next/image";
+
 export function ProposalView({ proposal }: { proposal: Proposal }) {
   const [copied, setCopied] = useState(false);
 
@@ -69,12 +71,16 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-2 font-bold text-sm tracking-tight text-navy hover:text-purple transition"
+            className="flex items-center"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple text-xs font-black text-white">
-              DD
-            </span>
-            <span>The Digital Dude</span>
+            <Image
+              src="/logo-full-color.png"
+              alt="The Digital Dude"
+              width={160}
+              height={30}
+              priority
+              className="h-7 w-auto"
+            />
           </Link>
 
           <div className="flex items-center gap-2">
@@ -101,6 +107,20 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12 print:max-w-none print:p-0">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-12 print:rounded-none print:border-none print:p-0 print:shadow-none">
           
+          {/* Printable Official Letterhead Header (Visible in PDF / Print) */}
+          <div className="hidden print:flex items-center justify-between pb-6 mb-6 border-b-2 border-slate-900">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-full-color.png"
+              alt="The Digital Dude"
+              className="h-8 w-auto"
+            />
+            <div className="text-right text-[11px] text-slate-600 leading-tight">
+              <strong className="text-slate-900 font-bold block">The Digital Dude Ltd</strong>
+              <span>digitaldude.co.uk · info@digitaldude.co.uk</span>
+            </div>
+          </div>
+
           {/* Header & Meta Bar */}
           <div className="border-b border-slate-200 pb-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -341,9 +361,9 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
           </div>
 
           {/* Print Footer */}
-          <div className="hidden print:block pt-12 text-center text-xs text-navy/50 border-t border-slate-200 mt-8">
-            <p>The Digital Dude · Bespoke Software, Web Apps & Operations Portals · United Kingdom & Australia</p>
-            <p className="mt-1 font-mono">Proposal Reference: {proposal.slug} · Generated on {new Date(proposal.created_at).toLocaleDateString()}</p>
+          <div className="hidden print:block pt-8 text-center text-[11px] text-slate-500 border-t border-slate-200 mt-8">
+            <p className="font-semibold text-slate-700">The Digital Dude Ltd · Bespoke Web Applications, CRMs & Cloud Architecture</p>
+            <p className="mt-1 font-mono text-[10px]">Specification Reference: {proposal.slug} · Generated on {new Date(proposal.created_at).toLocaleDateString()}</p>
           </div>
 
         </div>
@@ -351,11 +371,24 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
 
       <style jsx global>{`
         @media print {
-          body {
+          @page {
+            margin: 12mm 15mm;
+            size: A4 portrait;
+          }
+          html, body {
             background-color: #ffffff !important;
             color: #0f172a !important;
+            font-size: 11pt !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
-          nav, button, a[href="/contact"] {
+          #main {
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          nav, header, footer, button, .print-hidden, [role="dialog"], a[href="/contact"] {
             display: none !important;
           }
           main {
@@ -363,7 +396,12 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
             padding: 0 !important;
             margin: 0 !important;
           }
-          .shadow-sm, .shadow-2xs, .shadow-xs {
+          .rounded-3xl {
+            border-radius: 0 !important;
+            border: none !important;
+            padding: 0 !important;
+          }
+          .shadow-sm, .shadow-2xs, .shadow-xs, .shadow-md, .shadow-lg {
             box-shadow: none !important;
           }
         }

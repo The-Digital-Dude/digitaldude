@@ -103,6 +103,7 @@ export async function sendBrevoEmail(params: SendBrevoEmailParams): Promise<{
  * HTML Email Wrapper with The Digital Dude branding
  */
 export function wrapInEmailTemplate(title: string, bodyHtml: string): string {
+  const logoUrl = `${SITE_URL}/logo-full-white.png`;
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -120,15 +121,13 @@ export function wrapInEmailTemplate(title: string, bodyHtml: string): string {
           
           <!-- Brand Header -->
           <tr>
-            <td style="background-color: #1a1a4e; padding: 28px 36px; text-align: left;">
+            <td style="background-color: #1a1a4e; padding: 24px 32px; text-align: left;">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td>
-                    <span style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-weight: 900; font-size: 14px; padding: 6px 12px; border-radius: 8px; letter-spacing: 0.5px;">DD</span>
-                    <span style="color: #ffffff; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; margin-left: 10px; vertical-align: middle;">The Digital Dude</span>
-                  </td>
-                  <td align="right">
-                    <span style="color: #a5a4cf; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">UK & Australia</span>
+                    <a href="${SITE_URL}" target="_blank" style="text-decoration: none; display: inline-block;">
+                      <img src="${logoUrl}" alt="The Digital Dude" height="30" style="height: 30px; width: auto; display: block; border: 0;" />
+                    </a>
                   </td>
                 </tr>
               </table>
@@ -147,7 +146,6 @@ export function wrapInEmailTemplate(title: string, bodyHtml: string): string {
             <td style="background-color: #fcfbfe; padding: 24px 36px; border-top: 1px solid #f0eeff; text-align: center;">
               <p style="margin: 0; font-size: 12px; color: #6b6b90; line-height: 1.6;">
                 <strong>The Digital Dude Ltd</strong> · Bespoke Web Applications, CRMs & Cloud Architecture<br>
-                London, United Kingdom & Sydney, Australia<br>
                 <a href="${SITE_URL}" style="color: #7b61ff; text-decoration: none; font-weight: 600;">digitaldude.co.uk</a> · 
                 <a href="mailto:info@digitaldude.co.uk" style="color: #7b61ff; text-decoration: none; font-weight: 600;">info@digitaldude.co.uk</a>
               </p>
