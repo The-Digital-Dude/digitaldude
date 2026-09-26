@@ -423,7 +423,12 @@ export default function AdminDashboardPage() {
       <CreateLeadModal
         isOpen={isCreateLeadOpen}
         onClose={() => setIsCreateLeadOpen(false)}
-        onCreated={fetchData}
+        onCreated={(newLead) => {
+          if (newLead) {
+            setLeads((prev) => [newLead, ...prev.filter((l) => l.id !== newLead.id)]);
+          }
+          fetchData();
+        }}
       />
     </AdminLayout>
   );

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
-import { DEMO_LEADS, BookingLead } from "@/lib/crm";
+import { getInMemoryLeads, addInMemoryLead, BookingLead } from "@/lib/crm";
 
 export async function GET(request: Request) {
   const isAuth = await isAdminAuthenticated(request);
@@ -11,33 +11,29 @@ export async function GET(request: Request) {
   }
 
   const supabase = getSupabaseServerClient();
-  let allBookings: BookingLead[] = [];
   let totalPosts = 6;
   let totalProposals = 1;
   let totalCaseStudies = 7;
 
   if (supabase) {
     try {
-      const now = new Date().toISOString();
-      const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString();
-
       const { data: bData } = await supabase
         .from("bookings")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (bData && bData.length > 0) {
-        allBookings = bData.map((b) => ({
+        const mapped: BookingLead[] = bData.map((b) => ({
           id: b.id,
           name: b.name,
           work_email: b.work_email,
           company_name: b.company_name,
-          country: b.country,
-          team_size: b.team_size,
-          message: b.message,
+          country: b.country || "United Kingdom",
+          team_size: b.team_size || "1-10",
+          message: b.message || "",
           slot_start: b.slot_start,
           slot_end: b.slot_end,
-          meet_url: b.meet_url,
+          meet_url: b.meet_url || undefined,
           stage: b.stage || "new_booking",
           deal_value: Number(b.deal_value) || 8500,
           lead_score: b.lead_score || "warm",
@@ -45,6 +41,7 @@ export async function GET(request: Request) {
           assigned_to: b.assigned_to || "The Digital Dude Team",
           created_at: b.created_at || new Date().toISOString(),
         }));
+        mapped.forEach((l) => addInMemoryLead(l));
       }
 
       const { count: pCount } = await supabase
@@ -67,9 +64,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (allBookings.length === 0) {
-    allBookings = DEMO_LEADS;
-  }
+  const allBookings: BookingLead[] = getInMemoryLeads();
 
   // Calculate CRM Pipeline Metrics
   let totalPipelineValue = 0;

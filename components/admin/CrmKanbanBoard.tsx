@@ -439,7 +439,10 @@ export function CrmKanbanBoard({
         isOpen={isCreateOpen}
         defaultStage={createStage}
         onClose={() => setIsCreateOpen(false)}
-        onCreated={() => {
+        onCreated={(newLead) => {
+          if (newLead) {
+            onUpdateLead(newLead.id, newLead);
+          }
           if (onRefresh) onRefresh();
         }}
       />

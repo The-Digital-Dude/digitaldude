@@ -187,3 +187,69 @@ export function formatGbp(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+// Global in-memory store for CRM leads
+declare global {
+  // eslint-disable-next-line no-var
+  var __IN_MEMORY_LEADS__: BookingLead[] | undefined;
+}
+
+if (!globalThis.__IN_MEMORY_LEADS__) {
+  globalThis.__IN_MEMORY_LEADS__ = [...DEMO_LEADS];
+}
+
+export function getInMemoryLeads(): BookingLead[] {
+  if (!globalThis.__IN_MEMORY_LEADS__) {
+    globalThis.__IN_MEMORY_LEADS__ = [...DEMO_LEADS];
+  }
+  return globalThis.__IN_MEMORY_LEADS__;
+}
+
+export function findInMemoryLead(id: string): BookingLead | undefined {
+  const list = getInMemoryLeads();
+  return list.find((l) => l.id === id);
+}
+
+export function addInMemoryLead(lead: BookingLead): BookingLead {
+  const list = getInMemoryLeads();
+  const existingIdx = list.findIndex((l) => l.id === lead.id);
+  if (existingIdx >= 0) {
+    list[existingIdx] = lead;
+  } else {
+    list.unshift(lead);
+  }
+  return lead;
+}
+
+export function updateInMemoryLead(id: string, updates: Partial<BookingLead>): BookingLead | null {
+  const list = getInMemoryLeads();
+  const idx = list.findIndex((l) => l.id === id);
+  if (idx === -1) {
+    const newLead = {
+      ...DEMO_LEADS[0],
+      ...updates,
+      id,
+      updated_at: new Date().toISOString(),
+    } as BookingLead;
+    list.unshift(newLead);
+    return newLead;
+  }
+
+  list[idx] = {
+    ...list[idx],
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+  return list[idx];
+}
+
+export function deleteInMemoryLead(id: string): boolean {
+  const list = getInMemoryLeads();
+  const idx = list.findIndex((l) => l.id === id);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    return true;
+  }
+  return false;
+}
+

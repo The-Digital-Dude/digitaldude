@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
-import { DEMO_LEADS, BookingLead } from "@/lib/crm";
+import {
+  BookingLead,
+  getInMemoryLeads,
+  addInMemoryLead,
+} from "@/lib/crm";
 
 export async function GET(request: Request) {
   const isAuth = await isAdminAuthenticated(request);
@@ -57,25 +61,54 @@ export async function GET(request: Request) {
           updated_at: b.updated_at || b.created_at || new Date().toISOString(),
         }));
 
-        return NextResponse.json({ ok: true, bookings: formatted });
+        formatted.forEach((lead) => addInMemoryLead(lead));
       }
     } catch (error) {
       log("warn", { message: "Supabase bookings fetch fallback notice", error });
     }
   }
 
-  // Fallback demo leads
-  const filteredDemos = DEMO_LEADS.filter((l) => {
+  // Fallback in-memory leads
+  const inMemory = getInMemoryLeads();
+  const filtered = inMemory.filter((l) => {
     const matchesSearch =
       !search ||
       l.name.toLowerCase().includes(search.toLowerCase()) ||
       l.company_name.toLowerCase().includes(search.toLowerCase()) ||
       l.work_email.toLowerCase().includes(search.toLowerCase());
-    const matchesStage = stage === "all" || l.stage === stage;
+    const matchesStage = stage === "all" || (l.stage || "new_booking") === stage;
     return matchesSearch && matchesStage;
   });
 
-  return NextResponse.json({ ok: true, bookings: filteredDemos });
+  return NextResponse.json({ ok: true, bookings: filtered });
+}
+
+function formatEmailBodyToHtml(text: string): string {
+  const blocks = text.split(/\n{2,}/);
+  return blocks
+    .map((block) => {
+      const lines = block
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (
+        lines.length > 0 &&
+        lines.every((l) => l.startsWith("- ") || l.startsWith("* ") || l.startsWith("• "))
+      ) {
+        const items = lines
+          .map(
+            (l) =>
+              `<li style="margin-bottom: 6px; color: #4a4a75;">${l.replace(/^[-*•]\s*/, "")}</li>`
+          )
+          .join("");
+        return `<ul style="margin: 0 0 16px 0; padding-left: 20px; font-size: 14px; line-height: 1.6;">${items}</ul>`;
+      }
+      return `<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">${block.replace(
+        /\n/g,
+        "<br>"
+      )}</p>`;
+    })
+    .join("");
 }
 
 export async function POST(request: Request) {
@@ -102,6 +135,9 @@ export async function POST(request: Request) {
       lead_notes = "",
       assigned_to = "The Digital Dude Team",
       send_welcome_email = false,
+      custom_email_subject = "",
+      custom_email_body = "",
+      email_template_id = "discovery_followup",
     } = body;
 
     if (!name || !work_email || !company_name) {
@@ -112,8 +148,8 @@ export async function POST(request: Request) {
     }
 
     const nowIso = new Date().toISOString();
-    const bookingStart = slot_start ? new Date(slot_start).toISOString() : nowIso;
-    const bookingEnd = slot_end
+    let bookingStart = slot_start ? new Date(slot_start).toISOString() : nowIso;
+    let bookingEnd = slot_end
       ? new Date(slot_end).toISOString()
       : new Date(new Date(bookingStart).getTime() + 30 * 60000).toISOString();
 
@@ -137,56 +173,115 @@ export async function POST(request: Request) {
       updated_at: nowIso,
     };
 
+    // Store in-memory immediately so it shows up everywhere in this process
+    addInMemoryLead(newLead);
+
     const supabase = getSupabaseServerClient();
     if (supabase) {
-      const { data, error } = await supabase
-        .from("bookings")
-        .insert({
-          id: newLead.id,
-          name: newLead.name,
-          work_email: newLead.work_email,
-          company_name: newLead.company_name,
-          country: newLead.country,
-          team_size: newLead.team_size,
-          message: newLead.message,
-          slot_start: newLead.slot_start,
-          slot_end: newLead.slot_end,
-          meet_url: newLead.meet_url,
-          stage: newLead.stage,
-          deal_value: newLead.deal_value,
-          lead_score: newLead.lead_score,
-          lead_notes: newLead.lead_notes,
-          assigned_to: newLead.assigned_to,
-        })
-        .select()
-        .single();
+      try {
+        // First try full insert with all CRM columns
+        let { data, error } = await supabase
+          .from("bookings")
+          .insert({
+            id: newLead.id,
+            name: newLead.name,
+            work_email: newLead.work_email,
+            company_name: newLead.company_name,
+            country: newLead.country,
+            team_size: newLead.team_size,
+            message: newLead.message,
+            slot_start: newLead.slot_start,
+            slot_end: newLead.slot_end,
+            meet_url: newLead.meet_url,
+            stage: newLead.stage,
+            deal_value: newLead.deal_value,
+            lead_score: newLead.lead_score,
+            lead_notes: newLead.lead_notes,
+            assigned_to: newLead.assigned_to,
+          })
+          .select()
+          .single();
 
-      if (!error && data) {
-        log("info", { message: "Custom lead created in Supabase", context: { id: data.id, name: data.name } });
-      } else if (error) {
-        log("warn", { message: "Supabase custom lead insert warning, continuing with in-memory lead", error });
+        // If insert failed (e.g. missing columns before migration or slot collision), retry with base schema
+        if (error) {
+          log("warn", { message: "Supabase full lead insert failed, attempting base column fallback", error });
+          
+          // If unique slot_start collision, adjust slot_start slightly
+          if (error.message?.includes("slot_start") || error.code === "23505") {
+            const adjustedStart = new Date(Date.now() + Math.floor(Math.random() * 60000)).toISOString();
+            newLead.slot_start = adjustedStart;
+            newLead.slot_end = new Date(new Date(adjustedStart).getTime() + 30 * 60000).toISOString();
+          }
+
+          const baseRes = await supabase
+            .from("bookings")
+            .insert({
+              id: newLead.id,
+              name: newLead.name,
+              work_email: newLead.work_email,
+              company_name: newLead.company_name,
+              country: newLead.country,
+              team_size: newLead.team_size,
+              message: newLead.message,
+              slot_start: newLead.slot_start,
+              slot_end: newLead.slot_end,
+            })
+            .select()
+            .single();
+
+          data = baseRes.data;
+          error = baseRes.error;
+        }
+
+        if (!error && data) {
+          addInMemoryLead({
+            ...newLead,
+            id: data.id,
+          });
+          log("info", { message: "Custom lead created in Supabase", context: { id: data.id, name: data.name } });
+        } else if (error) {
+          log("warn", { message: "Supabase custom lead insert notice, continuing with in-memory lead", error });
+        }
+      } catch (dbErr) {
+        log("warn", { message: "Supabase custom lead insert exception", error: dbErr });
       }
     }
 
-    // Optional Brevo welcome / discovery dispatch
+    // Optional Brevo welcome / discovery dispatch with custom subject/content
     if (send_welcome_email) {
       try {
-        const { sendBrevoEmail, EMAIL_TEMPLATES } = await import("@/lib/emailBrevo");
-        const tpl = EMAIL_TEMPLATES.find((t) => t.id === "discovery_followup") || EMAIL_TEMPLATES[0];
+        const { sendBrevoEmail, EMAIL_TEMPLATES, wrapInEmailTemplate } = await import("@/lib/emailBrevo");
+        const tpl = EMAIL_TEMPLATES.find((t) => t.id === email_template_id) || EMAIL_TEMPLATES[0];
         
-        const html = tpl.buildHtml({
-          clientName: newLead.name,
-          companyName: newLead.company_name,
-          customNotes: newLead.lead_notes || newLead.message || undefined,
-        });
+        const firstName = newLead.name.split(" ")[0] || "there";
+        const subject =
+          custom_email_subject.trim() ||
+          tpl.defaultSubject
+            .replace(/\{\{company_name\}\}/g, newLead.company_name)
+            .replace(/\{\{first_name\}\}/g, firstName);
+
+        let html = "";
+        if (custom_email_body && custom_email_body.trim().length > 0) {
+          const formattedBody = formatEmailBodyToHtml(
+            custom_email_body
+              .replace(/\{\{company_name\}\}/g, newLead.company_name)
+              .replace(/\{\{first_name\}\}/g, firstName)
+          );
+          html = wrapInEmailTemplate(subject, formattedBody);
+        } else {
+          html = tpl.buildHtml({
+            clientName: newLead.name,
+            companyName: newLead.company_name,
+            customNotes: newLead.lead_notes || newLead.message || undefined,
+          });
+        }
 
         await sendBrevoEmail({
           to: [{ email: newLead.work_email, name: newLead.name }],
-          subject: tpl.defaultSubject
-            .replace("{{company_name}}", newLead.company_name)
-            .replace("{{first_name}}", newLead.name.split(" ")[0]),
+          subject,
           htmlContent: html,
         });
+        log("info", { message: "Custom lead welcome email dispatched", context: { email: newLead.work_email, subject } });
       } catch (emailErr) {
         log("warn", { message: "Brevo welcome email error during lead creation", error: emailErr });
       }
@@ -198,4 +293,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
+
 
