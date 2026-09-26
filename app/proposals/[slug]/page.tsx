@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { DEMO_PROPOSAL, Proposal } from "@/lib/content/proposals";
 import { ProposalView } from "@/components/ProposalView";
+import { verifyAdminSessionToken, ADMIN_COOKIE_NAME } from "@/lib/adminAuth";
+
+const SHARED_STATUSES = ["sent", "accepted", "completed", "active"];
 
 export async function generateMetadata({
   params,
@@ -29,6 +33,10 @@ export async function generateMetadata({
 }
 
 async function getProposal(slug: string): Promise<Proposal | null> {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
+  const isAdmin = sessionToken ? await verifyAdminSessionToken(sessionToken) : false;
+
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
@@ -39,7 +47,10 @@ async function getProposal(slug: string): Promise<Proposal | null> {
         .single();
 
       if (!error && data) {
-        return data as Proposal;
+        if (SHARED_STATUSES.includes(data.status) || isAdmin) {
+          return data as Proposal;
+        }
+        return null;
       }
     } catch {
       // Fallback
@@ -50,7 +61,10 @@ async function getProposal(slug: string): Promise<Proposal | null> {
   const { findInMemoryProposal } = await import("@/lib/content/proposals");
   const inMem = findInMemoryProposal(slug);
   if (inMem) {
-    return inMem;
+    if (SHARED_STATUSES.includes(inMem.status) || isAdmin) {
+      return inMem;
+    }
+    return null;
   }
 
   if (slug === DEMO_PROPOSAL.slug) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
+import { isAdminAuthenticated } from "@/lib/adminAuth";
 import {
   DEMO_PROPOSAL,
   Proposal,
@@ -7,6 +8,8 @@ import {
   addInMemoryProposal,
 } from "@/lib/content/proposals";
 import { log } from "@/lib/logger";
+
+const SHARED_STATUSES = ["sent", "accepted", "completed", "active"];
 
 export async function GET(
   request: Request,
@@ -18,7 +21,9 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Missing proposal slug" }, { status: 400 });
   }
 
+  const isAuth = await isAdminAuthenticated(request);
   const supabase = getSupabaseServerClient();
+
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -28,8 +33,11 @@ export async function GET(
         .single();
 
       if (!error && data) {
-        addInMemoryProposal(data);
-        return NextResponse.json({ ok: true, proposal: data });
+        if (SHARED_STATUSES.includes(data.status) || isAuth) {
+          addInMemoryProposal(data);
+          return NextResponse.json({ ok: true, proposal: data });
+        }
+        return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
       }
     } catch (err) {
       log("warn", { message: "Supabase proposal lookup notice", error: err });
@@ -39,7 +47,10 @@ export async function GET(
   // Check in-memory store
   const local = findInMemoryProposal(slug);
   if (local) {
-    return NextResponse.json({ ok: true, proposal: local });
+    if (SHARED_STATUSES.includes(local.status) || isAuth) {
+      return NextResponse.json({ ok: true, proposal: local });
+    }
+    return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
   }
 
   // Fallback demo matching

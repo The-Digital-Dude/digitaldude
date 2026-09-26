@@ -297,7 +297,7 @@ export function ContactForm() {
         firstName: data.firstName || name.split(" ")[0],
         slotStart: data.slotStart || selectedSlot,
         meetUrl: data.meetUrl,
-        proposalSlug: data.proposalSlug || "TDD-SPEC-DEMO-2026",
+        proposalSlug: data.proposalSlug || null,
       });
       setStatus("success");
       setCurrentStep(4);

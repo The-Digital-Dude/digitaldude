@@ -96,9 +96,6 @@ export async function POST(request: Request) {
     updated_at: new Date().toISOString(),
   };
 
-  // Add to in-memory store
-  addInMemoryProposal(newProposal);
-
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
@@ -108,17 +105,23 @@ export async function POST(request: Request) {
         .select()
         .single();
 
-      if (!error && data) {
+      if (error) {
+        log("error", { message: "Supabase insert error on proposal", error });
+        return NextResponse.json({ ok: false, error: error.message || "Failed to create proposal in database." }, { status: 500 });
+      }
+
+      if (data) {
         addInMemoryProposal(data);
         return NextResponse.json({ ok: true, proposal: data });
-      } else if (error) {
-        log("warn", { message: "Supabase insert notice on proposal", error });
       }
     } catch (err) {
-      log("warn", { message: "Failed inserting proposal to Supabase", error: err });
+      log("error", { message: "Failed inserting proposal to Supabase", error: err });
+      return NextResponse.json({ ok: false, error: "Database exception while creating proposal." }, { status: 500 });
     }
   }
 
+  // Local development fallback
+  addInMemoryProposal(newProposal);
   return NextResponse.json({ ok: true, proposal: newProposal });
 }
 

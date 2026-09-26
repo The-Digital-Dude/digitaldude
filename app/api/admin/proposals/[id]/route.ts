@@ -58,9 +58,6 @@ export async function PUT(
   const { id } = await params;
   const body = await request.json();
 
-  // Update in-memory store
-  const updatedLocal = updateInMemoryProposal(id, body);
-
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
@@ -75,15 +72,26 @@ export async function PUT(
         : supabase.from("proposals").update(updatePayload).eq("slug", id).select().single();
 
       const { data, error } = await query;
-      if (!error && data) {
+      if (error) {
+        log("error", { message: "Supabase proposal update error", error });
+        return NextResponse.json({ ok: false, error: error.message || "Failed to update proposal in database." }, { status: 500 });
+      }
+
+      if (data) {
         addInMemoryProposal(data);
         return NextResponse.json({ ok: true, proposal: data });
-      } else if (error) {
-        log("warn", { message: "Supabase update notice on proposal", error });
       }
+
+      return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
     } catch (err) {
-      log("warn", { message: "Failed updating proposal in Supabase", error: err });
+      log("error", { message: "Failed updating proposal in Supabase", error: err });
+      return NextResponse.json({ ok: false, error: "Database exception while updating proposal." }, { status: 500 });
     }
+  }
+
+  const updatedLocal = updateInMemoryProposal(id, body);
+  if (!updatedLocal) {
+    return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
   }
 
   return NextResponse.json({
@@ -102,7 +110,6 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  deleteInMemoryProposal(id);
 
   const supabase = getSupabaseServerClient();
   if (supabase) {
@@ -112,12 +119,21 @@ export async function DELETE(
         ? supabase.from("proposals").delete().eq("id", id)
         : supabase.from("proposals").delete().eq("slug", id);
 
-      await query;
+      const { error } = await query;
+      if (error) {
+        log("error", { message: "Supabase proposal delete error", error });
+        return NextResponse.json({ ok: false, error: error.message || "Failed to delete proposal in database." }, { status: 500 });
+      }
+
+      deleteInMemoryProposal(id);
+      return NextResponse.json({ ok: true });
     } catch (err) {
-      log("warn", { message: "Supabase proposal delete notice", error: err });
+      log("error", { message: "Supabase proposal delete exception", error: err });
+      return NextResponse.json({ ok: false, error: "Database exception while deleting proposal." }, { status: 500 });
     }
   }
 
+  deleteInMemoryProposal(id);
   return NextResponse.json({ ok: true });
 }
 
