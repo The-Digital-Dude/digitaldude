@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/utils";
 import { caseStudies } from "@/lib/content/caseStudies";
 import { services } from "@/lib/content/services";
+import { industries } from "@/lib/content/industries";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
@@ -31,5 +32,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...caseStudyPages, ...servicePages];
+  const industryPages: MetadataRoute.Sitemap = industries.map((i) => ({
+    url: `${SITE_URL}/industries/${i.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...caseStudyPages, ...servicePages, ...industryPages];
 }

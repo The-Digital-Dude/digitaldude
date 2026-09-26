@@ -109,6 +109,41 @@ export const seo: Record<string, SeoEntry> = {
     title: "Terms and Conditions | The Digital Dude",
     description: "The terms that apply when you use The Digital Dude's website and book a call.",
   },
+  "industries/property": {
+    title: "Custom CRM for Property & Real Estate | The Digital Dude",
+    description:
+      "Custom CRMs for property and real estate businesses managing agencies, property managers and technicians. 4,000+ rentals managed on one platform.",
+  },
+  "industries/travel": {
+    title: "Custom CRM for Travel Agencies | The Digital Dude",
+    description:
+      "Custom CRMs for travel and ticketing agencies bringing WhatsApp, Facebook, phone and walk-in leads into one pipeline.",
+  },
+  "industries/home-services": {
+    title: "Booking & Job Systems for Home Services | The Digital Dude",
+    description:
+      "Booking, job and payment systems for cleaning and home service businesses, with upfront payment and photo proof on every job.",
+  },
+  "industries/logistics": {
+    title: "Coordination Systems for Logistics | The Digital Dude",
+    description:
+      "Custom coordination systems for transport and logistics teams. 40% faster response coordination for one of our clients.",
+  },
+  "industries/recruitment": {
+    title: "Custom CRM for Recruitment Agencies | The Digital Dude",
+    description:
+      "Recruitment CRMs with real-time candidate portals, document tracking and automated status updates.",
+  },
+  "industries/education": {
+    title: "AI Systems for Tutoring & Education | The Digital Dude",
+    description:
+      "AI-powered platforms for tutoring and education businesses: automatic quiz generation, instant grading and parent portals.",
+  },
+  "industries/community": {
+    title: "Platforms for Community & Matchmaking | The Digital Dude",
+    description:
+      "Trust-first platforms for community and matchmaking businesses with AI matching, tiered verification and subscription billing.",
+  },
 };
 
 export function buildMetadata(key: keyof typeof seo, path: string): Metadata {

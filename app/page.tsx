@@ -54,14 +54,14 @@ const howWeWorkIcons = [Search, PenTool, Code2, CheckCircle2, Rocket, PackageChe
 
 const featuredSlugs = ["property-compliance-crm", "airline-ticketing-crm", "cleaning-marketplace"];
 
-const industries = [
-  "Property and real estate",
-  "Travel and tourism",
-  "Recruitment and staffing",
-  "Cleaning and home services",
-  "Transport and logistics",
-  "Education",
-  "Community platforms",
+const industryLinks = [
+  { label: "Property and real estate", slug: "property" },
+  { label: "Travel and tourism", slug: "travel" },
+  { label: "Recruitment and staffing", slug: "recruitment" },
+  { label: "Cleaning and home services", slug: "home-services" },
+  { label: "Transport and logistics", slug: "logistics" },
+  { label: "Education", slug: "education" },
+  { label: "Community platforms", slug: "community" },
 ];
 
 const howWeWorkSteps = ["Discovery", "Design", "Development", "Testing", "Launch", "Handover"];
@@ -232,13 +232,14 @@ export default function HomePage() {
             Built for businesses with real operations
           </h2>
           <div className="mx-auto mt-10 flex max-w-3xl flex-wrap justify-center gap-3">
-            {industries.map((industry) => (
-              <span
-                key={industry}
-                className="rounded-full border border-white/20 px-4 py-2 text-sm"
+            {industryLinks.map((industry) => (
+              <Link
+                key={industry.slug}
+                href={`/industries/${industry.slug}`}
+                className="rounded-full border border-white/20 px-4 py-2 text-sm transition hover:border-white/60 hover:bg-white/10"
               >
-                {industry}
-              </span>
+                {industry.label}
+              </Link>
             ))}
           </div>
           <p className="mx-auto mt-8 max-w-xl text-white/70">
