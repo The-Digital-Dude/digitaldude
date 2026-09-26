@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
+import { caseStudies as fallbackCaseStudies } from "@/lib/content/caseStudies";
 
 function slugify(text: string): string {
   return text
@@ -19,25 +20,46 @@ export async function GET(request: Request) {
   }
 
   const supabase = getSupabaseServerClient();
-  if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Database not connected" }, { status: 503 });
-  }
+  
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("case_studies")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-  try {
-    const { data, error } = await supabase
-      .from("case_studies")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      log("error", { message: "Failed to fetch case studies in admin", error });
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+      if (!error && data && data.length > 0) {
+        return NextResponse.json({ ok: true, caseStudies: data });
+      }
+    } catch (err) {
+      log("warn", { message: "Supabase case studies query fallback", error: err });
     }
-
-    return NextResponse.json({ ok: true, caseStudies: data || [] });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }
+
+  // Fallback to the 7 production case studies so they are always manageable in Admin
+  const formattedFallbacks = fallbackCaseStudies.map((c) => ({
+    id: c.slug,
+    slug: c.slug,
+    title: c.title,
+    industry: c.industry,
+    tag: c.tag,
+    summary: c.summary,
+    status: c.status,
+    image: c.image,
+    image_alt: c.imageAlt,
+    headline: c.headline,
+    page_summary: c.pageSummary,
+    stats: c.stats,
+    challenge: c.challenge,
+    what_we_built: c.whatWeBuilt,
+    what_changed: c.whatChanged,
+    what_changed_label: c.whatChangedLabel,
+    built_with: c.builtWith,
+    related: c.related,
+    created_at: new Date().toISOString(),
+  }));
+
+  return NextResponse.json({ ok: true, caseStudies: formattedFallbacks });
 }
 
 export async function POST(request: Request) {

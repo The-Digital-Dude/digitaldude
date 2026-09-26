@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
+import { caseStudies as fallbackCaseStudies } from "@/lib/content/caseStudies";
 
 function slugify(text: string): string {
   return text
@@ -23,19 +24,56 @@ export async function GET(
 
   const { id } = await params;
   const supabase = getSupabaseServerClient();
-  if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Database not connected" }, { status: 503 });
+
+  if (supabase) {
+    try {
+      // Check by UUID or by slug
+      let query = supabase.from("case_studies").select("*");
+      if (id.includes("-") && id.length > 30) {
+        query = query.eq("id", id);
+      } else {
+        query = query.eq("slug", id);
+      }
+
+      const { data, error } = await query.single();
+      if (!error && data) {
+        return NextResponse.json({ ok: true, caseStudy: data });
+      }
+    } catch {
+      // Fallback
+    }
   }
 
-  try {
-    const { data, error } = await supabase.from("case_studies").select("*").eq("id", id).single();
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 404 });
-    }
-    return NextResponse.json({ ok: true, caseStudy: data });
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+  // Check fallback list
+  const fallback = fallbackCaseStudies.find((c) => c.slug === id || `case_study_${c.slug}` === id);
+  if (fallback) {
+    return NextResponse.json({
+      ok: true,
+      caseStudy: {
+        id: fallback.slug,
+        slug: fallback.slug,
+        title: fallback.title,
+        industry: fallback.industry,
+        tag: fallback.tag,
+        summary: fallback.summary,
+        status: fallback.status,
+        image: fallback.image,
+        image_alt: fallback.imageAlt,
+        headline: fallback.headline,
+        page_summary: fallback.pageSummary,
+        stats: fallback.stats,
+        challenge: fallback.challenge,
+        what_we_built: fallback.whatWeBuilt,
+        what_changed: fallback.whatChanged,
+        what_changed_label: fallback.whatChangedLabel,
+        built_with: fallback.builtWith,
+        related: fallback.related,
+        created_at: new Date().toISOString(),
+      },
+    });
   }
+
+  return NextResponse.json({ ok: false, error: "Case study not found" }, { status: 404 });
 }
 
 export async function PUT(
@@ -75,48 +113,55 @@ export async function PUT(
       related,
     } = body;
 
-    const updateData: Record<string, unknown> = {
+    const targetSlug = customSlug ? slugify(customSlug) : (id.includes("-") && id.length > 30 ? undefined : slugify(id));
+
+    const upsertData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
-    if (title !== undefined) updateData.title = title;
-    if (customSlug !== undefined) updateData.slug = slugify(customSlug);
-    if (industry !== undefined) updateData.industry = industry;
-    if (tag !== undefined) updateData.tag = tag;
-    if (summary !== undefined) updateData.summary = summary;
-    if (status !== undefined) updateData.status = status;
-    if (image !== undefined) updateData.image = image;
-    if (image_alt !== undefined) updateData.image_alt = image_alt;
-    if (headline !== undefined) updateData.headline = headline;
-    if (page_summary !== undefined) updateData.page_summary = page_summary;
-    if (stats !== undefined) updateData.stats = Array.isArray(stats) ? stats : [];
-    if (challenge !== undefined) updateData.challenge = challenge;
-    if (what_we_built !== undefined) updateData.what_we_built = Array.isArray(what_we_built) ? what_we_built : [];
-    if (what_changed !== undefined) updateData.what_changed = what_changed;
-    if (what_changed_label !== undefined) updateData.what_changed_label = what_changed_label;
-    if (built_with !== undefined) updateData.built_with = built_with;
-    if (related !== undefined) updateData.related = Array.isArray(related) ? related : [];
+    if (title !== undefined) upsertData.title = title;
+    if (targetSlug !== undefined) upsertData.slug = targetSlug;
+    if (industry !== undefined) upsertData.industry = industry;
+    if (tag !== undefined) upsertData.tag = tag;
+    if (summary !== undefined) upsertData.summary = summary;
+    if (status !== undefined) upsertData.status = status;
+    if (image !== undefined) upsertData.image = image;
+    if (image_alt !== undefined) upsertData.image_alt = image_alt;
+    if (headline !== undefined) upsertData.headline = headline;
+    if (page_summary !== undefined) upsertData.page_summary = page_summary;
+    if (stats !== undefined) upsertData.stats = Array.isArray(stats) ? stats : [];
+    if (challenge !== undefined) upsertData.challenge = challenge;
+    if (what_we_built !== undefined) upsertData.what_we_built = Array.isArray(what_we_built) ? what_we_built : [];
+    if (what_changed !== undefined) upsertData.what_changed = what_changed;
+    if (what_changed_label !== undefined) upsertData.what_changed_label = what_changed_label;
+    if (built_with !== undefined) upsertData.built_with = built_with;
+    if (related !== undefined) upsertData.related = Array.isArray(related) ? related : [];
 
-    const { data, error } = await supabase
-      .from("case_studies")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single();
+    let result;
+    if (id.includes("-") && id.length > 30) {
+      // It is a UUID
+      result = await supabase
+        .from("case_studies")
+        .update(upsertData)
+        .eq("id", id)
+        .select()
+        .single();
+    } else {
+      // It is a slug (from fallback seed) -> upsert by slug
+      result = await supabase
+        .from("case_studies")
+        .upsert({ ...upsertData, slug: targetSlug || id }, { onConflict: "slug" })
+        .select()
+        .single();
+    }
 
-    if (error) {
-      if (error.code === "23505") {
-        return NextResponse.json(
-          { ok: false, error: "A case study with this URL slug already exists." },
-          { status: 409 }
-        );
-      }
-      log("error", { message: "Failed to update case study", error, context: { id } });
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    if (result.error) {
+      log("error", { message: "Failed to update/upsert case study", error: result.error, context: { id } });
+      return NextResponse.json({ ok: false, error: result.error.message }, { status: 500 });
     }
 
     log("info", { message: "Case study updated successfully", context: { id } });
-    return NextResponse.json({ ok: true, caseStudy: data });
+    return NextResponse.json({ ok: true, caseStudy: result.data });
   } catch (error) {
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }
@@ -138,7 +183,14 @@ export async function DELETE(
   }
 
   try {
-    const { error } = await supabase.from("case_studies").delete().eq("id", id);
+    let query = supabase.from("case_studies").delete();
+    if (id.includes("-") && id.length > 30) {
+      query = query.eq("id", id);
+    } else {
+      query = query.eq("slug", id);
+    }
+
+    const { error } = await query;
     if (error) {
       log("error", { message: "Failed to delete case study", error, context: { id } });
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });

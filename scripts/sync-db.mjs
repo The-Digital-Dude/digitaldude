@@ -146,7 +146,7 @@ Building a successful marketplace requires synchronizing three distinct user exp
     }
   }
 
-  // 3. Seed Case Studies
+  // 3. Seed All 7 Production Case Studies
   const seedCaseStudies = [
     {
       slug: "property-compliance-crm",
@@ -156,57 +156,170 @@ Building a successful marketplace requires synchronizing three distinct user exp
       summary: "Five role-based portals managing 4,000+ rentals across 30+ agencies, 4x faster than before",
       status: "Live",
       image: "/images/case-studies/property-compliance.svg",
-      image_alt: "Property compliance CRM interface managing smoke alarm, gas, and electrical safety inspections across Australian rental properties",
-      headline: "From spreadsheet chaos to four times faster turnarounds",
-      page_summary: "A bespoke multi-portal CRM connecting real estate agencies, field inspectors, tenants, landlords and ops team — currently managing compliance across 4,000+ Australian rental properties.",
-      stats: [
-        "4,000+ rental properties under management",
-        "30+ real estate agencies active",
-        "4x faster job completion turnaround",
-        "Zero missed compliance deadlines since launch"
-      ],
-      challenge: "A growing Australian property compliance company was running inspections, technician dispatch, agency communications and certificate generation through shared spreadsheets, email chains and WhatsApp groups. As they scaled past 1,000 properties, jobs slipped, certificates took days to issue, and operations spent hours every day answering 'what is the status of property X?' from agency property managers.",
+      image_alt: "Property compliance CRM dashboard showing 4,000+ rentals managed across 30+ agencies",
+      headline: "A compliance CRM now running 4,000+ rentals across 30+ agencies",
+      page_summary: "One platform connecting agencies, property managers, technicians and the internal team, replacing spreadsheets and email threads.",
+      stats: ["30+ agencies", "4,000+ rentals managed", "4x faster than the previous system", "5 role-based portals"],
+      challenge: "The business was coordinating agencies, property managers, technicians and its own team across separate tools. Jobs slipped between scheduled, overdue and completed with no single view. Quotes, invoices and technician payments lived in spreadsheets and email, and management could not see performance across regions.",
       what_we_built: [
-        "Agency Portal: Real estate property managers log in, submit new properties, view live compliance statuses, and download safety certificates on demand.",
-        "Field Inspector Mobile App: Inspectors view their daily route, complete digital inspection checklists, take mandatory photo proof, and collect digital signatures on-site.",
-        "Operations Dashboard: Central dispatcher assigns jobs with location-based grouping, monitors delayed tasks, and reviews inspector submissions in real time.",
-        "Automated Certificate & Invoicing Engine: Safety certificates and invoices are generated automatically as soon as an inspection is marked complete.",
-        "Tenant & Landlord Notification Engine: Automated SMS and email booking reminders with self-service reschedule links to eliminate missed technician visits."
+        "Five separate portals for admin, team members, agencies, property managers and technicians, each showing only what that person needs",
+        "Full job tracking from creation to payment, with dedicated views for scheduled, overdue and completed work",
+        "Quotes, invoices and technician payments linked directly to each job",
+        "Lead management to bring in and convert new agencies and property managers",
+        "A regional dashboard and reports for management, plus a public marketing website"
       ],
-      what_changed: "The company expanded from managing 800 properties to over 4,000 across 30+ agencies without increasing their central admin headcount. Job turnaround dropped from 8 days to under 48 hours, and safety certificates are delivered within seconds of job completion.",
+      what_changed: "Operations now run through one system instead of spreadsheets and email. The platform manages 4,000+ rentals for 30+ agencies and runs about 4x faster than the system it replaced. Overdue jobs are visible the moment they slip.",
       what_changed_label: "What changed",
-      built_with: "Next.js 16, TypeScript, Supabase PostgreSQL with RLS, Tailwind CSS, Google Maps Geocoding API, Brevo Transactional Email & SMS",
-      related: ["cleaning-marketplace", "logistics-platform"]
+      built_with: "React, TypeScript, Node.js, relational database, cloud hosting",
+      related: ["airline-ticketing-crm", "logistics-platform"]
     },
     {
       slug: "airline-ticketing-crm",
       industry: "Travel",
-      tag: "Travel & Ticketing · Australia",
-      title: "Travel agency CRM",
-      summary: "A multi-channel CRM for an Australian ticketing agency bringing WhatsApp, Facebook, phone and walk-in leads into one place",
+      tag: "Travel · Australia",
+      title: "Airline ticketing CRM",
+      summary: "Every lead from WhatsApp, Facebook, phone and walk-ins in one place, with a live KPI dashboard",
       status: "Live",
-      image: "/images/case-studies/airline-ticketing.svg",
-      image_alt: "Travel agency ticketing CRM dashboard tracking agent response times, booking conversions, and GDS flight ticket issuance",
-      headline: "One dashboard for leads, quotes, bookings, and agent KPIs",
-      page_summary: "A centralized ticketing CRM engineered for an Australian travel agency processing high volumes of custom itinerary requests across WhatsApp, Facebook Messenger, phone, and walk-in leads.",
-      stats: [
-        "100% centralized lead capture from 4 channels",
-        "38% increase in lead-to-booking conversion rate",
-        "Average quote turnaround reduced from 4 hours to 18 minutes",
-        "Complete live visibility over agent sales performance"
-      ],
-      challenge: "An Australian travel agency had 15 agents handling hundreds of flight quote requests across personal WhatsApp chats, Facebook pages, phone calls, and walk-in consultations. Enquiries frequently fell through the cracks, management had zero visibility into quote status or conversion rates, and duplicate quotes were repeatedly sent to the same client.",
+      image: "/images/case-studies/air-travel-crm.svg",
+      image_alt: "Airline ticketing CRM dashboard unifying WhatsApp, Facebook, phone and walk-in leads",
+      headline: "One CRM for every lead, from every channel",
+      page_summary: "A lead and customer management system for an airline ticketing agency, bringing WhatsApp, Facebook, phone and walk-in enquiries into one place.",
+      stats: ["4 lead channels in one system", "7 live KPIs", "Conversion tracking per agent", "In daily use"],
+      challenge: "Enquiries arrived through WhatsApp, Facebook, phone calls and walk-ins, with nowhere to manage them together. It was hard to tell who owned each lead, there was no live view of conversions or lost sales, and management could not see how each agent was performing.",
       what_we_built: [
-        "Omnichannel Lead Capture: Auto-ingests leads from web forms, WhatsApp Business API, Facebook Messenger webhooks, and phone call logs into a unified queue.",
-        "Rapid Itinerary & Quote Builder: Agents generate multi-leg flight comparisons, markup calculations, and client-ready branded PDF quotes in minutes.",
-        "Smart Lead Routing: Distributes inbound leads based on agent availability, destination expertise, and historical conversion speed.",
-        "GDS & Payment Tracking: Links PNR booking numbers to Stripe payment receipts and automated ticket issuance reminders.",
-        "Executive KPI Dashboard: Live leaderboards tracking agent response times, active quotes, win rates, and daily gross revenue."
+        "Lead capture for WhatsApp, Facebook and manual entry, organised without duplicates",
+        "A booking pipeline matched to how agents sell: in progress, itinerary sent, payment made",
+        "A dashboard showing total leads, follow-ups, conversions, lost sales and progress against the monthly target, for any date range",
+        "My leads and my follow-ups views so every agent knows what to do next",
+        "Agent performance showing leads collected, conversions and conversion rate, plus customer history and quick search"
       ],
-      what_changed: "Lead response times dropped from hours to minutes. Unassigned leads are automatically escalated if not contacted within 15 minutes, boosting overall booking conversion by 38%. Management can view real-time company-wide revenue metrics instantly from any device.",
+      what_changed: "The agency has one source of truth for every lead instead of scattered chats and spreadsheets. Management sees performance against target in real time, and every agent owns their own pipeline.",
       what_changed_label: "What changed",
-      built_with: "Next.js, React, Node.js, PostgreSQL, WhatsApp Business Cloud API, Tailwind CSS, Stripe Payments",
+      built_with: "React, TypeScript, Vite, REST APIs",
       related: ["property-compliance-crm", "recruitment-crm"]
+    },
+    {
+      slug: "matrimony-saas-platform",
+      industry: "Community",
+      tag: "Community · Australia",
+      title: "Premium matrimony SaaS",
+      summary: "AI matchmaking, 5-tier identity and police check verification, and subscription billing",
+      status: "Live",
+      image: "/images/case-studies/matrimony-saas.svg",
+      image_alt: "Matrimony SaaS platform dashboard showing AI matchmaking and 5-tier verification",
+      headline: "A matchmaking platform built on trust",
+      page_summary: "A premium subscription platform for a community matchmaking service, combining AI matching with strict identity verification.",
+      stats: ["AI matchmaking engine", "5-tier verification", "Subscription billing", "Live in production"],
+      challenge: "In matchmaking, trust is the product. The client needed members to feel safe that every profile was real, while still making it easy to find a good match and to charge for premium access.",
+      what_we_built: [
+        "An AI matchmaking engine that suggests compatible members",
+        "Five levels of verification, up to identity and police checks",
+        "Subscription plans with recurring billing via Stripe",
+        "Private messaging between members with photo privacy controls",
+        "Community rooms for group conversation"
+      ],
+      what_changed: "The community runs on one platform that verifies members, suggests matches and handles payments, giving members confidence in who they are talking to.",
+      what_changed_label: "What changed",
+      built_with: "Next.js 16, TypeScript, Supabase PostgreSQL, Stripe Billing",
+      related: ["ai-tutoring-platform", "recruitment-crm"]
+    },
+    {
+      slug: "cleaning-marketplace",
+      industry: "Home services",
+      tag: "Home services",
+      title: "Cleaning marketplace",
+      summary: "Customer app, cleaner app and admin CRM with upfront payment and photo proof",
+      status: "Delivered",
+      image: "/images/case-studies/cleaning-marketplace.svg",
+      image_alt: "Cleaning marketplace apps showing customer booking, cleaner job flow and admin CRM",
+      headline: "A three-app platform that runs a cleaning business end to end",
+      page_summary: "A customer booking app, a cleaner mobile app and an admin CRM, connected by one system with upfront payment and photo proof on every job.",
+      stats: ["3 connected apps", "Payment before every job", "Before and after photos", "4 user roles"],
+      challenge: "Bookings came in by phone and message, payments were chased after the job, and there was no proof of work when a customer complained. More cleaners meant more admin, and commission was tracked by hand.",
+      what_we_built: [
+        "Customer app to choose a service, see the price, pay upfront and track the job",
+        "Cleaner app to accept jobs, check in, upload before and after photos and mark jobs complete",
+        "Admin CRM to approve cleaners, assign jobs, and track revenue, commission and payouts",
+        "Automatic notifications at booking, assignment and completion, with invoice and photos sent to the customer",
+        "A full history for every job, plus reports on revenue, job volume and cleaner performance"
+      ],
+      what_changed: "Payment is collected before work starts, every job has photo evidence, and new cleaners and areas can be added without adding admin staff.",
+      what_changed_label: "What it makes possible",
+      built_with: "Mobile apps, REST API, Stripe payments, cloud image storage",
+      related: ["logistics-platform", "recruitment-crm"]
+    },
+    {
+      slug: "logistics-platform",
+      industry: "Logistics",
+      tag: "Logistics",
+      title: "Logistics coordination platform",
+      summary: "Mobile-first breakdown management for drivers and dispatch, 40% faster response coordination",
+      status: "Live",
+      image: "/images/case-studies/truck-breakdown.svg",
+      image_alt: "Logistics coordination platform showing live breakdown incidents and driver status",
+      headline: "Breakdowns handled in minutes, not phone calls",
+      page_summary: "A mobile-first platform that connects drivers and dispatch the moment something goes wrong on the road.",
+      stats: ["40% faster response coordination", "Mobile-first PWA", "Driver and admin apps", "Live in production"],
+      challenge: "When a truck broke down, coordination happened over phone calls and messages. Dispatch lost time finding out where the driver was, what had happened and who could help.",
+      what_we_built: [
+        "A mobile app for drivers to report a breakdown with the details dispatch needs",
+        "An admin view showing every active incident and its status",
+        "Coordination tools so admins can assign help and keep drivers updated"
+      ],
+      what_changed: "Response coordination improved by 40%, and the team has one place to see every incident instead of chasing calls.",
+      what_changed_label: "What changed",
+      built_with: "Next.js 16, TypeScript, Tailwind CSS, Google Maps Geocoding",
+      related: ["property-compliance-crm", "cleaning-marketplace"]
+    },
+    {
+      slug: "recruitment-crm",
+      industry: "Recruitment",
+      tag: "Recruitment · Staffing",
+      title: "Recruitment CRM",
+      summary: "Real-time candidate portal, document tracking and automated status updates",
+      status: "Delivered",
+      image: "/images/case-studies/recruitment-crm.svg",
+      image_alt: "Recruitment CRM dashboard showing candidate pipeline and document tracking",
+      headline: "Every candidate, document and status update in one place",
+      page_summary: "A recruitment system with a real-time candidate portal, covering everything from application to post-placement tracking.",
+      stats: ["Real-time candidate portal", "Document tracking", "Automated status messages", "Role-based access"],
+      challenge: "Recruiters were juggling candidate documents, status updates and communication across email, spreadsheets and WhatsApp. Candidates kept asking for updates, and tracking people after placement was almost impossible.",
+      what_we_built: [
+        "A candidate website to apply, upload documents and see application status in real time",
+        "A CRM for admins and agents with role-based access, candidate filtering and interview approval",
+        "Document checks for visas, clearances and agreements",
+        "Automatic status updates by WhatsApp and email, plus an AI assistant for common candidate questions",
+        "Post-placement tracking of start dates, salary, leave and employment status"
+      ],
+      what_changed: "Candidates see where they stand without calling, agents spend less time on updates, and the business can track every placement long after the start date.",
+      what_changed_label: "What it makes possible",
+      built_with: "Next.js, Node.js, Supabase PostgreSQL, Twilio, OpenAI GPT API",
+      related: ["airline-ticketing-crm", "cleaning-marketplace"]
+    },
+    {
+      slug: "ai-tutoring-platform",
+      industry: "Education",
+      tag: "Education",
+      title: "AI tutoring platform",
+      summary: "AI-generated quizzes, automatic grading and a parent and student portal",
+      status: "Delivered",
+      image: "/images/case-studies/ai-education.svg",
+      image_alt: "AI tutoring platform dashboard showing quiz generation and student progress",
+      headline: "A tutoring platform where quizzes, marking and reports run themselves",
+      page_summary: "A student and parent portal with AI-generated quizzes, automatic grading and personalised feedback, plus an admin system for the tutoring centre.",
+      stats: ["AI quiz generation", "Instant grading", "Parent and student portal", "Subscription billing"],
+      challenge: "Tutors were spending hours every week writing quizzes, marking them and updating parents. Parents wanted more visibility, and the centre wanted to spot struggling students earlier.",
+      what_we_built: [
+        "AI-generated quizzes matched to each student subject and level, on a weekly, fortnightly or monthly cycle",
+        "Instant grading with feedback on strengths, weak spots and what to practise next",
+        "A portal where students and parents see results, reports, attendance and schedules",
+        "An admin dashboard for classes, student progress and at-risk alerts",
+        "Subscription billing and automatic reminders"
+      ],
+      what_changed: "Quizzes and progress reports go out without manual work, parents stay informed, and tutors can focus on teaching.",
+      what_changed_label: "What it makes possible",
+      built_with: "Next.js, Node.js, Supabase PostgreSQL, OpenAI GPT-4o, Stripe",
+      related: ["matrimony-saas-platform", "recruitment-crm"]
     }
   ];
 
