@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSupabaseServerClient } from '@/lib/supabaseClient';
+import { SITE_URL } from '@/lib/utils';
 import { Clock, ArrowLeft, Share2, Sparkles, Calendar, User, ArrowRight } from 'lucide-react';
 
 interface Props {
@@ -21,6 +22,8 @@ interface Article {
   published_at: string;
   updated_at?: string;
   author: string;
+  meta_title?: string;
+  meta_description?: string;
 }
 
 const fallbackArticles: Record<string, Article> = {
@@ -122,20 +125,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
+  const title = post.meta_title || `${post.title} | The Digital Dude`;
+  const description = post.meta_description || post.excerpt || `Read ${post.title} on The Digital Dude blog.`;
+  const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
+
   return {
-    title: `${post.title} | The Digital Dude`,
-    description: post.excerpt || `Read ${post.title} on The Digital Dude blog.`,
+    title,
+    description,
     openGraph: {
-      title: post.title,
-      description: post.excerpt,
-      url: `https://thedigitaldude.com/blog/${post.slug}`,
+      title,
+      description,
+      url: canonicalUrl,
       type: 'article',
       publishedTime: post.published_at,
+      modifiedTime: post.updated_at || post.published_at,
       authors: [post.author || 'The Digital Dude'],
-      images: post.cover_image ? [{ url: post.cover_image }] : [],
+      images: post.cover_image
+        ? [{ url: post.cover_image, alt: post.title }]
+        : [{ url: `${SITE_URL}/og-image.png`, alt: post.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: post.cover_image ? [post.cover_image] : [`${SITE_URL}/og-image.png`],
     },
     alternates: {
-      canonical: `https://thedigitaldude.com/blog/${post.slug}`,
+      canonical: canonicalUrl,
     },
   };
 }
@@ -148,32 +164,63 @@ export default async function BlogPostDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Schema.org Article Structured Data
+  const postUrl = `${SITE_URL}/blog/${post.slug}`;
+
+  // Schema.org BlogPosting & BreadcrumbList Structured Data
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: post.title,
-    description: post.excerpt,
-    image: post.cover_image ? [post.cover_image] : [],
-    datePublished: post.published_at,
-    dateModified: post.updated_at || post.published_at,
-    author: {
-      '@type': 'Organization',
-      name: post.author || 'The Digital Dude',
-      url: 'https://thedigitaldude.com',
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: 'The Digital Dude',
-      logo: {
-        '@type': 'ImageObject',
-        url: 'https://thedigitaldude.com/logo-full-color.png',
+    '@graph': [
+      {
+        '@type': 'BlogPosting',
+        '@id': `${postUrl}#article`,
+        isPartOf: {
+          '@type': 'WebPage',
+          '@id': postUrl,
+        },
+        headline: post.title,
+        description: post.meta_description || post.excerpt,
+        image: post.cover_image ? [post.cover_image] : [`${SITE_URL}/og-image.png`],
+        datePublished: post.published_at,
+        dateModified: post.updated_at || post.published_at,
+        author: {
+          '@type': 'Person',
+          name: post.author || 'The Digital Dude Team',
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: 'The Digital Dude',
+          url: SITE_URL,
+          logo: {
+            '@type': 'ImageObject',
+            url: `${SITE_URL}/logo-full-color.png`,
+          },
+        },
+        mainEntityOfPage: postUrl,
       },
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': `https://thedigitaldude.com/blog/${post.slug}`,
-    },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: SITE_URL,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Blog',
+            item: `${SITE_URL}/blog`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: post.title,
+            item: postUrl,
+          },
+        ],
+      },
+    ],
   };
 
   return (

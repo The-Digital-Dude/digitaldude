@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 
@@ -19,6 +20,7 @@ function readStoredConsent(): Consent {
 }
 
 export function CookieConsent() {
+  const pathname = usePathname();
   const [consent, setConsent] = useState<Consent>(null);
   const [ready, setReady] = useState(false);
 
@@ -26,6 +28,10 @@ export function CookieConsent() {
     setConsent(readStoredConsent());
     setReady(true);
   }, []);
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   function choose(value: "accepted" | "declined") {
     try {
