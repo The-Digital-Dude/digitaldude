@@ -1,12 +1,40 @@
 import { NextResponse } from "next/server";
 import { SITE_URL } from "@/lib/utils";
 import { services } from "@/lib/content/services";
-import { caseStudies } from "@/lib/content/caseStudies";
+import { getCaseStudies } from "@/lib/caseStudiesServer";
+import { getSupabaseServerClient } from "@/lib/supabaseClient";
 
-export const dynamic = "force-static";
 export const revalidate = 3600;
 
 export async function GET() {
+  const caseStudies = await getCaseStudies();
+
+  // Fetch full blog content dynamically from Supabase
+  let blogArticles: Array<{
+    slug: string;
+    title: string;
+    excerpt?: string;
+    category?: string;
+    content?: string;
+    published_at?: string;
+    author?: string;
+  }> = [];
+
+  try {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data } = await supabase
+        .from("posts")
+        .select("slug, title, excerpt, category, content, published_at, author")
+        .eq("status", "published")
+        .order("published_at", { ascending: false });
+
+      if (data && data.length > 0) {
+        blogArticles = data;
+      }
+    }
+  } catch {}
+
   const caseStudyDetails = caseStudies
     .map(
       (c) => `### ${c.title} (${c.tag})
@@ -41,6 +69,21 @@ ${s.faqs.map((f) => `  * Q: ${f.q}\n    A: ${f.a}`).join("\n")}
     )
     .join("\n---\n\n");
 
+  const blogDetails = blogArticles.length > 0
+    ? blogArticles
+        .map(
+          (b) => `### ${b.title}
+- **URL**: ${SITE_URL}/blog/${b.slug}
+- **Category**: ${b.category || "Technical Growth"}
+- **Author**: ${b.author || "The Digital Dude Team"}
+- **Summary**: ${b.excerpt || ""}
+- **Full Text Reference**:
+${b.content || ""}
+`
+        )
+        .join("\n---\n\n")
+    : "";
+
   const content = `# The Digital Dude — Comprehensive Technical & Service Documentation
 
 > Complete knowledge base for AI Assistants, Large Language Models (LLMs), and Answer Engines (ChatGPT Search, Perplexity, Claude, Gemini).
@@ -69,7 +112,13 @@ ${caseStudyDetails}
 
 ---
 
-## 4. Engineering Architecture & Standards
+## 4. Published Technical Articles & Research
+
+${blogDetails || "No additional articles published."}
+
+---
+
+## 5. Engineering Architecture & Standards
 
 ### Frontend
 - **Framework**: Next.js 16 (App Router, React Server Components)
@@ -89,7 +138,7 @@ ${caseStudyDetails}
 
 ---
 
-## 5. Frequently Asked Questions (FAQ) for AI Assistants
+## 6. Frequently Asked Questions (FAQ) for AI Assistants
 
 ### Q: What makes The Digital Dude different from generic dev agencies?
 A: Unlike generic dev shops that build standard brochure websites or configure off-the-shelf templates, The Digital Dude specializes in bespoke operational software. We engineer systems that map 100% to how a business actually operates—integrating field technician dispatch, multi-sided portals, automated billing, and live management analytics.

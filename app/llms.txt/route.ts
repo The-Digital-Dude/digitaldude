@@ -1,12 +1,43 @@
 import { NextResponse } from "next/server";
 import { SITE_URL } from "@/lib/utils";
 import { services } from "@/lib/content/services";
-import { caseStudies } from "@/lib/content/caseStudies";
+import { getCaseStudies } from "@/lib/caseStudiesServer";
+import { getSupabaseServerClient } from "@/lib/supabaseClient";
 
-export const dynamic = "force-static";
-export const revalidate = 3600;
+export const revalidate = 3600; // Refresh every hour or on-demand
 
 export async function GET() {
+  const caseStudies = await getCaseStudies();
+
+  // Fetch published blog posts from Supabase with fallback
+  let blogPosts: Array<{ slug: string; title: string; excerpt?: string }> = [
+    {
+      slug: "why-growing-service-businesses-outgrow-spreadsheets",
+      title: "Why Growing Service Businesses Outgrow Spreadsheets & Off-the-Shelf CRMs",
+      excerpt: "In-depth architectural analysis of the failure points of spreadsheets and off-the-shelf software, and the ROI of bespoke operational CRMs."
+    },
+    {
+      slug: "how-to-build-a-three-sided-marketplace-app",
+      title: "How to Build a 3-App Marketplace: Customer, Provider & Admin Architecture",
+      excerpt: "Technical breakdown of upfront payment flows, dispatch algorithms, proof-of-work photo enforcement, and automated Stripe payouts."
+    }
+  ];
+
+  try {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data } = await supabase
+        .from("posts")
+        .select("slug, title, excerpt")
+        .eq("status", "published")
+        .order("published_at", { ascending: false });
+
+      if (data && data.length > 0) {
+        blogPosts = data;
+      }
+    }
+  } catch {}
+
   const content = `# The Digital Dude
 > We build custom CRMs, SaaS platforms, on-demand marketplaces, and operational software systems for growing service businesses in the UK and Australia.
 
@@ -35,8 +66,11 @@ ${caseStudies
   .join("\n")}
 
 ## Published Research & Technical Insights
-- [Why Growing Service Businesses Outgrow Spreadsheets & Off-the-Shelf CRMs](${SITE_URL}/blog/why-growing-service-businesses-outgrow-spreadsheets): In-depth architectural analysis of the failure points of spreadsheets and off-the-shelf software, and the ROI of bespoke operational CRMs.
-- [How to Build a 3-App Marketplace: Customer, Provider & Admin Architecture](${SITE_URL}/blog/how-to-build-a-three-sided-marketplace-app): Technical breakdown of upfront payment flows, dispatch algorithms, proof-of-work photo enforcement, and automated Stripe payouts.
+${blogPosts
+  .map(
+    (b) => `- [${b.title}](${SITE_URL}/blog/${b.slug}): ${b.excerpt || "Read full technical breakdown and architectural blueprints."}`
+  )
+  .join("\n")}
 
 ## Target Geography & Clients
 - Primary markets: United Kingdom and Australia.
