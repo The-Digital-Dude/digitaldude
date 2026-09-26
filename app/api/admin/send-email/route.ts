@@ -74,8 +74,8 @@ export async function POST(request: Request) {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 24px; margin-bottom: 24px;">
           <tr>
             <td align="center">
-              <a href="${SITE_URL}/book" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
-                Schedule a 15-Min Intro Call →
+              <a href="${SITE_URL}/contact" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
+                Schedule a 30-Min Discovery Call →
               </a>
             </td>
           </tr>

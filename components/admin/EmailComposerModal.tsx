@@ -306,7 +306,7 @@ export function EmailComposerModal({
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700 font-medium flex items-center gap-2 shrink-0">
                 <Calendar size={13} className="shrink-0" />
                 <span>
-                  Direct 15-minute discovery call booking button will be attached automatically below your message.
+                  Direct 30-minute discovery call booking button will be attached automatically below your message.
                 </span>
               </div>
             ) : null}

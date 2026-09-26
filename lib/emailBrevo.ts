@@ -244,8 +244,8 @@ If you have an RFP, wireframe deck, or workflow document ready, please reply dir
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
           <tr>
             <td align="center">
-              <a href="${SITE_URL}/book" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
-                Book Your Discovery Call Slot →
+              <a href="${SITE_URL}/contact" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
+                Book Your 30-Min Discovery Call →
               </a>
             </td>
           </tr>
@@ -273,7 +273,7 @@ Key Advantages:
 - Process Automation: Eliminate manual data entry, fragmented apps, and admin overhead.
 - 100% IP Ownership: Zero recurring seat licensing; complete ownership of your codebase.
 
-Would you be open to a brief 15-minute introductory call next week to explore where custom software could accelerate your operations?`,
+Would you be open to a brief 30-minute discovery call next week to explore where custom software could accelerate your operations?`,
     buildHtml: (params: {
       clientName: string;
       companyName: string;
@@ -315,15 +315,15 @@ Would you be open to a brief 15-minute introductory call next week to explore wh
         </table>
 
         <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
-          Would you be open to a brief 15-minute introductory call next week to explore where bespoke tooling could accelerate your operations?
+          Would you be open to a brief 30-minute discovery call next week to explore where bespoke tooling could accelerate your operations?
         </p>
 
         <!-- Primary CTA Button -->
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
           <tr>
             <td align="center">
-              <a href="${SITE_URL}/book" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
-                Schedule a 15-Min Intro Call →
+              <a href="${SITE_URL}/contact" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
+                Schedule a 30-Min Discovery Call →
               </a>
             </td>
           </tr>

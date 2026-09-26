@@ -45,7 +45,7 @@ const EMAIL_TEMPLATE_OPTIONS = [
       `- Bespoke Web Systems: Engineered specifically for your operational workflows.\n` +
       `- Process Automation: Eliminate manual data entry, fragmented apps, and admin overhead.\n` +
       `- 100% IP Ownership: Zero recurring seat licensing; complete ownership of your codebase.\n\n` +
-      `Would you be open to a brief 15-minute introductory call next week to explore where custom software could accelerate your operations?`,
+      `Would you be open to a brief 30-minute discovery call next week to explore where custom software could accelerate your operations?`,
   },
   {
     id: "discovery_followup",
