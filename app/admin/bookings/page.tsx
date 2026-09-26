@@ -16,6 +16,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CreateLeadModal } from "@/components/admin/CreateLeadModal";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 interface Booking {
   id: string;
@@ -53,6 +56,7 @@ export default function AdminBookingsPage() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [notes, setNotes] = useState("");
   const [currentStatus, setCurrentStatus] = useState("confirmed");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   async function fetchBookings() {
     setLoading(true);
@@ -137,13 +141,22 @@ export default function AdminBookingsPage() {
             </p>
           </div>
 
-          <button
-            onClick={fetchBookings}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-navy/70 transition hover:bg-slate-50"
-          >
-            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-sm font-bold text-white shadow-xs hover:bg-purple/90 transition"
+            >
+              <Plus size={15} /> Add Custom Lead
+            </button>
+
+            <button
+              onClick={fetchBookings}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-navy/70 transition hover:bg-slate-50"
+            >
+              <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Filters & Search */}
@@ -369,6 +382,13 @@ export default function AdminBookingsPage() {
             </div>
           </div>
         )}
+
+        {/* Create Custom Lead Modal */}
+        <CreateLeadModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onCreated={fetchBookings}
+        />
       </div>
     </AdminLayout>
   );

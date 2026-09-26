@@ -26,6 +26,7 @@ import {
 import { BookingLead, formatGbp } from "@/lib/crm";
 import { CrmKanbanBoard } from "@/components/admin/CrmKanbanBoard";
 import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
+import { CreateLeadModal } from "@/components/admin/CreateLeadModal";
 
 interface AdminStats {
   totalBookings: number;
@@ -49,6 +50,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
+  const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false);
 
   async function fetchData() {
     setLoading(true);
@@ -164,6 +166,13 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
+            <button
+              onClick={() => setIsCreateLeadOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-purple/90 transition"
+            >
+              <Plus size={14} /> Add Custom Lead
+            </button>
+
             <a
               href="/api/admin/export-csv"
               download
@@ -269,6 +278,7 @@ export default function AdminDashboardPage() {
               onUpdateLead={handleUpdateLead}
               onDeleteLead={handleDeleteLead}
               loading={loading}
+              onRefresh={fetchData}
             />
           </div>
         ) : (
@@ -407,6 +417,13 @@ export default function AdminDashboardPage() {
             handleUpdateLead(emailRecipient.bookingId, { stage: "proposal_sent" });
           }
         }}
+      />
+
+      {/* Custom Lead Creation Modal */}
+      <CreateLeadModal
+        isOpen={isCreateLeadOpen}
+        onClose={() => setIsCreateLeadOpen(false)}
+        onCreated={fetchData}
       />
     </AdminLayout>
   );

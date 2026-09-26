@@ -75,3 +75,125 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ ok: true, bookings: filteredDemos });
 }
+
+export async function POST(request: Request) {
+  const isAuth = await isAdminAuthenticated(request);
+  if (!isAuth) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const {
+      name,
+      work_email,
+      company_name,
+      country = "United Kingdom",
+      team_size = "1-10",
+      message = "",
+      slot_start,
+      slot_end,
+      meet_url = "",
+      stage = "new_booking",
+      deal_value = 8500,
+      lead_score = "warm",
+      lead_notes = "",
+      assigned_to = "The Digital Dude Team",
+      send_welcome_email = false,
+    } = body;
+
+    if (!name || !work_email || !company_name) {
+      return NextResponse.json(
+        { ok: false, error: "Name, Work Email, and Company Name are required." },
+        { status: 400 }
+      );
+    }
+
+    const nowIso = new Date().toISOString();
+    const bookingStart = slot_start ? new Date(slot_start).toISOString() : nowIso;
+    const bookingEnd = slot_end
+      ? new Date(slot_end).toISOString()
+      : new Date(new Date(bookingStart).getTime() + 30 * 60000).toISOString();
+
+    const newLead: BookingLead = {
+      id: crypto.randomUUID(),
+      name: String(name).trim(),
+      work_email: String(work_email).trim().toLowerCase(),
+      company_name: String(company_name).trim(),
+      country: String(country).trim(),
+      team_size: String(team_size).trim(),
+      message: String(message || "").trim(),
+      slot_start: bookingStart,
+      slot_end: bookingEnd,
+      meet_url: meet_url ? String(meet_url).trim() : undefined,
+      stage: stage || "new_booking",
+      deal_value: Number(deal_value) || 8500,
+      lead_score: lead_score || "warm",
+      lead_notes: String(lead_notes || "").trim(),
+      assigned_to: String(assigned_to || "The Digital Dude Team").trim(),
+      created_at: nowIso,
+      updated_at: nowIso,
+    };
+
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("bookings")
+        .insert({
+          id: newLead.id,
+          name: newLead.name,
+          work_email: newLead.work_email,
+          company_name: newLead.company_name,
+          country: newLead.country,
+          team_size: newLead.team_size,
+          message: newLead.message,
+          slot_start: newLead.slot_start,
+          slot_end: newLead.slot_end,
+          meet_url: newLead.meet_url,
+          stage: newLead.stage,
+          deal_value: newLead.deal_value,
+          lead_score: newLead.lead_score,
+          lead_notes: newLead.lead_notes,
+          assigned_to: newLead.assigned_to,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        log("info", { message: "Custom lead created in Supabase", context: { id: data.id, name: data.name } });
+      } else if (error) {
+        log("warn", { message: "Supabase custom lead insert warning, continuing with in-memory lead", error });
+      }
+    }
+
+    // Optional Brevo welcome / discovery dispatch
+    if (send_welcome_email) {
+      try {
+        const { sendBrevoEmail, EMAIL_TEMPLATES } = await import("@/lib/emailBrevo");
+        const tpl = EMAIL_TEMPLATES.find((t) => t.id === "discovery_followup") || EMAIL_TEMPLATES[0];
+        
+        const html = tpl.buildHtml({
+          clientName: newLead.name,
+          companyName: newLead.company_name,
+          customNotes: newLead.lead_notes || newLead.message || undefined,
+        });
+
+        await sendBrevoEmail({
+          to: [{ email: newLead.work_email, name: newLead.name }],
+          subject: tpl.defaultSubject
+            .replace("{{company_name}}", newLead.company_name)
+            .replace("{{first_name}}", newLead.name.split(" ")[0]),
+          htmlContent: html,
+        });
+      } catch (emailErr) {
+        log("warn", { message: "Brevo welcome email error during lead creation", error: emailErr });
+      }
+    }
+
+    return NextResponse.json({ ok: true, booking: newLead });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to create custom lead";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
+}
+

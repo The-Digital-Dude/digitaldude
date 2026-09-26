@@ -26,20 +26,25 @@ import {
 } from "lucide-react";
 import { BookingLead, CRM_STAGES, CrmStage, LeadScore, formatGbp } from "@/lib/crm";
 import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
+import { CreateLeadModal } from "@/components/admin/CreateLeadModal";
 
 export function CrmKanbanBoard({
   leads,
   onUpdateLead,
   onDeleteLead,
   loading,
+  onRefresh,
 }: {
   leads: BookingLead[];
   onUpdateLead: (id: string, updates: Partial<BookingLead>) => Promise<void>;
   onDeleteLead: (id: string, name: string) => Promise<void>;
   loading: boolean;
+  onRefresh?: () => void;
 }) {
   const [selectedLead, setSelectedLead] = useState<BookingLead | null>(null);
   const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createStage, setCreateStage] = useState<CrmStage>("new_booking");
   const [editDealValue, setEditDealValue] = useState<number>(8500);
   const [editLeadScore, setEditLeadScore] = useState<LeadScore>("warm");
   const [editNotes, setEditNotes] = useState<string>("");
@@ -131,9 +136,21 @@ export function CrmKanbanBoard({
                     <h2 className="text-xs font-bold text-navy truncate" title={stage.name}>
                       {stage.name}
                     </h2>
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-bold text-navy">
-                      {stageLeads.length}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-bold text-navy">
+                        {stageLeads.length}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setCreateStage(stage.id);
+                          setIsCreateOpen(true);
+                        }}
+                        title={`Add Deal to ${stage.name}`}
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple/10 text-purple hover:bg-purple hover:text-white transition"
+                      >
+                        <Plus size={11} />
+                      </button>
+                    </div>
                   </div>
                   <div className="mt-1.5 flex items-center justify-between text-[11px] text-navy/60">
                     <span>Subtotal:</span>
@@ -144,8 +161,17 @@ export function CrmKanbanBoard({
                 {/* Stage Cards Container */}
                 <div className="flex-1 space-y-3 min-h-[350px]">
                   {stageLeads.length === 0 ? (
-                    <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-[11px] text-navy/40">
-                      No active deals
+                    <div className="flex flex-col h-36 items-center justify-center rounded-2xl border border-dashed border-slate-200 p-4 text-center">
+                      <p className="text-[11px] text-navy/40 mb-2">No active deals</p>
+                      <button
+                        onClick={() => {
+                          setCreateStage(stage.id);
+                          setIsCreateOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-[10px] font-bold text-navy/70 hover:border-purple/40 hover:text-purple transition"
+                      >
+                        <Plus size={10} /> Add Deal
+                      </button>
                     </div>
                   ) : (
                     stageLeads.map((lead) => {
@@ -405,6 +431,16 @@ export function CrmKanbanBoard({
           if (emailRecipient?.bookingId) {
             onUpdateLead(emailRecipient.bookingId, { stage: "proposal_sent" });
           }
+        }}
+      />
+
+      {/* Create Custom Lead Modal */}
+      <CreateLeadModal
+        isOpen={isCreateOpen}
+        defaultStage={createStage}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={() => {
+          if (onRefresh) onRefresh();
         }}
       />
     </div>
