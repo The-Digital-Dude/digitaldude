@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { sendNotification } from "@/lib/sendNotification";
-import { createGoogleCalendarMeeting } from "@/lib/googleCalendar";
+import { createGoogleCalendarMeeting, getBusyIntervals } from "@/lib/googleCalendar";
 import { SLOT_MINUTES, generateSlotsForDate, isDateWithinBookingWindow } from "@/lib/availability";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { log } from "@/lib/logger";
@@ -61,6 +61,17 @@ export async function POST(request: Request) {
   }
 
   const end = new Date(start.getTime() + SLOT_MINUTES * 60_000);
+
+  // Re-check the real calendar right before booking — closes the race window
+  // between a visitor loading availability and submitting, e.g. someone else
+  // adding a manual calendar event in between.
+  const busy = await getBusyIntervals(start.toISOString(), end.toISOString());
+  if (busy && busy.length > 0) {
+    return NextResponse.json(
+      { ok: false, error: "That slot was just taken. Please pick another time." },
+      { status: 409 }
+    );
+  }
 
   const supabase = getSupabaseServerClient();
   if (!supabase) {

@@ -53,6 +53,50 @@ function getAuthorizedClient() {
   return client;
 }
 
+export interface BusyInterval {
+  start: string;
+  end: string;
+}
+
+/**
+ * Returns the busy intervals on the real Google Calendar between timeMin and
+ * timeMax (ISO strings). Returns null if OAuth isn't configured or the query
+ * fails, so callers can fall back to "no calendar conflicts known" rather
+ * than blocking bookings entirely on a transient Google API issue.
+ */
+export async function getBusyIntervals(
+  timeMin: string,
+  timeMax: string
+): Promise<BusyInterval[] | null> {
+  const auth = getAuthorizedClient();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
+
+  if (!auth) return null;
+
+  try {
+    const calendar = google.calendar({ version: "v3", auth });
+    const response = await calendar.freebusy.query({
+      requestBody: {
+        timeMin,
+        timeMax,
+        items: [{ id: calendarId }],
+      },
+    });
+
+    const busy = response.data.calendars?.[calendarId]?.busy || [];
+    return busy
+      .filter((b): b is { start: string; end: string } => Boolean(b.start && b.end))
+      .map((b) => ({ start: b.start, end: b.end }));
+  } catch (error) {
+    log("error", {
+      message: "Failed to fetch Google Calendar free/busy",
+      error,
+      context: { timeMin, timeMax },
+    });
+    return null;
+  }
+}
+
 /**
  * Creates an event on the founder's real Google Calendar (via OAuth2, not a
  * service account — service accounts cannot create Meet links or invite

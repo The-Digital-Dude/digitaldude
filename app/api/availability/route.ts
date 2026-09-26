@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
-import { generateSlotsForDate, isDateWithinBookingWindow } from "@/lib/availability";
+import { generateSlotsForDate, isDateWithinBookingWindow, SLOT_MINUTES } from "@/lib/availability";
+import { getBusyIntervals } from "@/lib/googleCalendar";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
@@ -49,7 +50,27 @@ export async function GET(request: Request) {
   }
 
   const taken = new Set((data ?? []).map((row) => new Date(row.slot_start as string).toISOString()));
-  const available = allSlots.filter((iso) => !taken.has(iso));
+  let available = allSlots.filter((iso) => !taken.has(iso));
+
+  // Also exclude times already busy on the real Google Calendar — not just
+  // slots booked through this form — so an existing meeting (however it got
+  // on the calendar) can never be double-booked here.
+  if (available.length > 0) {
+    const rangeEnd = new Date(new Date(dayEnd).getTime() + SLOT_MINUTES * 60_000).toISOString();
+    const busy = await getBusyIntervals(dayStart, rangeEnd);
+
+    if (busy && busy.length > 0) {
+      const busyIntervals = busy.map((b) => ({
+        start: new Date(b.start).getTime(),
+        end: new Date(b.end).getTime(),
+      }));
+      available = available.filter((iso) => {
+        const slotStart = new Date(iso).getTime();
+        const slotEnd = slotStart + SLOT_MINUTES * 60_000;
+        return !busyIntervals.some((b) => slotStart < b.end && slotEnd > b.start);
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true, slots: available });
 }
