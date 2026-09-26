@@ -301,6 +301,7 @@ export async function sendNotification(submission: ContactSubmission) {
           `Country: ${submission.country}`,
           `Team size: ${submission.teamSize || "Not provided"}`,
           `Slot time: ${formatDisplayDate(submission.slotStart)}`,
+          `Meet link: ${submission.meetUrl || "Not created — check Google Calendar integration"}`,
           "",
           "Message / Fix description:",
           submission.message,
