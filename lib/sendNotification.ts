@@ -9,6 +9,7 @@ export type ContactSubmission = {
   message: string;
   slotStart?: string;
   slotEnd?: string;
+  meetUrl?: string | null;
 };
 
 function formatDisplayDate(isoString?: string): string {
@@ -37,8 +38,8 @@ function buildCalendarLinks(submission: ContactSubmission) {
     : new Date(start.getTime() + 30 * 60_000);
 
   const title = `Discovery Call: ${submission.companyName} × The Digital Dude`;
-  const details = `30-minute discovery call with The Digital Dude to discuss your operations, workflows, and custom software systems.\n\nWebsite: https://www.digitaldude.co.uk\nContact: info@digitaldude.co.uk`;
-  const location = `Google Meet / Online Call`;
+  const details = `30-minute discovery call with The Digital Dude to discuss your operations, workflows, and custom software systems.${submission.meetUrl ? `\n\nGoogle Meet Link: ${submission.meetUrl}` : ""}\n\nWebsite: https://www.digitaldude.co.uk\nContact: info@digitaldude.co.uk`;
+  const location = submission.meetUrl || `Google Meet / Online Call`;
 
   const startCompact = formatCompactUtc(start.toISOString());
   const endCompact = formatCompactUtc(end.toISOString());
@@ -120,9 +121,27 @@ function buildCustomerEmailHtml(submission: ContactSubmission): string {
                       </tr>
                       <tr>
                         <td style="padding: 6px 0; font-size: 13px; color: rgba(26, 26, 78, 0.6); font-weight: 600;">Location:</td>
-                        <td style="padding: 6px 0; font-size: 14px; color: #5b4fe8; font-weight: 600;">Google Meet (calendar invite attached / sent prior)</td>
+                        <td style="padding: 6px 0; font-size: 14px; color: #5b4fe8; font-weight: 700;">
+                          ${
+                            submission.meetUrl
+                              ? `<a href="${submission.meetUrl}" target="_blank" rel="noopener noreferrer" style="color: #5b4fe8; text-decoration: underline;">Google Meet Video Room</a>`
+                              : "Google Meet (calendar invite sent to your inbox)"
+                          }
+                        </td>
                       </tr>
                     </table>
+
+                    ${
+                      submission.meetUrl
+                        ? `
+                    <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid #e8e6ff;">
+                      <a href="${submission.meetUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #5b4fe8; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 10px 22px; border-radius: 9999px;">
+                        Join Google Meet Video Call &rarr;
+                      </a>
+                    </div>
+                    `
+                        : ""
+                    }
                   </td>
                 </tr>
               </table>

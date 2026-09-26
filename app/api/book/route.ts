@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { sendNotification } from "@/lib/sendNotification";
+import { createGoogleCalendarMeeting } from "@/lib/googleCalendar";
 import { SLOT_MINUTES, generateSlotsForDate, isDateWithinBookingWindow } from "@/lib/availability";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { log } from "@/lib/logger";
@@ -99,6 +100,16 @@ export async function POST(request: Request) {
 
   log("info", { message: "Booking saved successfully", context: { companyName, slotStart: start.toISOString() } });
 
+  // Create Google Calendar event with dynamic Google Meet video link
+  const calendarMeeting = await createGoogleCalendarMeeting({
+    name,
+    workEmail,
+    companyName,
+    slotStart: start.toISOString(),
+    slotEnd: end.toISOString(),
+    message,
+  });
+
   await sendNotification({
     name,
     workEmail,
@@ -108,11 +119,13 @@ export async function POST(request: Request) {
     message: message || `(No message provided — booked a call for ${start.toISOString()})`,
     slotStart: start.toISOString(),
     slotEnd: end.toISOString(),
+    meetUrl: calendarMeeting?.meetUrl,
   });
 
   return NextResponse.json({
     ok: true,
     firstName: String(name).split(" ")[0],
     slotStart: start.toISOString(),
+    meetUrl: calendarMeeting?.meetUrl || null,
   });
 }
