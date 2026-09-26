@@ -5,9 +5,9 @@ import { ContactForm } from "@/components/ContactForm";
 export const metadata: Metadata = buildMetadata("contact", "/contact");
 
 const nextSteps = [
-  "You send the form",
-  "We reply within one working day with times that suit your time zone",
-  "A 30-minute call with our team about your business",
+  "Pick a date and time that suits you",
+  "Tell us a little about your business",
+  "Your call is confirmed straight away, no back-and-forth",
   "If there's a fit, you get a clear proposal within 48 hours",
 ];
 
@@ -20,8 +20,8 @@ export default function ContactPage() {
             Let&rsquo;s talk about how your business runs
           </h1>
           <p className="mt-4 text-lg text-navy/70">
-            Book a 30-minute call with our team. We&rsquo;ll talk about how things work today,
-            where they get stuck, and whether a system would help. No pitch, no pressure.
+            Pick a time that suits you and tell us a little about your business. No pitch, no
+            pressure, no waiting for a reply.
           </p>
 
           <div className="mt-10">
