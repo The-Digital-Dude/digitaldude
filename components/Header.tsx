@@ -112,16 +112,18 @@ export function Header() {
               Services
             </Link>
             <div className="ml-2 flex flex-col gap-1 border-l border-tint pl-3">
-              {services.map((s) => (
-                <Link
-                  key={s.slug}
-                  href={`/services/${s.slug}`}
-                  className="rounded-lg px-2 py-1.5 text-sm text-navy/80"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  {s.navLabel}
-                </Link>
-              ))}
+              {services
+                .filter((s) => s.slug !== "seo-growth")
+                .map((s) => (
+                  <Link
+                    key={s.slug}
+                    href={`/services/${s.slug}`}
+                    className="rounded-lg px-2 py-1.5 text-sm text-navy/80"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    {s.navLabel}
+                  </Link>
+                ))}
             </div>
             {navLinks.map((link) => (
               <Link

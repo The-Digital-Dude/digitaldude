@@ -109,6 +109,7 @@ export const seo: Record<string, SeoEntry> = {
 
 export function buildMetadata(key: keyof typeof seo, path: string): Metadata {
   const entry = seo[key];
+  if (!entry) throw new Error(`Missing SEO entry for key: "${key}". Add it to lib/content/seo.ts.`);
   return {
     title: entry.title,
     description: entry.description,

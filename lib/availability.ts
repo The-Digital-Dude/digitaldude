@@ -29,7 +29,9 @@ export function nextAvailableDateIso(): string {
   const now = new Date();
   let candidate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  for (let i = 0; i < 14; i++) {
+  // Search the full booking window (not just 14 days) to avoid falling back
+  // to today when the window still has available weekdays.
+  for (let i = 0; i < BOOKING_WINDOW_DAYS; i++) {
     const isToday = i === 0;
     const stillTimeLeftToday = now.getUTCHours() < WORKING_HOURS.endHour - 1;
     if (isWorkingDay(candidate) && (!isToday || stillTimeLeftToday)) {
@@ -48,3 +50,4 @@ export function isDateWithinBookingWindow(dateStr: string): boolean {
   const maxDate = new Date(todayUtc.getTime() + BOOKING_WINDOW_DAYS * 86400000);
   return requested >= todayUtc && requested <= maxDate;
 }
+

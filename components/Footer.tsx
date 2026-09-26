@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { caseStudies } from "@/lib/content/caseStudies";
 
 export function Footer() {
   return (
@@ -22,21 +23,13 @@ export function Footer() {
         <div>
           <h3 className="text-sm font-semibold text-white">Work</h3>
           <ul className="mt-4 space-y-2 text-sm">
-            <li>
-              <Link href="/work/property-compliance-crm" className="hover:text-white">
-                Property compliance CRM
-              </Link>
-            </li>
-            <li>
-              <Link href="/work/airline-ticketing-crm" className="hover:text-white">
-                Airline ticketing CRM
-              </Link>
-            </li>
-            <li>
-              <Link href="/work/cleaning-marketplace" className="hover:text-white">
-                Cleaning marketplace
-              </Link>
-            </li>
+            {caseStudies.slice(0, 3).map((c) => (
+              <li key={c.slug}>
+                <Link href={`/work/${c.slug}`} className="hover:text-white">
+                  {c.title}
+                </Link>
+              </li>
+            ))}
             <li>
               <Link href="/work" className="hover:text-white">
                 All projects

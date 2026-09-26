@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { generateSlotsForDate, isDateWithinBookingWindow } from "@/lib/availability";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
+  // Rate limit: 30 availability checks per IP per minute.
+  const ip = getClientIp(request);
+  const rl = rateLimit(`availability:${ip}`, 30, 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const date = searchParams.get("date");
 
@@ -23,8 +34,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, slots: [] });
   }
 
-  const dayStart = `${date}T00:00:00.000Z`;
-  const dayEnd = `${date}T23:59:59.999Z`;
+  // Use the actual first and last generated slot as boundaries rather than
+  // wall-clock midnight strings — avoids timezone edge-case mismatches.
+  const dayStart = allSlots[0];
+  const dayEnd = allSlots[allSlots.length - 1];
   const { data, error } = await supabase
     .from("bookings")
     .select("slot_start")
@@ -40,3 +53,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ ok: true, slots: available });
 }
+

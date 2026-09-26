@@ -2,10 +2,66 @@ import type { CaseStudy } from "@/lib/content/caseStudies";
 import { StatRow } from "@/components/StatRow";
 import { RelatedWork } from "@/components/RelatedWork";
 import { StandardCTA } from "@/components/StandardCTA";
+import { SITE_URL } from "@/lib/utils";
 
 export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
+  const caseStudyJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        headline: project.headline,
+        name: project.title,
+        description: project.pageSummary,
+        image: project.image.startsWith("http") ? project.image : `${SITE_URL}${project.image}`,
+        author: {
+          "@type": "Organization",
+          name: "The Digital Dude",
+          url: SITE_URL,
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "The Digital Dude",
+          url: SITE_URL,
+          logo: `${SITE_URL}/logo-full-color.png`,
+        },
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": `${SITE_URL}/work/${project.slug}`,
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: SITE_URL,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Work",
+            item: `${SITE_URL}/work`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: project.title,
+            item: `${SITE_URL}/work/${project.slug}`,
+          },
+        ],
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(caseStudyJsonLd) }}
+      />
       <section className="mx-auto max-w-content px-6 pb-12 pt-32 sm:pt-40">
         <span className="text-xs font-semibold uppercase tracking-wide text-purple">
           {project.tag} · {project.status}
@@ -19,6 +75,7 @@ export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
           <img
             src={project.image}
             alt={project.title}
+            loading="eager"
             className="absolute inset-0 h-full w-full object-contain p-10"
           />
         </div>

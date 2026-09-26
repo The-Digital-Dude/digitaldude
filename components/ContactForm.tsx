@@ -2,19 +2,25 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
-import { nextAvailableDateIso } from "@/lib/availability";
+import { nextAvailableDateIso, BOOKING_WINDOW_DAYS } from "@/lib/availability";
 
 const countries = ["Australia", "United Kingdom", "Bangladesh", "Other"];
 const teamSizes = ["1 to 4", "5 to 20", "21 to 50", "51 to 200", "200+"];
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    .toISOString()
+    .slice(0, 10);
 }
 
+// Derive maxDate from the same constant and UTC arithmetic the server uses,
+// so users can never pick a date that the booking-window check will reject.
 function maxDateIso() {
-  const d = new Date();
-  d.setDate(d.getDate() + 21);
-  return d.toISOString().slice(0, 10);
+  const now = new Date();
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const maxUtc = new Date(todayUtc.getTime() + BOOKING_WINDOW_DAYS * 86400000);
+  return maxUtc.toISOString().slice(0, 10);
 }
 
 function formatSlotTime(iso: string) {
@@ -153,8 +159,9 @@ export function ContactForm() {
           value={date}
           min={todayIso()}
           max={maxDateIso()}
+          disabled={slotsLoading}
           onChange={(e) => setDate(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-black/10 px-4 py-2.5 focus:border-purple focus:outline-none"
+          className="mt-1 w-full rounded-lg border border-black/10 px-4 py-2.5 focus:border-purple focus:outline-none disabled:opacity-60"
         />
       </div>
 

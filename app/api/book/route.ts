@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { sendNotification } from "@/lib/sendNotification";
-import { SLOT_MINUTES } from "@/lib/availability";
+import { SLOT_MINUTES, generateSlotsForDate, isDateWithinBookingWindow } from "@/lib/availability";
+import { rateLimit, getClientIp } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
+  // Rate limit: 10 booking attempts per IP per hour.
+  const ip = getClientIp(request);
+  const rl = rateLimit(`book:${ip}`, 10, 60 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
+
   const body = await request.json();
   const { name, workEmail, companyName, country, teamSize, message, slotStart, company } = body ?? {};
 
@@ -23,6 +34,24 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  // Validate that the submitted slot is one of the real generated slots for
+  // that day — prevents arbitrary timestamps from being inserted.
+  const dateStr = start.toISOString().slice(0, 10);
+  if (!isDateWithinBookingWindow(dateStr)) {
+    return NextResponse.json(
+      { ok: false, error: "That date is outside the booking window." },
+      { status: 400 }
+    );
+  }
+  const validSlots = new Set(generateSlotsForDate(dateStr));
+  if (!validSlots.has(start.toISOString())) {
+    return NextResponse.json(
+      { ok: false, error: "That is not a valid booking slot." },
+      { status: 400 }
+    );
+  }
+
   const end = new Date(start.getTime() + SLOT_MINUTES * 60_000);
 
   const supabase = getSupabaseServerClient();
@@ -66,6 +95,8 @@ export async function POST(request: Request) {
     country,
     teamSize,
     message: message || `(No message provided — booked a call for ${start.toISOString()})`,
+    slotStart: start.toISOString(),
+    slotEnd: end.toISOString(),
   });
 
   return NextResponse.json({
