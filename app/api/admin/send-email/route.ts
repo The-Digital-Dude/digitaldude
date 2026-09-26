@@ -52,11 +52,12 @@ export async function POST(request: Request) {
       budgetRange,
       targetTimeline,
     });
-  } else if (templateId === "discovery_followup") {
+  } else if (templateId === "discovery_followup" || templateId === "inbound_welcome" || templateId === "cold_outreach") {
     htmlContent = template.buildHtml({
       clientName: toName || "Client",
       companyName,
       customNotes: customMessage,
+      customMessage,
     });
   } else if (templateId === "proposal_checkin") {
     htmlContent = template.buildHtml({

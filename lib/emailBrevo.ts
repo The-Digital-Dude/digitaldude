@@ -162,9 +162,167 @@ export function wrapInEmailTemplate(title: string, bodyHtml: string): string {
 }
 
 /**
- * 4 Pre-Built Agency Email Templates
+ * 6 Pre-Built Agency Email Templates
  */
 export const EMAIL_TEMPLATES = [
+  {
+    id: "inbound_welcome",
+    name: "✨ New Inbound Lead Welcome & Intro",
+    defaultSubject: "Thanks for reaching out, {{first_name}} — Next steps for {{company_name}}",
+    buildHtml: (params: {
+      clientName: string;
+      companyName: string;
+      customNotes?: string;
+      customMessage?: string;
+    }) => {
+      const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1a1a4e; line-height: 1.3;">
+          Thank you for reaching out, ${params.clientName.split(" ")[0]}!
+        </h1>
+        <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
+          We received your inquiry regarding software development and digital architecture for <strong style="color: #1a1a4e;">${params.companyName}</strong>. Our engineering leads are already reviewing your project requirements.
+        </p>
+
+        ${
+          params.customNotes || params.customMessage
+            ? `
+          <div style="background-color: #f8f9fa; border-left: 4px solid #7b61ff; padding: 14px 18px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: #333366; line-height: 1.5;">
+            ${(params.customNotes || params.customMessage || "").replace(/\n/g, "<br>")}
+          </div>`
+            : ""
+        }
+
+        <h2 style="margin: 20px 0 10px 0; font-size: 15px; font-weight: 700; color: #1a1a4e;">What Happens Next:</h2>
+        <ul style="margin: 0 0 24px 0; padding-left: 20px; font-size: 13px; color: #4a4a75; line-height: 1.7;">
+          <li><strong>Architecture Review:</strong> We analyze your functional scope, database models, and target integrations.</li>
+          <li><strong>Discovery Call:</strong> A focused 30-minute scoping session to map milestones, tech stack, and deliverable timeline.</li>
+          <li><strong>Interactive Specification:</strong> We produce a comprehensive milestone roadmap & fixed-pricing proposal.</li>
+        </ul>
+
+        <!-- Primary CTA Button -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
+          <tr>
+            <td align="center">
+              <a href="${SITE_URL}/book" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
+                Book Your Discovery Call Slot →
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #4a4a75;">
+          If you already have an RFP, wireframe, or requirements doc ready, simply reply directly to this email with your files attached.
+        </p>
+      `;
+      return wrapInEmailTemplate("New Inbound Lead Welcome", content);
+    },
+  },
+  {
+    id: "cold_outreach",
+    name: "🚀 Cold Outreach & B2B Introduction",
+    defaultSubject: "Streamlining operations & custom software architecture for {{company_name}}",
+    buildHtml: (params: {
+      clientName: string;
+      companyName: string;
+      customNotes?: string;
+      customMessage?: string;
+    }) => {
+      const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1a1a4e; line-height: 1.3;">
+          Custom Software & Automation for ${params.companyName}
+        </h1>
+        <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
+          Hi ${params.clientName.split(" ")[0]},
+        </p>
+        <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
+          I came across <strong style="color: #1a1a4e;">${params.companyName}</strong> and wanted to reach out directly. At <strong style="color: #1a1a4e;">The Digital Dude</strong>, we partner with ambitious teams to replace disconnected spreadsheets and legacy software with high-performance, bespoke web applications.
+        </p>
+
+        ${
+          params.customNotes || params.customMessage
+            ? `
+          <div style="background-color: #f8f9fa; border-left: 4px solid #7b61ff; padding: 14px 18px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: #333366; line-height: 1.5;">
+            ${(params.customNotes || params.customMessage || "").replace(/\n/g, "<br>")}
+          </div>`
+            : ""
+        }
+
+        <!-- Highlights Box -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f6f5ff; border: 1px solid #dfdcff; border-radius: 12px; margin-bottom: 24px; padding: 20px;">
+          <tr>
+            <td>
+              <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: #7b61ff; text-transform: uppercase; letter-spacing: 1px;">How We Help Growing Teams</p>
+              <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #333366; line-height: 1.7;">
+                <li><strong>Bespoke Web & Internal Systems:</strong> Engineered specifically for your exact operations.</li>
+                <li><strong>Process Automation:</strong> Eliminate repetitive manual entry, errors, and administrative bottlenecks.</li>
+                <li><strong>100% Client IP Ownership:</strong> Zero restrictive recurring seat licenses; full ownership of your code.</li>
+              </ul>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
+          Would you be open to a brief 15-minute introductory call next week to explore where bespoke tooling could accelerate your operations?
+        </p>
+
+        <!-- Primary CTA Button -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom: 24px;">
+          <tr>
+            <td align="center">
+              <a href="${SITE_URL}/book" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
+                Schedule a 15-Min Intro Call →
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #6b6b90;">
+          Or feel free to reply directly to this email with your current operational priorities.
+        </p>
+      `;
+      return wrapInEmailTemplate("Bespoke Software Architecture Intro", content);
+    },
+  },
+  {
+    id: "discovery_followup",
+    name: "📞 Discovery Call Follow-up & Next Steps",
+    defaultSubject: "Great speaking today, {{first_name}} — Next steps for {{company_name}}",
+    buildHtml: (params: {
+      clientName: string;
+      companyName: string;
+      customNotes?: string;
+    }) => {
+      const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1a1a4e; line-height: 1.3;">
+          Great speaking with you today, ${params.clientName.split(" ")[0]}!
+        </h1>
+        <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
+          Thank you for taking the time to walk us through the operational challenges and growth vision for <strong style="color: #1a1a4e;">${params.companyName}</strong>.
+        </p>
+
+        ${
+          params.customNotes
+            ? `
+          <div style="background-color: #f8f9fa; border-left: 4px solid #7b61ff; padding: 14px 18px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: #333366; line-height: 1.5;">
+            ${params.customNotes.replace(/\n/g, "<br>")}
+          </div>`
+            : ""
+        }
+
+        <h2 style="margin: 20px 0 10px 0; font-size: 15px; font-weight: 700; color: #1a1a4e;">Our Next Steps:</h2>
+        <ul style="margin: 0 0 24px 0; padding-left: 20px; font-size: 13px; color: #4a4a75; line-height: 1.7;">
+          <li>Our architecture team is finalizing the module deliverable matrix and database schema.</li>
+          <li>We will deliver your bespoke Technical Specification & Milestone Proposal within 24–48 hours.</li>
+          <li>We will schedule a quick 15-minute alignment call to review wireframe concepts before kickoff.</li>
+        </ul>
+
+        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #4a4a75;">
+          If you have any extra documentation, spreadsheet samples, or workflow diagrams to share in the meantime, simply reply directly to this email.
+        </p>
+      `;
+      return wrapInEmailTemplate("Discovery Call Follow-up", content);
+    },
+  },
   {
     id: "proposal_delivery",
     name: "📄 Proposal & Architecture Spec Delivery",
@@ -224,46 +382,6 @@ export const EMAIL_TEMPLATES = [
         </p>
       `;
       return wrapInEmailTemplate("Project Architecture Specification", content);
-    },
-  },
-  {
-    id: "discovery_followup",
-    name: "📞 Discovery Call Follow-up & Next Steps",
-    defaultSubject: "Great speaking today, {{first_name}} — Next steps for {{company_name}}",
-    buildHtml: (params: {
-      clientName: string;
-      companyName: string;
-      customNotes?: string;
-    }) => {
-      const content = `
-        <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1a1a4e; line-height: 1.3;">
-          Great speaking with you today, ${params.clientName.split(" ")[0]}!
-        </h1>
-        <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
-          Thank you for taking the time to walk us through the operational challenges and growth vision for <strong style="color: #1a1a4e;">${params.companyName}</strong>.
-        </p>
-
-        ${
-          params.customNotes
-            ? `
-          <div style="background-color: #f8f9fa; border-left: 4px solid #7b61ff; padding: 14px 18px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: #333366; line-height: 1.5;">
-            ${params.customNotes.replace(/\n/g, "<br>")}
-          </div>`
-            : ""
-        }
-
-        <h2 style="margin: 20px 0 10px 0; font-size: 15px; font-weight: 700; color: #1a1a4e;">Our Next Steps:</h2>
-        <ul style="margin: 0 0 24px 0; padding-left: 20px; font-size: 13px; color: #4a4a75; line-height: 1.7;">
-          <li>Our architecture team is finalizing the module deliverable matrix and database schema.</li>
-          <li>We will deliver your bespoke Technical Specification & Milestone Proposal within 24–48 hours.</li>
-          <li>We will schedule a quick 15-minute alignment call to review wireframe concepts before kickoff.</li>
-        </ul>
-
-        <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #4a4a75;">
-          If you have any extra documentation, spreadsheet samples, or workflow diagrams to share in the meantime, simply reply directly to this email.
-        </p>
-      `;
-      return wrapInEmailTemplate("Discovery Call Follow-up", content);
     },
   },
   {

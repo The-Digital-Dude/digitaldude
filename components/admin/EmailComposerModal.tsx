@@ -207,6 +207,10 @@ export function EmailComposerModal({
               <label className="block text-xs font-bold uppercase tracking-wider text-navy/70 mb-1">
                 {templateId === "discovery_followup"
                   ? "Discussion Highlights / Client Notes (Included in Email)"
+                  : templateId === "cold_outreach"
+                  ? "Custom Intro Context / Notes (Optional)"
+                  : templateId === "inbound_welcome"
+                  ? "Inquiry Context / Welcome Notes (Optional)"
                   : templateId === "custom"
                   ? "Message Body *"
                   : "Additional Message (Optional)"}
@@ -219,6 +223,10 @@ export function EmailComposerModal({
                 placeholder={
                   templateId === "discovery_followup"
                     ? "e.g. Discussed eliminating the 4-step manual spreadsheet dispatch and building a direct driver PWA."
+                    : templateId === "cold_outreach"
+                    ? "e.g. Noticed your recent operational expansion into logistics and wanted to share our work with similar supply chain teams."
+                    : templateId === "inbound_welcome"
+                    ? "e.g. Thanks for submitting your inquiry via our web portal."
                     : templateId === "proposal_delivery"
                     ? "Add a personal note to accompany the proposal..."
                     : "Type your message to the client..."

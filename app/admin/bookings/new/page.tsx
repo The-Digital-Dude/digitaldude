@@ -17,6 +17,37 @@ import {
 
 const EMAIL_TEMPLATE_OPTIONS = [
   {
+    id: "inbound_welcome",
+    name: "✨ New Inbound Lead Welcome & Intro",
+    defaultSubject: (name: string, company: string) =>
+      `Thanks for reaching out, ${name ? name.split(" ")[0] : "there"} — Next steps for ${company || "your team"}`,
+    defaultBody: (name: string, company: string, notes: string) =>
+      `Thank you for reaching out to The Digital Dude regarding software architecture and digital systems for ${company || "your organization"}.\n\n` +
+      `Our engineering team has received your project inquiry and is reviewing your requirements.\n\n` +
+      (notes ? `Key notes:\n${notes}\n\n` : "") +
+      `What Happens Next:\n` +
+      `- Initial Architecture Review: We evaluate your scope, database models, and target integrations.\n` +
+      `- Discovery Call: A 30-minute scoping session to map milestones, tech stack, and deliverable timeline.\n` +
+      `- Milestone Specification: We draft a comprehensive technical specification and fixed-cost proposal.\n\n` +
+      `If you have an RFP, wireframe deck, or workflow document ready, please reply directly to this email with your files attached.`,
+  },
+  {
+    id: "cold_outreach",
+    name: "🚀 Cold Outreach & B2B Introduction",
+    defaultSubject: (name: string, company: string) =>
+      `Streamlining operations & custom software architecture for ${company || "your team"}`,
+    defaultBody: (name: string, company: string, notes: string) =>
+      `Hi ${name ? name.split(" ")[0] : "there"},\n\n` +
+      `I came across ${company || "your organization"} and wanted to reach out directly.\n\n` +
+      `At The Digital Dude, we partner with growing businesses to replace disconnected spreadsheets and legacy tools with high-performance, bespoke web applications and automated workflows.\n\n` +
+      (notes ? `Context:\n${notes}\n\n` : "") +
+      `Key Advantages:\n` +
+      `- Bespoke Web Systems: Engineered specifically for your operational workflows.\n` +
+      `- Process Automation: Eliminate manual data entry, fragmented apps, and admin overhead.\n` +
+      `- 100% IP Ownership: Zero recurring seat licensing; complete ownership of your codebase.\n\n` +
+      `Would you be open to a brief 15-minute introductory call next week to explore where custom software could accelerate your operations?`,
+  },
+  {
     id: "discovery_followup",
     name: "📞 Discovery Follow-up & Next Steps",
     defaultSubject: (name: string, company: string) =>
