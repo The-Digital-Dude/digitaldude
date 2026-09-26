@@ -1,0 +1,57 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="Poppins, Arial, sans-serif">
+  <rect width="800" height="600" fill="#1A1A4E"/>
+
+  <!-- Customer phone -->
+  <rect x="76" y="70" width="190" height="440" rx="26" fill="#12123A" stroke="#2A2A5C" stroke-width="4"/>
+  <rect x="96" y="96" width="150" height="16" rx="8" fill="#3A3A6E"/>
+  <rect x="96" y="124" width="150" height="90" rx="10" fill="#20204E"/>
+  <text x="108" y="150" fill="#E8E6FF" font-size="11" font-weight="700">Standard clean</text>
+  <text x="108" y="168" fill="#8B87B8" font-size="10">2 bed · 1 bath</text>
+  <text x="108" y="196" fill="#4ADE80" font-size="14" font-weight="700">£65</text>
+  <rect x="96" y="226" width="150" height="14" rx="7" fill="#3A3A6E"/>
+  <rect x="96" y="248" width="100" height="14" rx="7" fill="#3A3A6E"/>
+  <rect x="96" y="290" width="150" height="70" rx="10" fill="#20204E"/>
+  <text x="108" y="310" fill="#8B87B8" font-size="9">PAYMENT</text>
+  <text x="108" y="332" fill="#E8E6FF" font-size="12">•••• 4471</text>
+  <rect x="96" y="440" width="150" height="38" rx="19" fill="#5B4FE8"/>
+  <text x="120" y="464" fill="#fff" font-size="11" font-weight="700">Confirm booking</text>
+
+  <!-- Cleaner phone -->
+  <rect x="305" y="70" width="190" height="440" rx="26" fill="#12123A" stroke="#2A2A5C" stroke-width="4"/>
+  <rect x="325" y="96" width="150" height="16" rx="8" fill="#3A3A6E"/>
+  <rect x="325" y="124" width="68" height="68" rx="10" fill="#20204E"/>
+  <text x="333" y="150" fill="#8B87B8" font-size="8">BEFORE</text>
+  <rect x="405" y="124" width="68" height="68" rx="10" fill="#20204E"/>
+  <text x="413" y="150" fill="#8B87B8" font-size="8">AFTER</text>
+  <rect x="325" y="204" width="150" height="14" rx="7" fill="#3A3A6E"/>
+  <rect x="325" y="226" width="100" height="14" rx="7" fill="#3A3A6E"/>
+  <rect x="325" y="260" width="150" height="60" rx="10" fill="#20204E"/>
+  <text x="337" y="282" fill="#8B87B8" font-size="9">TODAY'S JOBS</text>
+  <text x="337" y="302" fill="#4ADE80" font-size="16" font-weight="700">4 completed</text>
+  <rect x="325" y="440" width="150" height="38" rx="19" fill="#4ADE80"/>
+  <text x="352" y="464" fill="#0A2E1A" font-size="11" font-weight="700">Mark complete</text>
+
+  <!-- Admin CRM panel -->
+  <rect x="530" y="70" width="210" height="440" rx="14" fill="#12123A" stroke="#2A2A5C" stroke-width="4"/>
+  <text x="552" y="100" fill="#E8E6FF" font-size="12" font-weight="700">Admin overview</text>
+  <rect x="552" y="118" width="80" height="60" rx="8" fill="#20204E"/>
+  <text x="562" y="136" fill="#8B87B8" font-size="8">REVENUE</text>
+  <text x="562" y="158" fill="#FFFFFF" font-size="15" font-weight="700">£18.4k</text>
+  <rect x="640" y="118" width="80" height="60" rx="8" fill="#20204E"/>
+  <text x="650" y="136" fill="#8B87B8" font-size="8">JOBS</text>
+  <text x="650" y="158" fill="#FFFFFF" font-size="15" font-weight="700">312</text>
+  <rect x="552" y="192" width="168" height="150" rx="8" fill="#20204E"/>
+  <text x="566" y="212" fill="#8B87B8" font-size="9">CLEANER PAYOUTS</text>
+  <g font-size="10" fill="#E8E6FF">
+    <circle cx="576" cy="236" r="10" fill="#5B4FE8"/><text x="594" y="240">Maria S.</text><text x="690" y="240" fill="#4ADE80">£420</text>
+    <circle cx="576" cy="264" r="10" fill="#8B7FF0"/><text x="594" y="268">Kwame O.</text><text x="690" y="268" fill="#4ADE80">£380</text>
+    <circle cx="576" cy="292" r="10" fill="#F5C451"/><text x="594" y="296">Priya N.</text><text x="690" y="296" fill="#4ADE80">£310</text>
+    <circle cx="576" cy="320" r="10" fill="#4ADE80"/><text x="594" y="324">Lucas F.</text><text x="690" y="324" fill="#4ADE80">£295</text>
+  </g>
+  <rect x="552" y="360" width="168" height="90" rx="8" fill="#20204E"/>
+  <text x="566" y="380" fill="#8B87B8" font-size="9">APPROVALS PENDING</text>
+  <rect x="566" y="394" width="140" height="16" rx="8" fill="#F5C451" opacity="0.25"/>
+  <text x="576" y="406" fill="#F5C451" font-size="9">2 new cleaner applications</text>
+  <rect x="566" y="418" width="140" height="16" rx="8" fill="#5B4FE8" opacity="0.25"/>
+  <text x="576" y="430" fill="#8B7FF0" font-size="9">3 jobs to assign</text>
+</svg>

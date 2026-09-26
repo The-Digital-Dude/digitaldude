@@ -1,0 +1,68 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="Poppins, Arial, sans-serif">
+  <rect width="800" height="600" fill="#1A1A4E"/>
+  <rect x="40" y="40" width="720" height="520" rx="14" fill="#12123A"/>
+
+  <circle cx="70" cy="66" r="5" fill="#F97066"/>
+  <circle cx="88" cy="66" r="5" fill="#F5C451"/>
+  <circle cx="106" cy="66" r="5" fill="#4ADE80"/>
+  <rect x="140" y="56" width="300" height="20" rx="10" fill="#20204E"/>
+  <text x="152" y="70" fill="#8B87B8" font-size="11">app.fleetdispatch.io/incidents</text>
+  <rect x="40" y="90" width="720" height="1" fill="#2A2A5C"/>
+
+  <rect x="40" y="91" width="150" height="469" fill="#15153F"/>
+  <g font-size="11" fill="#E8E6FF">
+    <rect x="60" y="116" width="110" height="30" rx="6" fill="#5B4FE8"/>
+    <text x="76" y="135">Incidents</text>
+    <text x="76" y="176" fill="#9490BF">Drivers</text>
+    <text x="76" y="210" fill="#9490BF">Fleet map</text>
+    <text x="76" y="244" fill="#9490BF">History</text>
+    <text x="76" y="278" fill="#9490BF">Reports</text>
+  </g>
+
+  <g>
+    <rect x="210" y="112" width="160" height="72" rx="10" fill="#20204E"/>
+    <text x="226" y="140" fill="#8B87B8" font-size="10">ACTIVE INCIDENTS</text>
+    <text x="226" y="166" fill="#F97066" font-size="22" font-weight="700">3</text>
+
+    <rect x="382" y="112" width="160" height="72" rx="10" fill="#20204E"/>
+    <text x="398" y="140" fill="#8B87B8" font-size="10">AVG RESPONSE TIME</text>
+    <text x="398" y="166" fill="#4ADE80" font-size="22" font-weight="700">18 min</text>
+
+    <rect x="554" y="112" width="186" height="72" rx="10" fill="#20204E"/>
+    <text x="570" y="140" fill="#8B87B8" font-size="10">DRIVERS ON ROAD</text>
+    <text x="570" y="166" fill="#5B4FE8" font-size="22" font-weight="700">42</text>
+  </g>
+
+  <!-- Map panel -->
+  <rect x="210" y="200" width="320" height="340" rx="10" fill="#20204E"/>
+  <text x="226" y="222" fill="#8B87B8" font-size="10">LIVE MAP</text>
+  <path d="M240 500 C 300 440, 340 470, 380 400 S 460 320, 500 260" stroke="#3A3A6E" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <circle cx="240" cy="500" r="9" fill="#4ADE80"/>
+  <g transform="translate(400,380)">
+    <path d="M0 0 C -16 -18 -16 -40 0 -48 C 16 -40 16 -18 0 0 Z" fill="#F97066"/>
+    <circle cx="0" cy="-32" r="7" fill="#12123A"/>
+  </g>
+  <circle cx="500" cy="260" r="9" fill="#5B4FE8"/>
+  <circle cx="320" cy="320" r="6" fill="#5B4FE8" opacity="0.6"/>
+  <circle cx="460" cy="440" r="6" fill="#5B4FE8" opacity="0.6"/>
+
+  <!-- Incident detail -->
+  <rect x="546" y="200" width="194" height="164" rx="10" fill="#20204E"/>
+  <text x="562" y="222" fill="#F97066" font-size="11" font-weight="700">Breakdown reported</text>
+  <text x="562" y="242" fill="#9490BF" font-size="10">M4 westbound, J12</text>
+  <text x="562" y="260" fill="#9490BF" font-size="10">Driver: Alex M.</text>
+  <rect x="562" y="278" width="150" height="34" rx="8" fill="#5B4FE8"/>
+  <text x="582" y="299" fill="#fff" font-size="10">Assign recovery</text>
+  <rect x="562" y="322" width="150" height="24" rx="12" fill="#F5C451" opacity="0.25"/>
+  <text x="576" y="338" fill="#F5C451" font-size="9">AWAITING RECOVERY</text>
+
+  <!-- Driver status -->
+  <rect x="546" y="380" width="194" height="160" rx="10" fill="#20204E"/>
+  <text x="562" y="402" fill="#8B87B8" font-size="10">DRIVER STATUS</text>
+  <g font-size="10" fill="#E8E6FF">
+    <circle cx="574" cy="426" r="10" fill="#F97066"/><text x="592" y="430">Alex M.</text><text x="670" y="430" fill="#F97066" font-size="8">STOPPED</text>
+    <circle cx="574" cy="454" r="10" fill="#5B4FE8"/><text x="592" y="458">Priya D.</text><text x="670" y="458" fill="#4ADE80" font-size="8">MOVING</text>
+    <circle cx="574" cy="482" r="10" fill="#5B4FE8"/><text x="592" y="486">Sam K.</text><text x="670" y="486" fill="#4ADE80" font-size="8">MOVING</text>
+    <circle cx="574" cy="510" r="10" fill="#8B7FF0"/><text x="592" y="514">Neil R.</text><text x="670" y="514" fill="#4ADE80" font-size="8">MOVING</text>
+  </g>
+</svg>

@@ -1,0 +1,93 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="Poppins, Arial, sans-serif">
+  <rect width="800" height="600" fill="#1A1A4E"/>
+  <rect x="40" y="40" width="720" height="520" rx="14" fill="#12123A"/>
+
+  <circle cx="70" cy="66" r="5" fill="#F97066"/>
+  <circle cx="88" cy="66" r="5" fill="#F5C451"/>
+  <circle cx="106" cy="66" r="5" fill="#4ADE80"/>
+  <rect x="140" y="56" width="300" height="20" rx="10" fill="#20204E"/>
+  <text x="152" y="70" fill="#8B87B8" font-size="11">app.compliancecrm.io/jobs</text>
+  <rect x="40" y="90" width="720" height="1" fill="#2A2A5C"/>
+
+  <rect x="40" y="91" width="150" height="469" fill="#15153F"/>
+  <g font-size="11" fill="#E8E6FF">
+    <rect x="60" y="116" width="110" height="30" rx="6" fill="#5B4FE8"/>
+    <text x="76" y="135">Jobs</text>
+    <text x="76" y="176" fill="#9490BF">Agencies</text>
+    <text x="76" y="210" fill="#9490BF">Technicians</text>
+    <text x="76" y="244" fill="#9490BF">Invoices</text>
+    <text x="76" y="278" fill="#9490BF">Reports</text>
+    <text x="76" y="312" fill="#9490BF">Portals</text>
+  </g>
+
+  <g>
+    <rect x="210" y="112" width="122" height="72" rx="10" fill="#20204E"/>
+    <text x="226" y="140" fill="#8B87B8" font-size="10">RENTALS MANAGED</text>
+    <text x="226" y="166" fill="#FFFFFF" font-size="22" font-weight="700">4,012</text>
+
+    <rect x="344" y="112" width="122" height="72" rx="10" fill="#20204E"/>
+    <text x="360" y="140" fill="#8B87B8" font-size="10">AGENCIES</text>
+    <text x="360" y="166" fill="#FFFFFF" font-size="22" font-weight="700">31</text>
+
+    <rect x="478" y="112" width="122" height="72" rx="10" fill="#20204E"/>
+    <text x="494" y="140" fill="#8B87B8" font-size="10">OVERDUE</text>
+    <text x="494" y="166" fill="#F97066" font-size="22" font-weight="700">7</text>
+
+    <rect x="612" y="112" width="128" height="72" rx="10" fill="#20204E"/>
+    <text x="628" y="140" fill="#8B87B8" font-size="10">COMPLETED</text>
+    <text x="628" y="166" fill="#4ADE80" font-size="22" font-weight="700">1,190</text>
+  </g>
+
+  <!-- Regional bar chart -->
+  <rect x="210" y="200" width="270" height="130" rx="10" fill="#20204E"/>
+  <text x="226" y="220" fill="#8B87B8" font-size="10">JOBS BY REGION</text>
+  <g fill="#5B4FE8">
+    <rect x="230" y="260" width="24" height="50" rx="3"/>
+    <rect x="266" y="240" width="24" height="70" rx="3" fill="#8B7FF0"/>
+    <rect x="302" y="220" width="24" height="90" rx="3"/>
+    <rect x="338" y="250" width="24" height="60" rx="3" fill="#8B7FF0"/>
+    <rect x="374" y="230" width="24" height="80" rx="3"/>
+    <rect x="410" y="270" width="24" height="40" rx="3" fill="#8B7FF0"/>
+  </g>
+
+  <!-- Job status donut -->
+  <rect x="496" y="200" width="244" height="130" rx="10" fill="#20204E"/>
+  <text x="512" y="220" fill="#8B87B8" font-size="10">JOB STATUS</text>
+  <circle cx="556" cy="270" r="34" fill="none" stroke="#2A2A5C" stroke-width="14"/>
+  <circle cx="556" cy="270" r="34" fill="none" stroke="#4ADE80" stroke-width="14" stroke-dasharray="150 214" stroke-linecap="round"/>
+  <circle cx="556" cy="270" r="34" fill="none" stroke="#F97066" stroke-width="14" stroke-dasharray="20 214" stroke-dashoffset="-150" stroke-linecap="round"/>
+  <g font-size="10" fill="#E8E6FF">
+    <circle cx="620" cy="252" r="4" fill="#4ADE80"/><text x="630" y="256">Completed</text>
+    <circle cx="620" cy="272" r="4" fill="#F97066"/><text x="630" y="276">Overdue</text>
+    <circle cx="620" cy="292" r="4" fill="#5B4FE8"/><text x="630" y="296">Scheduled</text>
+  </g>
+
+  <!-- Jobs table -->
+  <rect x="210" y="344" width="530" height="196" rx="10" fill="#20204E"/>
+  <text x="226" y="366" fill="#8B87B8" font-size="10">RECENT JOBS</text>
+  <g font-size="11">
+    <circle cx="234" cy="392" r="12" fill="#5B4FE8"/><text x="234" y="396" fill="#fff" font-size="9" text-anchor="middle">AG</text>
+    <text x="256" y="396" fill="#E8E6FF">Smoke alarm check</text>
+    <text x="460" y="396" fill="#9490BF">Northside Agency</text>
+    <rect x="640" y="384" width="80" height="20" rx="10" fill="#4ADE80" opacity="0.25"/>
+    <text x="654" y="398" fill="#4ADE80" font-size="9">COMPLETED</text>
+
+    <circle cx="234" cy="428" r="12" fill="#4ADE80"/><text x="234" y="432" fill="#0A2E1A" font-size="9" text-anchor="middle">PM</text>
+    <text x="256" y="432" fill="#E8E6FF">Gas compliance</text>
+    <text x="460" y="432" fill="#9490BF">Coastal Property Mgmt</text>
+    <rect x="640" y="420" width="80" height="20" rx="10" fill="#5B4FE8" opacity="0.25"/>
+    <text x="656" y="434" fill="#8B7FF0" font-size="9">SCHEDULED</text>
+
+    <circle cx="234" cy="464" r="12" fill="#F97066"/><text x="234" y="468" fill="#fff" font-size="9" text-anchor="middle">TC</text>
+    <text x="256" y="468" fill="#E8E6FF">Electrical safety</text>
+    <text x="460" y="468" fill="#9490BF">Metro Realty Group</text>
+    <rect x="640" y="456" width="80" height="20" rx="10" fill="#F97066" opacity="0.25"/>
+    <text x="662" y="470" fill="#F97066" font-size="9">OVERDUE</text>
+
+    <circle cx="234" cy="500" r="12" fill="#F5C451"/><text x="234" y="504" fill="#3A2A00" font-size="9" text-anchor="middle">TC</text>
+    <text x="256" y="504" fill="#E8E6FF">Pool fence check</text>
+    <text x="460" y="504" fill="#9490BF">Harbourline Agencies</text>
+    <rect x="640" y="492" width="80" height="20" rx="10" fill="#5B4FE8" opacity="0.25"/>
+    <text x="656" y="506" fill="#8B7FF0" font-size="9">SCHEDULED</text>
+  </g>
+</svg>

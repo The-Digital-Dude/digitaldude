@@ -1,0 +1,63 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://www.digitaldude.co.uk/sitemap.xml
+
+# Host
+Host: https://www.digitaldude.co.uk
+
+# Directories
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /cgi-bin/
+Disallow: /tmp/
+Disallow: /backup/
+
+# File types
+Disallow: /*.pdf$
+Disallow: /*.zip$
+Disallow: /*.tar.gz$
+
+# Crawl-delay
+Crawl-delay: 10
+
+# Google-specific directives
+User-agent: Googlebot
+Allow: /
+Disallow: /admin/
+Disallow: /private/
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Googlebot-Mobile
+Allow: /
+
+# Bing-specific directives
+User-agent: bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /private/
+
+# Yahoo-specific directives
+User-agent: Slurp
+Allow: /
+Disallow: /admin/
+Disallow: /private/
+
+# Yandex-specific directives
+User-agent: Yandex
+Allow: /
+Disallow: /admin/
+Disallow: /private/
+
+# Sogou
+User-agent: Sogou web spider
+Disallow: /admin/
+Disallow: /private/
+
+# Baidu
+User-agent: Baiduspider
+Disallow: /admin/
+Disallow: /private/

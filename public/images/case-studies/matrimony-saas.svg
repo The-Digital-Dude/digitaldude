@@ -1,0 +1,76 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="Poppins, Arial, sans-serif">
+  <rect width="800" height="600" fill="#1A1A4E"/>
+  <rect x="40" y="40" width="720" height="520" rx="14" fill="#12123A"/>
+
+  <circle cx="70" cy="66" r="5" fill="#F97066"/>
+  <circle cx="88" cy="66" r="5" fill="#F5C451"/>
+  <circle cx="106" cy="66" r="5" fill="#4ADE80"/>
+  <rect x="140" y="56" width="300" height="20" rx="10" fill="#20204E"/>
+  <text x="152" y="70" fill="#8B87B8" font-size="11">app.matchplatform.io/matches</text>
+  <rect x="40" y="90" width="720" height="1" fill="#2A2A5C"/>
+
+  <rect x="40" y="91" width="150" height="469" fill="#15153F"/>
+  <g font-size="11" fill="#E8E6FF">
+    <rect x="60" y="116" width="110" height="30" rx="6" fill="#5B4FE8"/>
+    <text x="76" y="135">Matches</text>
+    <text x="76" y="176" fill="#9490BF">Messages</text>
+    <text x="76" y="210" fill="#9490BF">Verification</text>
+    <text x="76" y="244" fill="#9490BF">Community</text>
+    <text x="76" y="278" fill="#9490BF">Billing</text>
+  </g>
+
+  <g>
+    <rect x="210" y="112" width="160" height="72" rx="10" fill="#20204E"/>
+    <text x="226" y="140" fill="#8B87B8" font-size="10">ACTIVE MEMBERS</text>
+    <text x="226" y="166" fill="#FFFFFF" font-size="22" font-weight="700">6,420</text>
+
+    <rect x="382" y="112" width="160" height="72" rx="10" fill="#20204E"/>
+    <text x="398" y="140" fill="#8B87B8" font-size="10">VERIFIED PROFILES</text>
+    <text x="398" y="166" fill="#4ADE80" font-size="22" font-weight="700">92%</text>
+
+    <rect x="554" y="112" width="186" height="72" rx="10" fill="#20204E"/>
+    <text x="570" y="140" fill="#8B87B8" font-size="10">PREMIUM SUBSCRIBERS</text>
+    <text x="570" y="166" fill="#5B4FE8" font-size="22" font-weight="700">1,884</text>
+  </g>
+
+  <!-- Match cards -->
+  <rect x="210" y="200" width="530" height="200" rx="10" fill="#20204E"/>
+  <text x="226" y="222" fill="#8B87B8" font-size="10">SUGGESTED MATCHES</text>
+
+  <g>
+    <rect x="226" y="240" width="150" height="140" rx="10" fill="#2A2A5C"/>
+    <circle cx="301" cy="292" r="30" fill="#3A3A6E"/>
+    <rect x="256" y="330" width="90" height="10" rx="5" fill="#E8E6FF"/>
+    <rect x="270" y="348" width="62" height="18" rx="9" fill="#4ADE80" opacity="0.25"/>
+    <text x="280" y="361" fill="#4ADE80" font-size="8">VERIFIED</text>
+  </g>
+  <g>
+    <rect x="392" y="240" width="150" height="140" rx="10" fill="#2A2A5C"/>
+    <circle cx="467" cy="292" r="30" fill="#3A3A6E"/>
+    <rect x="422" y="330" width="90" height="10" rx="5" fill="#E8E6FF"/>
+    <rect x="436" y="348" width="62" height="18" rx="9" fill="#4ADE80" opacity="0.25"/>
+    <text x="446" y="361" fill="#4ADE80" font-size="8">VERIFIED</text>
+  </g>
+  <g>
+    <circle cx="580" cy="310" r="26" fill="#1A1A4E" stroke="#5B4FE8" stroke-width="3"/>
+    <path d="M580 322 C 566 310 564 296 575 294 C 580 293 580 300 580 300 C 580 300 580 293 585 294 C 596 296 594 310 580 322 Z" fill="#5B4FE8"/>
+  </g>
+  <g>
+    <rect x="612" y="240" width="128" height="140" rx="10" fill="#2A2A5C"/>
+    <circle cx="676" cy="292" r="30" fill="#3A3A6E"/>
+    <rect x="636" y="330" width="80" height="10" rx="5" fill="#E8E6FF"/>
+    <rect x="646" y="348" width="62" height="18" rx="9" fill="#F5C451" opacity="0.25"/>
+    <text x="656" y="361" fill="#F5C451" font-size="8">TIER 3</text>
+  </g>
+
+  <!-- Verification checklist -->
+  <rect x="210" y="416" width="530" height="124" rx="10" fill="#20204E"/>
+  <text x="226" y="438" fill="#8B87B8" font-size="10">VERIFICATION LEVELS</text>
+  <g font-size="10" fill="#E8E6FF">
+    <circle cx="234" cy="464" r="8" fill="#4ADE80"/><text x="252" y="468">Email &amp; phone</text>
+    <circle cx="234" cy="490" r="8" fill="#4ADE80"/><text x="252" y="494">Government ID</text>
+    <circle cx="234" cy="516" r="8" fill="#4ADE80"/><text x="252" y="520">Photo verification</text>
+    <circle cx="420" cy="464" r="8" fill="#4ADE80"/><text x="438" y="468">Address check</text>
+    <circle cx="420" cy="490" r="8" fill="#5B4FE8"/><text x="438" y="494">Police check</text>
+  </g>
+</svg>

@@ -1,0 +1,13 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1200" height="630" fill="#1A1A4E"/>
+<g transform="translate(350, 280) scale(2.5)">
+  <g fill="#5B4FE8">
+    <path d="M20,2 h15 a20,20 0 0 1 0,38 h-15 a8,8 0 0 1 -8,-8 V10 a8,8 0 0 1 8,-8 z"/>
+    <circle cx="12" cy="11" r="7"/>
+    <circle cx="12" cy="31" r="7"/>
+  </g>
+  <text style="white-space: pre; fill: rgb(241, 245, 249); font-family: Poppins, sans-serif; font-size: 21.8px; font-weight: 800;" x="59.341" y="20.043">THE DIGITAL</text>
+  <text style="white-space: pre; fill: rgb(200, 195, 245); font-family: Poppins, sans-serif; font-size: 19.6px; font-weight: 400; font-style: italic;" x="59.341" y="40.843">DUDE</text>
+</g>
+<text x="600" y="420" text-anchor="middle" style="fill: rgb(232, 230, 255); font-family: Poppins, sans-serif; font-size: 26px;">We build systems that scale.</text>
+</svg>
