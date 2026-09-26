@@ -20,10 +20,12 @@ import {
   Download,
   Sparkles,
   ScrollText,
-  Plus
+  Plus,
+  Mail,
 } from "lucide-react";
 import { BookingLead, formatGbp } from "@/lib/crm";
 import { CrmKanbanBoard } from "@/components/admin/CrmKanbanBoard";
+import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
 
 interface AdminStats {
   totalBookings: number;
@@ -46,6 +48,7 @@ export default function AdminDashboardPage() {
   const [leads, setLeads] = useState<BookingLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
+  const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
 
   async function fetchData() {
     setLoading(true);
@@ -338,6 +341,22 @@ export default function AdminDashboardPage() {
 
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() =>
+                                setEmailRecipient({
+                                  name: lead.name,
+                                  email: lead.work_email,
+                                  companyName: lead.company_name,
+                                  bookingId: lead.id,
+                                  defaultTemplateId: "discovery_followup",
+                                })
+                              }
+                              title="Email Lead via Brevo"
+                              className="rounded-lg border border-purple/20 bg-purple/5 p-1.5 text-purple hover:bg-purple/10 transition"
+                            >
+                              <Mail size={13} />
+                            </button>
+
                             <Link
                               href="/admin/proposals/new"
                               className="rounded-lg bg-purple/10 px-2.5 py-1 text-[11px] font-bold text-purple hover:bg-purple/20 transition"
@@ -377,6 +396,18 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Email Composer Modal */}
+      <EmailComposerModal
+        isOpen={!!emailRecipient}
+        recipient={emailRecipient}
+        onClose={() => setEmailRecipient(null)}
+        onSent={() => {
+          if (emailRecipient?.bookingId) {
+            handleUpdateLead(emailRecipient.bookingId, { stage: "proposal_sent" });
+          }
+        }}
+      />
     </AdminLayout>
   );
 }

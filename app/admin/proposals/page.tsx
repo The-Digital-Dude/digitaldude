@@ -16,9 +16,11 @@ import {
   Building,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  Mail,
 } from "lucide-react";
 import { Proposal } from "@/lib/content/proposals";
+import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
 
 export default function AdminProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -26,6 +28,7 @@ export default function AdminProposalsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
 
   async function fetchProposals() {
     setLoading(true);
@@ -209,6 +212,28 @@ export default function AdminProposalsPage() {
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() =>
+                              setEmailRecipient({
+                                name: item.client_name,
+                                email: item.client_email,
+                                companyName: item.company_name,
+                                proposalSlug: item.slug,
+                                proposalId: item.id,
+                                bookingId: item.booking_id || undefined,
+                                projectTitle: item.project_title,
+                                scopeSummary: item.scope_summary,
+                                budgetRange: item.budget_range,
+                                targetTimeline: item.target_timeline,
+                                defaultTemplateId: "proposal_delivery",
+                              })
+                            }
+                            title="Email Proposal to Client via Brevo"
+                            className="rounded-lg p-1.5 text-purple hover:bg-purple/10 transition"
+                          >
+                            <Mail size={14} />
+                          </button>
+
+                          <button
                             onClick={() => handleCopyLink(item.slug)}
                             title="Copy Public Proposal Link"
                             className="rounded-lg p-1.5 text-navy/50 hover:bg-slate-100 hover:text-navy transition"
@@ -251,6 +276,16 @@ export default function AdminProposalsPage() {
           )}
         </div>
       </div>
+
+      {/* Email Composer Modal */}
+      <EmailComposerModal
+        isOpen={!!emailRecipient}
+        recipient={emailRecipient}
+        onClose={() => setEmailRecipient(null)}
+        onSent={() => {
+          fetchProposals();
+        }}
+      />
     </AdminLayout>
   );
 }

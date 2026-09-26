@@ -21,9 +21,11 @@ import {
   FileText,
   Sparkles,
   MessageSquare,
-  Check
+  Check,
+  Mail,
 } from "lucide-react";
 import { BookingLead, CRM_STAGES, CrmStage, LeadScore, formatGbp } from "@/lib/crm";
+import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
 
 export function CrmKanbanBoard({
   leads,
@@ -37,6 +39,7 @@ export function CrmKanbanBoard({
   loading: boolean;
 }) {
   const [selectedLead, setSelectedLead] = useState<BookingLead | null>(null);
+  const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
   const [editDealValue, setEditDealValue] = useState<number>(8500);
   const [editLeadScore, setEditLeadScore] = useState<LeadScore>("warm");
   const [editNotes, setEditNotes] = useState<string>("");
@@ -216,6 +219,22 @@ export function CrmKanbanBoard({
                               <Edit3 size={13} />
                             </button>
 
+                            <button
+                              onClick={() =>
+                                setEmailRecipient({
+                                  name: lead.name,
+                                  email: lead.work_email,
+                                  companyName: lead.company_name,
+                                  bookingId: lead.id,
+                                  defaultTemplateId: "discovery_followup",
+                                })
+                              }
+                              title="Email Lead via Brevo"
+                              className="rounded-md p-1 text-purple hover:bg-purple/10 transition"
+                            >
+                              <Mail size={13} />
+                            </button>
+
                             <Link
                               href={`/admin/proposals/new`}
                               title="Draft Proposal for this Lead"
@@ -370,6 +389,18 @@ export function CrmKanbanBoard({
           </div>
         </div>
       )}
+
+      {/* Email Composer Modal */}
+      <EmailComposerModal
+        isOpen={!!emailRecipient}
+        recipient={emailRecipient}
+        onClose={() => setEmailRecipient(null)}
+        onSent={() => {
+          if (emailRecipient?.bookingId) {
+            onUpdateLead(emailRecipient.bookingId, { stage: "proposal_sent" });
+          }
+        }}
+      />
     </div>
   );
 }

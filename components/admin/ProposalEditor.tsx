@@ -14,9 +14,11 @@ import {
   Clock,
   Zap,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Mail
 } from "lucide-react";
 import { Proposal, ArchitectureModule, DeliverablePhase } from "@/lib/content/proposals";
+import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
 
 const defaultTechStack = [
   "Next.js 16 (App Router)",
@@ -93,6 +95,7 @@ export function ProposalEditor({
   const [validUntil, setValidUntil] = useState(
     initialData?.valid_until || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
   );
+  const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
 
   // Dynamic Lists
   const [techStack, setTechStack] = useState<string[]>(
@@ -263,14 +266,37 @@ export function ProposalEditor({
 
         <div className="flex items-center gap-3">
           {isEdit && initialData?.slug && (
-            <a
-              href={`/proposals/${initialData.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-navy/70 hover:bg-slate-50 transition"
-            >
-              <ExternalLink size={13} /> View Public Spec
-            </a>
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  setEmailRecipient({
+                    name: clientName,
+                    email: clientEmail,
+                    companyName: companyName,
+                    proposalSlug: initialData.slug,
+                    proposalId: initialData.id,
+                    projectTitle,
+                    scopeSummary,
+                    budgetRange,
+                    targetTimeline,
+                    defaultTemplateId: "proposal_delivery",
+                  })
+                }
+                className="inline-flex items-center gap-1.5 rounded-xl border border-purple/30 bg-purple/10 px-3.5 py-2 text-xs font-bold text-purple hover:bg-purple/20 transition"
+              >
+                <Mail size={13} /> Email Spec to Client
+              </button>
+
+              <a
+                href={`/proposals/${initialData.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-navy/70 hover:bg-slate-50 transition"
+              >
+                <ExternalLink size={13} /> View Public Spec
+              </a>
+            </>
           )}
 
           <button
@@ -624,6 +650,16 @@ export function ProposalEditor({
           </div>
         </div>
       </div>
+
+      {/* Email Composer Modal */}
+      <EmailComposerModal
+        isOpen={!!emailRecipient}
+        recipient={emailRecipient}
+        onClose={() => setEmailRecipient(null)}
+        onSent={() => {
+          setStatus("sent");
+        }}
+      />
     </form>
   );
 }
