@@ -80,6 +80,10 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     fetchBookings();
+    // fetchBookings intentionally excluded: it also reads `search`, but this
+    // effect should only auto-fire on statusFilter changes — search is
+    // applied explicitly via the refresh button or pressing Enter (see below).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   function openDrawer(b: Booking) {

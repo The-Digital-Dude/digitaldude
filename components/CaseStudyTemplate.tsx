@@ -72,6 +72,8 @@ export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
         <p className="mt-4 max-w-2xl text-lg text-navy/70">{project.pageSummary}</p>
 
         <div className="relative mt-10 aspect-video w-full overflow-hidden rounded-2xl bg-lavender">
+          {/* Plain img, not next/image: SVG mockup, same caching rationale as ProjectCard.tsx */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={project.image}
             alt={project.imageAlt}

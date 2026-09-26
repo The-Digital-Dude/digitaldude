@@ -137,6 +137,10 @@ export default async function BlogPage() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                 {featuredPost.cover_image && (
                   <div className="lg:col-span-7 aspect-[16/10] lg:aspect-auto relative overflow-hidden bg-lavender">
+                    {/* Plain img: cover_image can be an arbitrary pasted URL (see
+                        ImageUploader.tsx's own URL field), not a fixed known host,
+                        so next/image would need to trust arbitrary external domains. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={featuredPost.cover_image}
                       alt={featuredPost.title}
@@ -192,6 +196,7 @@ export default async function BlogPage() {
                 >
                   {post.cover_image && (
                     <div className="aspect-[16/9] w-full overflow-hidden bg-lavender">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary pasted URL, see note above */}
                       <img
                         src={post.cover_image}
                         alt={post.title}

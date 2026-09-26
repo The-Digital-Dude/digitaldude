@@ -12,7 +12,7 @@ export default function TermsPage() {
         Last updated: {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.
         These terms cover using this website and booking a call. They have not been reviewed by a
         solicitor — have them checked before relying on them as your final legal document. They
-        don't cover the terms of an actual project, which are set out in your own signed proposal
+        don&rsquo;t cover the terms of an actual project, which are set out in your own signed proposal
         or contract with us.
       </p>
 
@@ -42,13 +42,13 @@ export default function TermsPage() {
         <div>
           <h2 className="text-lg font-bold text-navy">Booking a call</h2>
           <p className="mt-2">
-            Booking a 30-minute call through this site reserves time in our calendar — it isn't an
+            Booking a 30-minute call through this site reserves time in our calendar — it isn&rsquo;t an
             order or a contract for any paid work. Nothing is charged to you for the call itself.
-            If we agree there's a fit, any actual project only begins once we've both agreed and
+            If we agree there&rsquo;s a fit, any actual project only begins once we&rsquo;ve both agreed and
             signed a separate proposal or contract setting out the scope, timeline and cost.
           </p>
           <p className="mt-2">
-            Booking creates a Google Calendar event with a Google Meet link, and you'll receive a
+            Booking creates a Google Calendar event with a Google Meet link, and you&rsquo;ll receive a
             confirmation email. Need to reschedule or cancel? Just email{" "}
             <a href="mailto:info@digitaldude.co.uk" className="font-semibold text-purple">
               info@digitaldude.co.uk
@@ -64,7 +64,7 @@ export default function TermsPage() {
             response times and similar) are real numbers from real projects. We keep client names
             and identifying details private by agreement, so projects are described by what they
             do rather than who they were built for. We try to keep the rest of the site accurate
-            and up to date, but we don't guarantee it's error-free at every moment.
+            and up to date, but we don&rsquo;t guarantee it&rsquo;s error-free at every moment.
           </p>
         </div>
 
@@ -72,7 +72,7 @@ export default function TermsPage() {
           <h2 className="text-lg font-bold text-navy">Intellectual property</h2>
           <p className="mt-2">
             The content on this site — text, design, logo and images — belongs to The Digital
-            Dude unless stated otherwise. You're welcome to link to it, but please don't copy or
+            Dude unless stated otherwise. You&rsquo;re welcome to link to it, but please don&rsquo;t copy or
             reuse it without asking us first.
           </p>
         </div>
@@ -80,18 +80,18 @@ export default function TermsPage() {
         <div>
           <h2 className="text-lg font-bold text-navy">Other websites we link to</h2>
           <p className="mt-2">
-            This site links to other places, like LinkedIn. We aren't responsible for the content
-            or privacy practices of sites we don't run ourselves.
+            This site links to other places, like LinkedIn. We aren&rsquo;t responsible for the content
+            or privacy practices of sites we don&rsquo;t run ourselves.
           </p>
         </div>
 
         <div>
           <h2 className="text-lg font-bold text-navy">Liability</h2>
           <p className="mt-2">
-            We provide this website as it is, and we don't promise it will always be available or
-            fault-free. To the extent the law allows, we aren't liable for losses that come from
+            We provide this website as it is, and we don&rsquo;t promise it will always be available or
+            fault-free. To the extent the law allows, we aren&rsquo;t liable for losses that come from
             using or being unable to use this website. Nothing in these terms limits liability
-            where the law doesn't allow us to, such as for fraud or for death or personal injury
+            where the law doesn&rsquo;t allow us to, such as for fraud or for death or personal injury
             caused by our negligence.
           </p>
         </div>

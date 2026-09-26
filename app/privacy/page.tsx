@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         <div>
           <h2 className="text-lg font-bold text-navy">Who we are</h2>
           <p className="mt-2">
-            The Digital Dude ("we", "us", "our") is a UK-registered software development company.
+            The Digital Dude (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) is a UK-registered software development company.
             Our team works from Dhaka, Bangladesh, and we build systems for clients in Australia,
             the UK and Bangladesh. You can reach us at{" "}
             <a href="mailto:info@digitaldude.co.uk" className="font-semibold text-purple">
@@ -39,10 +39,10 @@ export default function PrivacyPage() {
           <p className="mt-2">
             We also use Google Analytics to see how visitors use the site (pages viewed, general
             location, device type). This uses cookies, and only loads after you accept the cookie
-            banner shown on your first visit. If you decline, Analytics doesn't load and no
+            banner shown on your first visit. If you decline, Analytics doesn&rsquo;t load and no
             analytics cookies are set.
           </p>
-          <p className="mt-2">We don't collect payment details on this website.</p>
+          <p className="mt-2">We don&rsquo;t collect payment details on this website.</p>
         </div>
 
         <div>
@@ -70,12 +70,12 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p className="mt-2">
-            We don't sell your information, and we don't share it with anyone else for marketing.
+            We don&rsquo;t sell your information, and we don&rsquo;t share it with anyone else for marketing.
           </p>
         </div>
 
         <div>
-          <h2 className="text-lg font-bold text-navy">Where it's processed</h2>
+          <h2 className="text-lg font-bold text-navy">Where it&rsquo;s processed</h2>
           <p className="mt-2">
             These providers may store or process data outside your own country, including in the
             UK, the EU and the US. Where that happens, each provider maintains its own safeguards
@@ -86,10 +86,10 @@ export default function PrivacyPage() {
         <div>
           <h2 className="text-lg font-bold text-navy">How long we keep it</h2>
           <p className="mt-2">
-            We keep booking and enquiry details for as long as we're in an active conversation or
+            We keep booking and enquiry details for as long as we&rsquo;re in an active conversation or
             working relationship with you, and for a reasonable period afterwards in case you get
             back in touch or we need it for our own accounting or legal obligations. You can ask us
-            to delete it sooner at any time — see "Your rights" below.
+            to delete it sooner at any time — see &ldquo;Your rights&rdquo; below.
           </p>
         </div>
 
@@ -102,7 +102,7 @@ export default function PrivacyPage() {
             <a href="mailto:info@digitaldude.co.uk" className="font-semibold text-purple">
               info@digitaldude.co.uk
             </a>
-            . If you're in the UK and unhappy with how we've handled your request, you can also
+            . If you&rsquo;re in the UK and unhappy with how we&rsquo;ve handled your request, you can also
             complain to the{" "}
             <a
               href="https://ico.org.uk"
@@ -110,7 +110,7 @@ export default function PrivacyPage() {
               rel="noopener noreferrer"
               className="font-semibold text-purple"
             >
-              Information Commissioner's Office (ICO)
+              Information Commissioner&rsquo;s Office (ICO)
             </a>
             .
           </p>
@@ -120,15 +120,15 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-bold text-navy">Security</h2>
           <p className="mt-2">
             We use providers with their own security measures (encryption in transit, access
-            controls) to protect your data. No system is completely secure, but we don't hold more
-            data than we need, and we don't store payment or government ID details on this site.
+            controls) to protect your data. No system is completely secure, but we don&rsquo;t hold more
+            data than we need, and we don&rsquo;t store payment or government ID details on this site.
           </p>
         </div>
 
         <div>
           <h2 className="text-lg font-bold text-navy">Children</h2>
           <p className="mt-2">
-            This site and our services are intended for businesses, not children. We don't
+            This site and our services are intended for businesses, not children. We don&rsquo;t
             knowingly collect information from anyone under 18.
           </p>
         </div>
@@ -136,7 +136,7 @@ export default function PrivacyPage() {
         <div>
           <h2 className="text-lg font-bold text-navy">Changes to this policy</h2>
           <p className="mt-2">
-            If how we handle your data changes, we'll update this page. Check back occasionally if
+            If how we handle your data changes, we&rsquo;ll update this page. Check back occasionally if
             you want to stay informed.
           </p>
         </div>

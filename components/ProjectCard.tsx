@@ -10,6 +10,7 @@ export function ProjectCard({ project }: { project: CaseStudy }) {
       <div className="relative aspect-[4/3] w-full bg-lavender">
         {/* Plain img, not next/image: these are vector SVG mockups, and next/image's
             aggressive immutable cache headers make browsers ignore file updates. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={project.image}
           alt={project.imageAlt}

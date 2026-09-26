@@ -152,7 +152,6 @@ export const DEMO_PROPOSAL: Proposal = {
 
 // Global in-memory store for proposals (persists across server requests in memory)
 declare global {
-  // eslint-disable-next-line no-var
   var __IN_MEMORY_PROPOSALS__: Proposal[] | undefined;
 }
 

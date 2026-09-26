@@ -140,6 +140,8 @@ export default function HomePage() {
         </p>
 
         <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-2xl border border-black/5 shadow-xl">
+          {/* Plain img, not next/image: SVG mockup, same caching rationale as ProjectCard.tsx */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/case-studies/property-compliance.svg"
             alt="A real dashboard we built, showing rentals managed, agency counts and job status"

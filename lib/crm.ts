@@ -190,7 +190,6 @@ export function formatGbp(amount: number): string {
 
 // Global in-memory store for CRM leads
 declare global {
-  // eslint-disable-next-line no-var
   var __IN_MEMORY_LEADS__: BookingLead[] | undefined;
 }
 

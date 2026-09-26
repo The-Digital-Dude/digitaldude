@@ -93,7 +93,7 @@ export function ProposalEditor({
   const [budgetRange, setBudgetRange] = useState(initialData?.budget_range || "£6,500 – £15,000");
   const [status, setStatus] = useState(initialData?.status || "draft");
   const [validUntil, setValidUntil] = useState(
-    initialData?.valid_until || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+    () => initialData?.valid_until || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
   );
   const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
 
