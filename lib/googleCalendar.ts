@@ -16,9 +16,48 @@ export interface GoogleMeetingResult {
   htmlLink: string | null;
 }
 
+const CALENDAR_SCOPES = [
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/calendar.events",
+];
+
+export function getGoogleOAuthClient() {
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI;
+
+  if (!clientId || !clientSecret || !redirectUri) return null;
+
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+}
+
+/** Builds the one-time Google consent URL. Used only by the setup route. */
+export function buildGoogleConsentUrl() {
+  const client = getGoogleOAuthClient();
+  if (!client) return null;
+
+  return client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent", // forces a refresh_token even if previously authorized
+    scope: CALENDAR_SCOPES,
+  });
+}
+
+function getAuthorizedClient() {
+  const client = getGoogleOAuthClient();
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+
+  if (!client || !refreshToken) return null;
+
+  client.setCredentials({ refresh_token: refreshToken });
+  return client;
+}
+
 /**
- * Creates an event on Google Calendar with a unique Google Meet video link
- * and automatically sends calendar invitations to the attendee.
+ * Creates an event on the founder's real Google Calendar (via OAuth2, not a
+ * service account — service accounts cannot create Meet links or invite
+ * attendees on a personal, non-Workspace calendar; see git history for the
+ * live-tested proof). Sends calendar invitations automatically.
  */
 export async function createGoogleCalendarMeeting({
   name,
@@ -28,29 +67,17 @@ export async function createGoogleCalendarMeeting({
   slotEnd,
   message,
 }: CalendarMeetingParams): Promise<GoogleMeetingResult | null> {
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKeyRaw = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  const calendarId = process.env.GOOGLE_CALENDAR_ID || "info@digitaldude.co.uk";
+  const auth = getAuthorizedClient();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
 
-  if (!clientEmail || !privateKeyRaw) {
+  if (!auth) {
     log("info", {
-      message: "Google Calendar credentials not configured. Skipping automated Google Calendar event creation.",
+      message: "Google Calendar OAuth not configured. Skipping automated Meet creation.",
     });
     return null;
   }
 
   try {
-    const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
-
-    const auth = new google.auth.JWT({
-      email: clientEmail,
-      key: privateKey,
-      scopes: [
-        "https://www.googleapis.com/auth/calendar",
-        "https://www.googleapis.com/auth/calendar.events",
-      ],
-    });
-
     const calendar = google.calendar({ version: "v3", auth });
 
     const summary = `Discovery Call: ${companyName} × The Digital Dude`;
@@ -74,22 +101,13 @@ export async function createGoogleCalendarMeeting({
       requestBody: {
         summary,
         description,
-        start: {
-          dateTime: slotStart,
-        },
-        end: {
-          dateTime: slotEnd,
-        },
-        attendees: [
-          { email: workEmail, displayName: name },
-          { email: calendarId, displayName: "The Digital Dude" },
-        ],
+        start: { dateTime: slotStart },
+        end: { dateTime: slotEnd },
+        attendees: [{ email: workEmail, displayName: name }],
         conferenceData: {
           createRequest: {
             requestId,
-            conferenceSolutionKey: {
-              type: "hangoutsMeet",
-            },
+            conferenceSolutionKey: { type: "hangoutsMeet" },
           },
         },
         reminders: {
