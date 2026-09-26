@@ -427,7 +427,54 @@ Building a successful marketplace requires synchronizing three distinct user exp
     console.warn("Proposal sync notice:", err.message);
   }
 
-  // 5. Fetch all posts, case studies, and proposals to verify
+  // 5. Seed Demo CRM Bookings if none exist
+  const seedBookings = [
+    {
+      name: "Alex Morgan",
+      work_email: "alex@morganlogistics.co.uk",
+      company_name: "Morgan Logistics & Freight",
+      country: "United Kingdom",
+      team_size: "20 to 50 people",
+      message: "Currently managing 400+ weekly consignments across 6 spreadsheets. Looking to replace WhatsApp dispatch with a custom portal.",
+      slot_start: new Date(Date.now() + 86400000).toISOString(),
+      slot_end: new Date(Date.now() + 86400000 + 1800000).toISOString(),
+      meet_url: "https://meet.google.com/tdd-demo-alex",
+      stage: "proposal_sent",
+      deal_value: 12500,
+      lead_score: "hot",
+      lead_notes: "Very high intent. Sent TDD-SPEC-DEMO-2026 proposal. Target start date next month.",
+    },
+    {
+      name: "David Sterling",
+      work_email: "david@sterlingpm.com.au",
+      company_name: "Sterling Property Management",
+      country: "Australia",
+      team_size: "10 to 30 people",
+      message: "Need a smoke alarm and compliance tracking CRM for 3,500 rental properties in Sydney.",
+      slot_start: new Date(Date.now() + 2 * 86400000).toISOString(),
+      slot_end: new Date(Date.now() + 2 * 86400000 + 1800000).toISOString(),
+      meet_url: "https://meet.google.com/tdd-demo-david",
+      stage: "call_completed",
+      deal_value: 16000,
+      lead_score: "hot",
+      lead_notes: "Spoke with David. They are fed up with PropertyMe workarounds. Drafting Phase 1 wireframes.",
+    }
+  ];
+
+  try {
+    for (const b of seedBookings) {
+      const { error: bErr } = await supabase
+        .from("bookings")
+        .upsert(b, { onConflict: "slot_start" });
+      if (!bErr) {
+        console.log(`Synced booking for ${b.company_name}`);
+      }
+    }
+  } catch (err) {
+    console.warn("Bookings seed notice:", err.message);
+  }
+
+  // 6. Fetch all posts, case studies, proposals, and bookings to verify
   const { data: allPosts } = await supabase
     .from("posts")
     .select("id, slug, title, status, cover_image, reading_time_minutes");
@@ -455,6 +502,17 @@ Building a successful marketplace requires synchronizing three distinct user exp
   } else {
     console.log("\nCurrent Database Proposals in Supabase:");
     console.table(allProposals);
+  }
+
+  const { data: allBookingsList, error: bListErr } = await supabase
+    .from("bookings")
+    .select("id, company_name, name, stage, deal_value, lead_score");
+
+  if (bListErr) {
+    console.warn("Bookings query notice:", bListErr.message);
+  } else {
+    console.log("\nCurrent Database CRM Leads & Deals in Supabase:");
+    console.table(allBookingsList);
   }
 }
 
