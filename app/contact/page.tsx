@@ -7,7 +7,7 @@ export const metadata: Metadata = buildMetadata("contact", "/contact");
 const nextSteps = [
   "You send the form",
   "We reply within one working day with times that suit your time zone",
-  "A 30-minute call with Farhad about your business",
+  "A 30-minute call with our team about your business",
   "If there's a fit, you get a clear proposal within 48 hours",
 ];
 
@@ -20,8 +20,8 @@ export default function ContactPage() {
             Let&rsquo;s talk about how your business runs
           </h1>
           <p className="mt-4 text-lg text-navy/70">
-            Book a 30-minute call with our founder, Farhad. We&rsquo;ll talk about how things work
-            today, where they get stuck, and whether a system would help. No pitch, no pressure.
+            Book a 30-minute call with our team. We&rsquo;ll talk about how things work today,
+            where they get stuck, and whether a system would help. No pitch, no pressure.
           </p>
 
           <div className="mt-10">

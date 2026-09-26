@@ -90,26 +90,6 @@ export default function AboutPage() {
       </section>
 
       <section className="mx-auto max-w-content px-6 py-10">
-        <h2 className="text-xl font-bold text-navy">Founders</h2>
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
-          <div className="rounded-2xl border border-tint p-6">
-            <h3 className="font-bold text-navy">Farhad Hossain, CEO and Co-Founder</h3>
-            <p className="mt-2 text-sm text-navy/70">
-              Leads client strategy and scopes every project personally. Background in computer
-              science, SEO and growth, with years of experience working with Australian
-              businesses.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-tint p-6">
-            <h3 className="font-bold text-navy">Abir Hossain Juhan, Co-Founder</h3>
-            <p className="mt-2 text-sm text-navy/50">
-              [Add a one-line description of Abir&rsquo;s role and focus.]
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-content px-6 py-10">
         <h2 className="text-xl font-bold text-navy">The team</h2>
         <p className="mt-4 max-w-2xl text-sm text-navy/50">
           [Photos and first names with roles, e.g. Senior Developer, Developer, Digital Marketing
@@ -131,7 +111,7 @@ export default function AboutPage() {
 
       <div className="mx-auto max-w-content px-6 pb-16 text-center">
         <Link href="/contact" className="font-semibold text-purple">
-          Want to see if we&rsquo;re the right fit? Book a 30-minute call with Farhad.
+          Want to see if we&rsquo;re the right fit? Book a 30-minute call with our team.
         </Link>
       </div>
 

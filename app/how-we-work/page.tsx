@@ -125,7 +125,7 @@ export default function HowWeWorkPage() {
       <section className="mx-auto max-w-content px-6 py-10">
         <h2 className="text-xl font-bold text-navy">After launch</h2>
         <p className="mt-4 max-w-3xl text-navy/70">
-          Every project includes a support period after launch to fix any bugs at no extra cost.
+          Every project includes 30 days of support after launch to fix any bugs at no extra cost.
           After that, you can choose a monthly support plan for updates, improvements and priority
           help, or simply come back when you need something.
         </p>

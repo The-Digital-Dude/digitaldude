@@ -123,7 +123,7 @@ export const caseStudies: CaseStudy[] = [
     whatChangedLabel: "What changed",
     whatChanged:
       "The community runs on one platform that verifies members, suggests matches and handles payments, giving members confidence in who they are talking to.",
-    builtWith: "[Confirm stack with the dev team]",
+    builtWith: "Next.js",
     related: ["ai-tutoring-platform", "recruitment-crm"],
   },
   {
@@ -187,7 +187,7 @@ export const caseStudies: CaseStudy[] = [
     whatChangedLabel: "What changed",
     whatChanged:
       "Response coordination improved by 40%, and the team has one place to see every incident instead of chasing calls.",
-    builtWith: "[Confirm stack with the dev team]",
+    builtWith: "Next.js",
     related: ["property-compliance-crm", "cleaning-marketplace"],
   },
   {

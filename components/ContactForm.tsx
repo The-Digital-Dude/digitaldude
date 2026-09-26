@@ -52,7 +52,7 @@ export function ContactForm() {
     return (
       <div className="rounded-2xl border border-tint bg-lavender p-8">
         <p className="text-navy">
-          Thanks, {firstName}. We&rsquo;ve got your message. Farhad will reply within one working
+          Thanks, {firstName}. We&rsquo;ve got your message. We&rsquo;ll reply within one working
           day with a few times for a call. If it&rsquo;s urgent, email{" "}
           <a href="mailto:info@digitaldude.co.uk" className="font-semibold text-purple">
             info@digitaldude.co.uk

@@ -271,23 +271,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials slot: hidden until at least two real quotes are collected. */}
-
-      {/* 9. A note from our founder */}
-      <section className="mx-auto max-w-content px-6 py-20">
-        <div className="grid items-center gap-10 sm:grid-cols-[240px_1fr]">
-          <div className="mx-auto flex aspect-square w-48 items-center justify-center rounded-full bg-tint text-center text-sm font-medium text-navy/50 sm:w-full">
-            Founder photo pending
-          </div>
-          <div>
-            <p className="text-lg italic text-navy/80">
-              &ldquo;We started The Digital Dude in 2020 because we kept meeting good businesses
-              held back by bad tools. Six years on, our team has shipped systems that run property
-              portfolios, travel agencies and cleaning businesses every day. I take the first call
-              with every client myself, because the right system starts with understanding how
-              your business really works.&rdquo;
-            </p>
-            <p className="mt-4 font-semibold text-navy">Farhad Hossain, CEO and Co-Founder</p>
+      {/* Testimonials: placeholder quotes until real client testimonials are collected. */}
+      <section className="bg-lavender py-20">
+        <div className="mx-auto max-w-content px-6">
+          <h2 className="text-center text-2xl font-bold text-navy sm:text-3xl">
+            What clients say
+          </h2>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="rounded-2xl bg-white p-6 shadow-sm">
+                <p className="text-navy/50">
+                  [Add a real client quote here before launch — replace this placeholder.]
+                </p>
+                <p className="mt-4 text-sm font-semibold text-navy/50">
+                  [Client name, role, company]
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
