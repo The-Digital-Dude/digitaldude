@@ -77,7 +77,17 @@ export async function GET(request: Request) {
     }
   }
 
-  // Fallback in-memory leads (only active when Supabase credentials are not configured in local environment)
+  // In-memory fallback is for local/demo use only. In production, a missing
+  // Supabase config must fail loudly rather than silently serving (or
+  // accepting, in POST below) leads that were never durably stored.
+  if (process.env.NODE_ENV === "production") {
+    log("error", { message: "Supabase not configured in production for /api/admin/bookings" });
+    return NextResponse.json(
+      { ok: false, error: "Database is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY." },
+      { status: 503 }
+    );
+  }
+
   const inMemory = getInMemoryLeads();
   const filtered = inMemory.filter((l) => {
     const matchesSearch =
@@ -232,7 +242,15 @@ export async function POST(request: Request) {
         log("info", { message: "Custom lead created in Supabase", context: { id: data.id, name: data.name } });
       }
     } else {
-      // Local development without Supabase
+      // In-memory fallback is for local/demo use only — never in production,
+      // where it would report a lead as created without durable storage.
+      if (process.env.NODE_ENV === "production") {
+        log("error", { message: "Supabase not configured in production for POST /api/admin/bookings" });
+        return NextResponse.json(
+          { ok: false, error: "Database is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY." },
+          { status: 503 }
+        );
+      }
       addInMemoryLead(newLead);
     }
 
