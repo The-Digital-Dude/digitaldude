@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getSupabaseServerClient } from '@/lib/supabaseServer';
+import { getSupabaseServerClient } from '@/lib/supabaseClient';
 import { Clock, ArrowLeft, Share2, Sparkles, Calendar, User, ArrowRight } from 'lucide-react';
 
 interface Props {

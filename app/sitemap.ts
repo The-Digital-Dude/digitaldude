@@ -3,7 +3,7 @@ import { SITE_URL } from "@/lib/utils";
 import { caseStudies } from "@/lib/content/caseStudies";
 import { services } from "@/lib/content/services";
 import { industries } from "@/lib/content/industries";
-import { getSupabaseServerClient } from "@/lib/supabaseServer";
+import { getSupabaseServerClient } from "@/lib/supabaseClient";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();

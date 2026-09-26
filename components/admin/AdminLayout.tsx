@@ -172,3 +172,5 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+export default AdminLayout;

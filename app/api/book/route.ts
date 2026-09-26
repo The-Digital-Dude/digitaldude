@@ -121,6 +121,18 @@ export async function POST(request: Request) {
     message,
   });
 
+  if (calendarMeeting?.meetUrl) {
+    try {
+      await supabase
+        .from("bookings")
+        .update({ meet_url: calendarMeeting.meetUrl })
+        .eq("work_email", workEmail)
+        .eq("slot_start", start.toISOString());
+    } catch (e) {
+      log("warn", { message: "Could not persist meet_url to booking record", error: e });
+    }
+  }
+
   await sendNotification({
     name,
     workEmail,

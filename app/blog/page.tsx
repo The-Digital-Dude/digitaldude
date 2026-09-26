@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
-import { getSupabaseServerClient } from '@/lib/supabaseServer';
+import { getSupabaseServerClient } from '@/lib/supabaseClient';
 import { Clock, Tag, ArrowRight, BookOpen, Search } from 'lucide-react';
 
 export const metadata: Metadata = {
