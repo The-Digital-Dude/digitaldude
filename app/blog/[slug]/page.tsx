@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSupabaseServerClient } from '@/lib/supabaseClient';
 import { SITE_URL } from '@/lib/utils';
+import { TableOfContents } from '@/components/TableOfContents';
+import { AiSummaryBox } from '@/components/AiSummaryBox';
 import { Clock, ArrowLeft, Share2, Sparkles, Calendar, User, ArrowRight } from 'lucide-react';
 
 interface Props {
@@ -310,6 +312,19 @@ export default async function BlogPostDetailPage({ params }: Props) {
 
       {/* Article Content */}
       <article className="max-w-3xl mx-auto px-6 py-8">
+        {post.excerpt && (
+          <AiSummaryBox
+            summary={post.excerpt}
+            keyPoints={[
+              `Core Focus: ${post.category}`,
+              `Estimated Reading Time: ${post.read_time || '5 min read'}`,
+              `Author & Technical Review: ${post.author || 'The Digital Dude Team'}`
+            ]}
+          />
+        )}
+
+        <TableOfContents content={post.content} />
+
         <div className="prose prose-lg prose-indigo max-w-none text-navy/85 leading-relaxed font-sans">
           <MarkdownRenderer content={post.content} />
         </div>

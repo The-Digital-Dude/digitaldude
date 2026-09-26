@@ -191,10 +191,19 @@ export function MarkdownRenderer({ content }: { content: string }) {
 
       if (lTrim.startsWith("## ")) {
         flushList();
+        const rawText = lTrim.replace(/^##\s+/, "").replace(/\*\*|\*|`/g, "");
+        const headingId = rawText
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
         elements.push(
           <h2
             key={`h2-${sIdx}-${lIdx}`}
-            className="border-b border-black/5 pb-3 pt-8 text-2xl font-extrabold tracking-tight text-navy sm:text-3xl"
+            id={headingId}
+            className="scroll-mt-24 border-b border-black/5 pb-3 pt-8 text-2xl font-extrabold tracking-tight text-navy sm:text-3xl"
           >
             {parseInlineMarkdown(lTrim.replace(/^##\s+/, ""))}
           </h2>
@@ -204,10 +213,19 @@ export function MarkdownRenderer({ content }: { content: string }) {
 
       if (lTrim.startsWith("### ")) {
         flushList();
+        const rawText = lTrim.replace(/^###\s+/, "").replace(/\*\*|\*|`/g, "");
+        const headingId = rawText
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
         elements.push(
           <h3
             key={`h3-${sIdx}-${lIdx}`}
-            className="pb-2 pt-6 text-xl font-bold tracking-tight text-navy sm:text-2xl"
+            id={headingId}
+            className="scroll-mt-24 pb-2 pt-6 text-xl font-bold tracking-tight text-navy sm:text-2xl"
           >
             {parseInlineMarkdown(lTrim.replace(/^###\s+/, ""))}
           </h3>
@@ -217,8 +235,20 @@ export function MarkdownRenderer({ content }: { content: string }) {
 
       if (lTrim.startsWith("#### ")) {
         flushList();
+        const rawText = lTrim.replace(/^####\s+/, "").replace(/\*\*|\*|`/g, "");
+        const headingId = rawText
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_-]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
         elements.push(
-          <h4 key={`h4-${sIdx}-${lIdx}`} className="pb-1 pt-4 text-lg font-bold text-navy">
+          <h4
+            key={`h4-${sIdx}-${lIdx}`}
+            id={headingId}
+            className="scroll-mt-24 pb-1 pt-4 text-lg font-bold text-navy"
+          >
             {parseInlineMarkdown(lTrim.replace(/^####\s+/, ""))}
           </h4>
         );
