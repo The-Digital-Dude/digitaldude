@@ -27,8 +27,14 @@ export const metadata: Metadata = {
     description: seo.home.description,
     url: SITE_URL,
     siteName: "The Digital Dude",
-    images: ["/og-image.svg"],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "The Digital Dude" }],
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: seo.home.title,
+    description: seo.home.description,
+    images: ["/og-image.png"],
   },
 };
 

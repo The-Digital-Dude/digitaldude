@@ -32,7 +32,7 @@ export default function ContactPage() {
         <div>
           <div className="rounded-2xl border border-tint bg-lavender p-6">
             <h2 className="font-bold text-navy">What happens next</h2>
-            <ol className="mt-4 space-y-3">
+            <ol className="mt-4 list-none space-y-3">
               {nextSteps.map((step, index) => (
                 <li key={step} className="flex gap-3 text-sm text-navy/70">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple text-xs font-bold text-white">
@@ -52,7 +52,7 @@ export default function ContactPage() {
               </a>{" "}
               ·{" "}
               <a
-                href="https://www.linkedin.com"
+                href="https://www.linkedin.com/company/td-dude"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-purple"

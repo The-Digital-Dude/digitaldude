@@ -9,7 +9,7 @@ export const seo: Record<string, SeoEntry> = {
   home: {
     title: "Custom CRM & SaaS Development | The Digital Dude",
     description:
-      "We build custom CRMs, SaaS platforms and operations systems for growing businesses in Australia and the UK. 7 live products. Book a call.",
+      "We build custom CRMs, SaaS platforms and operations systems for growing businesses in Australia and the UK. 7 shipped products. Book a call.",
   },
   work: {
     title: "Our Work: CRMs, SaaS & Marketplaces | The Digital Dude",
@@ -113,10 +113,22 @@ export function buildMetadata(key: keyof typeof seo, path: string): Metadata {
     title: entry.title,
     description: entry.description,
     alternates: { canonical: path },
+    // Next.js replaces the whole openGraph/twitter object per segment rather
+    // than deep-merging with the root layout's, so every field needed on a
+    // page (including the image) has to be repeated here.
     openGraph: {
       title: entry.title,
       description: entry.description,
       url: path,
+      siteName: "The Digital Dude",
+      type: "website",
+      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "The Digital Dude" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: entry.title,
+      description: entry.description,
+      images: ["/og-image.png"],
     },
   };
 }

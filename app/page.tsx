@@ -129,7 +129,7 @@ export default function HomePage() {
           </Link>
         </div>
         <p className="mt-8 text-sm text-navy/60">
-          7 live and delivered products · 5 industries · Teams in Australia, the UK and Bangladesh
+          7 live and delivered products · 5 industries · Clients in Australia, the UK and Bangladesh
         </p>
       </section>
 
@@ -271,26 +271,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials: placeholder quotes until real client testimonials are collected. */}
-      <section className="bg-lavender py-20">
-        <div className="mx-auto max-w-content px-6">
-          <h2 className="text-center text-2xl font-bold text-navy sm:text-3xl">
-            What clients say
-          </h2>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            {[1, 2].map((i) => (
-              <div key={i} className="rounded-2xl bg-white p-6 shadow-sm">
-                <p className="text-navy/50">
-                  [Add a real client quote here before launch — replace this placeholder.]
-                </p>
-                <p className="mt-4 text-sm font-semibold text-navy/50">
-                  [Client name, role, company]
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/*
+        Testimonials: hidden until at least two real client quotes exist.
+        Restore this section (see git history) once you have them — do not
+        launch with placeholder quotes.
+      */}
 
       {/* 10. Final call to action */}
       <StandardCTA />

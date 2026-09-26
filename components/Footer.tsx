@@ -106,7 +106,7 @@ export function Footer() {
             </li>
             <li>
               <a
-                href="https://www.linkedin.com"
+                href="https://www.linkedin.com/company/td-dude"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-white"

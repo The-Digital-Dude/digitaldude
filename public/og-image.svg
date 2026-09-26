@@ -6,8 +6,8 @@
     <circle cx="12" cy="11" r="7"/>
     <circle cx="12" cy="31" r="7"/>
   </g>
-  <text style="white-space: pre; fill: rgb(241, 245, 249); font-family: Poppins, sans-serif; font-size: 21.8px; font-weight: 800;" x="59.341" y="20.043">THE DIGITAL</text>
-  <text style="white-space: pre; fill: rgb(200, 195, 245); font-family: Poppins, sans-serif; font-size: 19.6px; font-weight: 400; font-style: italic;" x="59.341" y="40.843">DUDE</text>
+  <text style="white-space: pre; fill: rgb(241, 245, 249); font-family: Plus Jakarta Sans, Segoe UI, Arial, sans-serif; font-size: 21.8px; font-weight: 800;" x="59.341" y="20.043">THE DIGITAL</text>
+  <text style="white-space: pre; fill: rgb(200, 195, 245); font-family: Plus Jakarta Sans, Segoe UI, Arial, sans-serif; font-size: 19.6px; font-weight: 400; font-style: italic;" x="59.341" y="40.843">DUDE</text>
 </g>
-<text x="600" y="420" text-anchor="middle" style="fill: rgb(232, 230, 255); font-family: Poppins, sans-serif; font-size: 26px;">We build systems that scale.</text>
+<text x="600" y="420" text-anchor="middle" style="fill: rgb(232, 230, 255); font-family: Plus Jakarta Sans, Segoe UI, Arial, sans-serif; font-size: 26px;">We build systems that scale.</text>
 </svg>
