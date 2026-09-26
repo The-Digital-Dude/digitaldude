@@ -125,7 +125,7 @@ function buildCustomerEmailHtml(submission: ContactSubmission): string {
                           ${
                             submission.meetUrl
                               ? `<a href="${submission.meetUrl}" target="_blank" rel="noopener noreferrer" style="color: #5b4fe8; text-decoration: underline;">Google Meet Video Room</a>`
-                              : "Google Meet (calendar invite sent to your inbox)"
+                              : "We'll send the video call link by email before the call"
                           }
                         </td>
                       </tr>
