@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
+import { updateInMemoryLead, deleteInMemoryLead, findInMemoryLead } from "@/lib/crm";
 
 export async function PATCH(
   request: Request,
@@ -30,21 +31,21 @@ async function handleUpdate(
   const body = await request.json();
   const { stage, deal_value, lead_score, lead_notes, assigned_to, meet_url, status, admin_notes } = body;
 
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (stage !== undefined) updateData.stage = stage;
+  if (deal_value !== undefined) updateData.deal_value = Number(deal_value);
+  if (lead_score !== undefined) updateData.lead_score = lead_score;
+  if (lead_notes !== undefined) updateData.lead_notes = lead_notes;
+  if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
+  if (meet_url !== undefined) updateData.meet_url = meet_url;
+  if (status !== undefined) updateData.status = status;
+  if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
+
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
-      const updateData: Record<string, unknown> = {
-        updated_at: new Date().toISOString(),
-      };
-      if (stage !== undefined) updateData.stage = stage;
-      if (deal_value !== undefined) updateData.deal_value = Number(deal_value);
-      if (lead_score !== undefined) updateData.lead_score = lead_score;
-      if (lead_notes !== undefined) updateData.lead_notes = lead_notes;
-      if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
-      if (meet_url !== undefined) updateData.meet_url = meet_url;
-      if (status !== undefined) updateData.status = status;
-      if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
-
       const { data, error } = await supabase
         .from("bookings")
         .update(updateData)
@@ -52,22 +53,32 @@ async function handleUpdate(
         .select()
         .single();
 
-      if (!error && data) {
+      if (error) {
+        log("error", { message: "Supabase update booking failed", error, context: { id } });
+        return NextResponse.json({ ok: false, error: error.message || "Failed to update booking in database" }, { status: 500 });
+      }
+
+      if (data) {
+        updateInMemoryLead(id, data);
         log("info", { message: "Booking CRM record updated", context: { id, updateData } });
         return NextResponse.json({ ok: true, booking: data });
       }
     } catch (error) {
-      log("warn", { message: "Supabase update fallback notice", error });
+      log("error", { message: "Supabase update exception", error });
+      return NextResponse.json({ ok: false, error: "Database update error" }, { status: 500 });
     }
   }
 
+  // If no Supabase connection is available (development fallback), check in-memory lead
+  const existing = findInMemoryLead(id);
+  if (!existing) {
+    return NextResponse.json({ ok: false, error: "Booking lead not found" }, { status: 404 });
+  }
+
+  const updated = updateInMemoryLead(id, body);
   return NextResponse.json({
     ok: true,
-    booking: {
-      id,
-      ...body,
-      updated_at: new Date().toISOString(),
-    },
+    booking: updated,
   });
 }
 
@@ -84,11 +95,17 @@ export async function DELETE(
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
-      await supabase.from("bookings").delete().eq("id", id);
+      const { error } = await supabase.from("bookings").delete().eq("id", id);
+      if (error) {
+        log("error", { message: "Failed to delete booking from database", error, context: { id } });
+        return NextResponse.json({ ok: false, error: error.message || "Failed to delete booking" }, { status: 500 });
+      }
     } catch (err) {
-      log("warn", { message: "Delete fallback notice", error: err });
+      log("error", { message: "Delete exception", error: err });
+      return NextResponse.json({ ok: false, error: "Database error deleting booking" }, { status: 500 });
     }
   }
 
+  deleteInMemoryLead(id);
   return NextResponse.json({ ok: true });
 }

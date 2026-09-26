@@ -17,6 +17,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const search = searchParams.get("search") || "";
   const stage = searchParams.get("stage") || "all";
+  const status = searchParams.get("status") || "all";
 
   const supabase = getSupabaseServerClient();
   if (supabase) {
@@ -28,6 +29,10 @@ export async function GET(request: Request) {
 
       if (stage !== "all") {
         query = query.eq("stage", stage);
+      }
+
+      if (status !== "all") {
+        query = query.eq("status", status);
       }
 
       if (search) {
@@ -77,7 +82,8 @@ export async function GET(request: Request) {
       l.company_name.toLowerCase().includes(search.toLowerCase()) ||
       l.work_email.toLowerCase().includes(search.toLowerCase());
     const matchesStage = stage === "all" || (l.stage || "new_booking") === stage;
-    return matchesSearch && matchesStage;
+    const matchesStatus = status === "all" || (l.status || "confirmed") === status;
+    return matchesSearch && matchesStage && matchesStatus;
   });
 
   return NextResponse.json({ ok: true, bookings: filtered });
@@ -240,10 +246,22 @@ export async function POST(request: Request) {
           });
           log("info", { message: "Custom lead created in Supabase", context: { id: data.id, name: data.name } });
         } else if (error) {
-          log("warn", { message: "Supabase custom lead insert notice, continuing with in-memory lead", error });
+          log("error", { message: "Failed to persist custom lead in Supabase", error });
+          if (process.env.NODE_ENV === "production") {
+            return NextResponse.json(
+              { ok: false, error: "Database error: could not create booking record." },
+              { status: 500 }
+            );
+          }
         }
       } catch (dbErr) {
-        log("warn", { message: "Supabase custom lead insert exception", error: dbErr });
+        log("error", { message: "Supabase custom lead insert exception", error: dbErr });
+        if (process.env.NODE_ENV === "production") {
+          return NextResponse.json(
+            { ok: false, error: "Database exception while creating booking." },
+            { status: 500 }
+          );
+        }
       }
     }
 

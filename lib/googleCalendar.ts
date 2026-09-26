@@ -31,8 +31,8 @@ export function getGoogleOAuthClient() {
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
 
-/** Builds the one-time Google consent URL. Used only by the setup route. */
-export function buildGoogleConsentUrl() {
+/** Builds the one-time Google consent URL with optional state. Used only by the setup route. */
+export function buildGoogleConsentUrl(state?: string) {
   const client = getGoogleOAuthClient();
   if (!client) return null;
 
@@ -40,6 +40,7 @@ export function buildGoogleConsentUrl() {
     access_type: "offline",
     prompt: "consent", // forces a refresh_token even if previously authorized
     scope: CALENDAR_SCOPES,
+    state,
   });
 }
 

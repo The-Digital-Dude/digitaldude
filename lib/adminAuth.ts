@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/logger";
 
 export const ADMIN_COOKIE_NAME = "tdd_admin_session";
 const SESSION_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
-function getAdminSecret(): string {
-  return (
-    process.env.ADMIN_SECRET_KEY ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    "fallback_tdd_secure_super_secret_key_2026"
-  );
+function getAdminSecret(): string | null {
+  const secret = process.env.ADMIN_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      log("error", { message: "ADMIN_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY must be set in production" });
+      return null;
+    }
+    // In local development only, fail closed if not configured
+    log("warn", { message: "ADMIN_SECRET_KEY is unset in development. Admin features will require configuration." });
+    return null;
+  }
+  return secret;
 }
 
 /**
@@ -32,9 +39,11 @@ async function createSignature(data: string, secret: string): Promise<string> {
 /**
  * Signs a session payload with a timestamp and HMAC signature.
  */
-export async function createAdminSessionToken(): Promise<string> {
-  const timestamp = Date.now().toString();
+export async function createAdminSessionToken(): Promise<string | null> {
   const secret = getAdminSecret();
+  if (!secret) return null;
+
+  const timestamp = Date.now().toString();
   const signature = await createSignature(`admin:${timestamp}`, secret);
   return `${timestamp}.${signature}`;
 }
@@ -54,16 +63,21 @@ export async function verifyAdminSessionToken(token: string): Promise<boolean> {
   if (now - timestamp > SESSION_EXPIRY_SECONDS * 1000) return false;
 
   const secret = getAdminSecret();
-  const expectedSignature = await createSignature(`admin:${timestampStr}`, secret);
+  if (!secret) return false;
 
+  const expectedSignature = await createSignature(`admin:${timestampStr}`, secret);
   return signature === expectedSignature;
 }
 
 /**
- * Validates the admin password from environment variable.
+ * Validates the admin password from environment variable. Fails closed if unset.
  */
 export function validateAdminPassword(password: string): boolean {
-  const adminPassword = process.env.ADMIN_PASSWORD || "digitaldude2026!";
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword || adminPassword.trim().length === 0) {
+    log("error", { message: "ADMIN_PASSWORD environment variable is not configured. Admin login rejected." });
+    return false;
+  }
   return password === adminPassword;
 }
 
@@ -83,6 +97,9 @@ export async function isAdminAuthenticated(request: Request): Promise<boolean> {
  */
 export async function attachAdminSessionCookie(response: NextResponse): Promise<NextResponse> {
   const token = await createAdminSessionToken();
+  if (!token) {
+    throw new Error("Cannot issue admin session: ADMIN_SECRET_KEY is not configured.");
+  }
   response.cookies.set(ADMIN_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

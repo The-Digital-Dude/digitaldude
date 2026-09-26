@@ -46,17 +46,15 @@ async function getProposal(slug: string): Promise<Proposal | null> {
     }
   }
 
-  if (slug === DEMO_PROPOSAL.slug || slug.startsWith("TDD-SPEC-DEMO")) {
-    return DEMO_PROPOSAL;
+  // Check in-memory store for newly created proposals
+  const { findInMemoryProposal } = await import("@/lib/content/proposals");
+  const inMem = findInMemoryProposal(slug);
+  if (inMem) {
+    return inMem;
   }
 
-  // Synthesize dynamic preview proposal if valid format
-  if (slug.startsWith("TDD-SPEC-")) {
-    return {
-      ...DEMO_PROPOSAL,
-      slug,
-      project_title: `Custom Architecture & Technical Specification (${slug})`,
-    };
+  if (slug === DEMO_PROPOSAL.slug) {
+    return DEMO_PROPOSAL;
   }
 
   return null;

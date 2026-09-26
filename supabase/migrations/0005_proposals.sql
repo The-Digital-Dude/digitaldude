@@ -27,13 +27,13 @@ create table if not exists proposals (
 -- Enable RLS
 alter table proposals enable row level security;
 
--- Full read and write policy for proposals
+-- Restrict public read of proposals to sent/accepted/completed proposals
 drop policy if exists "Allow public read of proposals" on proposals;
 drop policy if exists "Allow full access on proposals" on proposals;
-create policy "Allow full access on proposals"
-  on proposals for all
-  using (true)
-  with check (true);
+
+create policy "Allow public read of shared proposals"
+  on proposals for select
+  using (status in ('sent', 'accepted', 'completed', 'active'));
 
 -- Indexes for performance
 create index if not exists idx_proposals_slug on proposals(slug);

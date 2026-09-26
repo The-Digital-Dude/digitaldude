@@ -146,8 +146,9 @@ export async function POST(request: Request) {
     message,
   });
 
+  let persistedProposalSlug: string | null = null;
   try {
-    await supabase.from("proposals").insert({
+    const { error: pErr } = await supabase.from("proposals").insert({
       slug: autoProposal.slug,
       client_name: autoProposal.client_name,
       client_email: autoProposal.client_email,
@@ -162,9 +163,20 @@ export async function POST(request: Request) {
       tech_stack: autoProposal.tech_stack,
       architecture_modules: autoProposal.architecture_modules,
       deliverable_phases: autoProposal.deliverable_phases,
-      status: "draft",
+      status: "sent",
       valid_until: autoProposal.valid_until,
     });
+
+    if (!pErr) {
+      persistedProposalSlug = autoProposal.slug;
+      const { addInMemoryProposal } = await import("@/lib/content/proposals");
+      addInMemoryProposal({
+        ...autoProposal,
+        status: "sent",
+      });
+    } else {
+      log("warn", { message: "Could not persist auto proposal record", error: pErr });
+    }
   } catch (pErr) {
     log("warn", { message: "Could not persist auto proposal record", error: pErr });
   }
@@ -186,6 +198,6 @@ export async function POST(request: Request) {
     firstName: String(name).split(" ")[0],
     slotStart: start.toISOString(),
     meetUrl: calendarMeeting?.meetUrl || null,
-    proposalSlug: autoProposal.slug,
+    proposalSlug: persistedProposalSlug,
   });
 }

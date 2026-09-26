@@ -1,17 +1,28 @@
 import { NextResponse } from "next/server";
 import { getGoogleOAuthClient } from "@/lib/googleCalendar";
+import { OAUTH_STATE_COOKIE } from "../route";
 
 /**
- * Receives the Google consent redirect, exchanges the code for tokens, and
- * shows the refresh token exactly once so it can be copied into
- * GOOGLE_OAUTH_REFRESH_TOKEN. Nothing is stored automatically — there's no
- * admin database for it, and printing it to logs would defeat the point of
- * keeping it secret.
+ * Receives the Google consent redirect, validates the state token, exchanges
+ * the code for tokens, and shows the refresh token exactly once so it can be copied into
+ * GOOGLE_OAUTH_REFRESH_TOKEN.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   const error = searchParams.get("error");
+
+  // Validate state token against httpOnly cookie
+  const cookieHeader = request.headers.get("cookie") || "";
+  const match = cookieHeader.match(new RegExp(`(?:^|; )${OAUTH_STATE_COOKIE}=([^;]*)`));
+  const expectedState = match ? decodeURIComponent(match[1]) : null;
+
+  if (!state || !expectedState || state !== expectedState) {
+    return new NextResponse("Invalid or expired OAuth state parameter. Request rejected for security.", {
+      status: 403,
+    });
+  }
 
   if (error) {
     return new NextResponse(`Google returned an error: ${error}`, { status: 400 });
@@ -40,7 +51,7 @@ export async function GET(request: Request) {
       );
     }
 
-    return new NextResponse(
+    const response = new NextResponse(
       [
         "Google Calendar connected.",
         "",
@@ -53,6 +64,17 @@ export async function GET(request: Request) {
       ].join("\n"),
       { status: 200, headers: { "Content-Type": "text/plain" } }
     );
+
+    // Clear state cookie
+    response.cookies.set(OAUTH_STATE_COOKIE, "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+
+    return response;
   } catch (err) {
     return new NextResponse(`Failed to exchange authorization code: ${(err as Error).message}`, {
       status: 500,

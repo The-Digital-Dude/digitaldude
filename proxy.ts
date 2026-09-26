@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_COOKIE_NAME, verifyAdminSessionToken } from "@/lib/adminAuth";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protect all /admin routes except /admin/login
@@ -28,6 +28,11 @@ export async function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+// Fallback for older middleware conventions
+export async function middleware(request: NextRequest) {
+  return proxy(request);
 }
 
 export const config = {
