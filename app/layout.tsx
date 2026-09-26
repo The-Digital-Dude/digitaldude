@@ -77,9 +77,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-purple focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+        >
+          Skip to content
+        </a>
         <CookieConsent />
         <Header />
-        <main className="pb-20 md:pb-0">{children}</main>
+        <main id="main" className="pb-20 md:pb-0">
+          {children}
+        </main>
         <Footer />
       </body>
     </html>

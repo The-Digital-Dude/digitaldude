@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck } from "lucide-react";
 import { buildMetadata } from "@/lib/content/seo";
 import { StandardCTA } from "@/components/StandardCTA";
 
@@ -7,31 +8,37 @@ export const metadata: Metadata = buildMetadata("how-we-work", "/how-we-work");
 const steps = [
   {
     step: "1. Discovery",
+    icon: Search,
     happens: "A call with our founder, then a deeper session to map how your business runs today",
     get: "A one-page brief: what we'll build, what's out of scope, the deadline, and who owns each part",
   },
   {
     step: "2. Design",
+    icon: PenTool,
     happens: "We design every screen of the system",
     get: "Clickable designs you review and approve before any code is written",
   },
   {
     step: "3. Development",
+    icon: Code2,
     happens: "Our team builds the system in stages",
     get: "A live demo every two weeks, so you see real progress",
   },
   {
     step: "4. Testing",
+    icon: CheckCircle2,
     happens: "We test everything, then your team tries it with real examples",
     get: "A system checked by the people who will use it",
   },
   {
     step: "5. Launch",
+    icon: Rocket,
     happens: "We go live and move your existing data across",
     get: "Your team working in the new system, with us on hand",
   },
   {
     step: "6. Handover",
+    icon: PackageCheck,
     happens: "A walkthrough session and a written guide",
     get: "Full access to the code, data and every account",
   },
@@ -71,7 +78,14 @@ export default function HowWeWorkPage() {
             <tbody className="divide-y divide-tint">
               {steps.map((row) => (
                 <tr key={row.step}>
-                  <td className="px-5 py-4 font-semibold text-navy">{row.step}</td>
+                  <td className="px-5 py-4 font-semibold text-navy">
+                    <span className="flex items-center gap-2">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-tint text-purple">
+                        <row.icon size={16} />
+                      </span>
+                      {row.step}
+                    </span>
+                  </td>
                   <td className="px-5 py-4 text-navy/70">{row.happens}</td>
                   <td className="px-5 py-4 text-navy/70">{row.get}</td>
                 </tr>

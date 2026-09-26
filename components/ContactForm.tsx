@@ -149,6 +149,10 @@ export function ContactForm() {
         aria-hidden="true"
       />
 
+      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-purple">
+        Step 1 of 2 · Pick a time
+      </span>
+
       <div>
         <label htmlFor="date" className="block text-sm font-semibold text-navy">
           Pick a date
@@ -195,8 +199,18 @@ export function ContactForm() {
         )}
       </div>
 
-      {selectedSlot && (
-        <>
+      {/*
+        Step 2 fields stay mounted regardless of selectedSlot so that anything
+        already typed here survives a date change (changing the date only
+        clears selectedSlot, not this section) — submission is still gated on
+        selectedSlot being set.
+      */}
+      <div className="border-t border-black/5 pt-5">
+        <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-purple">
+          Step 2 of 2 · Your details
+        </span>
+
+        <div className="space-y-5">
           <div>
             <label htmlFor="name" className="block text-sm font-semibold text-navy">
               Your name
@@ -296,15 +310,17 @@ export function ContactForm() {
 
           <button
             type="submit"
-            disabled={status === "submitting"}
-            className="w-full rounded-full bg-purple py-3 font-semibold text-white transition hover:brightness-110 disabled:opacity-60"
+            disabled={status === "submitting" || !selectedSlot}
+            className="w-full rounded-full bg-purple py-3 font-semibold text-white transition hover:brightness-110 disabled:opacity-40"
           >
             {status === "submitting"
               ? "Booking…"
-              : `Confirm ${formatSlotTime(selectedSlot)} on ${new Date(selectedSlot).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+              : selectedSlot
+                ? `Confirm ${formatSlotTime(selectedSlot)} on ${new Date(selectedSlot).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+                : "Pick a time above to continue"}
           </button>
-        </>
-      )}
+        </div>
+      </div>
 
       <p className="text-xs text-navy/50">
         Times shown in your local time zone. Your details are only used to get back to you.

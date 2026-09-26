@@ -37,10 +37,24 @@ export function Header() {
               className="relative"
               onMouseEnter={() => setServicesOpen(true)}
               onMouseLeave={() => setServicesOpen(false)}
+              onBlur={(e) => {
+                // Close once focus leaves both the button and the menu links,
+                // so keyboard users can Tab through the dropdown normally.
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setServicesOpen(false);
+                }
+              }}
             >
               <button
+                type="button"
                 className="flex items-center gap-1 text-sm font-medium text-navy hover:text-purple"
                 aria-expanded={servicesOpen}
+                aria-haspopup="true"
+                onClick={() => setServicesOpen((v) => !v)}
+                onFocus={() => setServicesOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setServicesOpen(false);
+                }}
               >
                 Services
                 <ChevronDown size={16} />

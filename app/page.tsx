@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Users, Cloud, Building2, Store, Globe, Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck } from "lucide-react";
 import { buildMetadata } from "@/lib/content/seo";
 import { caseStudies } from "@/lib/content/caseStudies";
 import { services } from "@/lib/content/services";
@@ -11,10 +11,10 @@ import { SITE_URL } from "@/lib/utils";
 export const metadata: Metadata = buildMetadata("home", "/");
 
 const proofBar = [
-  "4,000+ rentals managed on one of our CRMs",
-  "30+ agencies running on the same platform",
-  "4x faster than the system it replaced",
-  "40% faster response coordination for a logistics team",
+  { value: "4,000+", label: "rentals managed on one of our CRMs" },
+  { value: "30+", label: "agencies running on the same platform" },
+  { value: "4x", label: "faster than the system it replaced" },
+  { value: "40%", label: "faster response coordination for a logistics team" },
 ];
 
 const whatWeBuild = [
@@ -22,28 +22,35 @@ const whatWeBuild = [
     title: "CRMs",
     body: "Leads, customers, jobs and follow-ups in one place, shaped around your process.",
     href: "/services/crm-development",
+    icon: Users,
   },
   {
     title: "SaaS platforms",
     body: "Subscription products with portals, billing and user roles, ready to sell.",
     href: "/services/saas-development",
+    icon: Cloud,
   },
   {
     title: "ERP and HRM systems",
     body: "Operations, staff, payroll and reporting connected in one system.",
     href: "/services/erp-hrm-systems",
+    icon: Building2,
   },
   {
     title: "Marketplaces and apps",
     body: "Customer app, provider app and admin, working as one.",
     href: "/services/marketplace-development",
+    icon: Store,
   },
   {
     title: "Websites",
     body: "Fast, search-friendly sites built to bring in enquiries.",
     href: "/services/website-development",
+    icon: Globe,
   },
 ];
+
+const howWeWorkIcons = [Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck];
 
 const featuredSlugs = ["property-compliance-crm", "airline-ticketing-crm", "cleaning-marketplace"];
 
@@ -131,15 +138,24 @@ export default function HomePage() {
         <p className="mt-8 text-sm text-navy/60">
           7 live and delivered products · 5 industries · Clients in Australia, the UK and Bangladesh
         </p>
+
+        <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-2xl border border-black/5 shadow-xl">
+          <img
+            src="/images/case-studies/property-compliance.svg"
+            alt="A real dashboard we built, showing rentals managed, agency counts and job status"
+            className="block w-full"
+          />
+        </div>
       </section>
 
       {/* 2. Proof bar */}
       <section className="bg-lavender py-12">
-        <div className="mx-auto grid max-w-content gap-6 px-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto grid max-w-content gap-8 px-6 sm:grid-cols-2 lg:grid-cols-4">
           {proofBar.map((stat) => (
-            <p key={stat} className="text-center text-sm font-semibold text-navy sm:text-base">
-              {stat}
-            </p>
+            <div key={stat.label} className="text-center">
+              <p className="text-3xl font-bold text-purple sm:text-4xl">{stat.value}</p>
+              <p className="mt-1 text-sm font-medium text-navy/70">{stat.label}</p>
+            </div>
           ))}
         </div>
       </section>
@@ -170,7 +186,10 @@ export default function HomePage() {
                 href={item.href}
                 className="group flex flex-col rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <h3 className="font-bold text-navy group-hover:text-purple">{item.title}</h3>
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-tint text-purple">
+                  <item.icon size={20} />
+                </span>
+                <h3 className="mt-4 font-bold text-navy group-hover:text-purple">{item.title}</h3>
                 <p className="mt-2 text-sm text-navy/70">{item.body}</p>
               </Link>
             ))}
@@ -235,12 +254,18 @@ export default function HomePage() {
           A clear process, no surprises
         </h2>
         <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {howWeWorkSteps.map((step, index) => (
-            <div key={step} className="rounded-xl border border-tint bg-lavender p-4 text-center">
-              <span className="text-xs font-semibold text-purple">{index + 1}</span>
-              <p className="mt-1 text-sm font-semibold text-navy">{step}</p>
-            </div>
-          ))}
+          {howWeWorkSteps.map((step, index) => {
+            const StepIcon = howWeWorkIcons[index];
+            return (
+              <div key={step} className="rounded-xl border border-tint bg-lavender p-4 text-center">
+                <span className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-white text-purple shadow-sm">
+                  <StepIcon size={16} />
+                </span>
+                <span className="mt-2 block text-xs font-semibold text-purple">{index + 1}</span>
+                <p className="mt-1 text-sm font-semibold text-navy">{step}</p>
+              </div>
+            );
+          })}
         </div>
         <p className="mx-auto mt-8 max-w-2xl text-center text-navy/70">
           Before any code is written, we agree a one-page brief: what we are building, what is out
