@@ -34,7 +34,7 @@ create policy "Allow public read of published posts"
   using (status = 'published');
 
 -- Insert initial high-value seed blog posts for SEO ranking
-insert into posts (slug, title, excerpt, content, category, reading_time_minutes, meta_title, meta_description)
+insert into posts (slug, title, excerpt, content, category, reading_time_minutes, meta_title, meta_description, cover_image)
 values 
 (
   'why-growing-service-businesses-outgrow-spreadsheets',
@@ -66,7 +66,8 @@ A custom CRM is mapped directly to how your team operates from day one:
   'CRM Development',
   4,
   'Why Service Businesses Outgrow Spreadsheets | The Digital Dude',
-  'Discover why spreadsheets and generic CRMs hold growing service businesses back, and how custom systems solve operational bottlenecks.'
+  'Discover why spreadsheets and generic CRMs hold growing service businesses back, and how custom systems solve operational bottlenecks.',
+  '/blog/crm-outgrow-spreadsheets.jpg'
 ),
 (
   'how-to-build-a-three-sided-marketplace-app',
@@ -96,6 +97,10 @@ Building a successful marketplace requires synchronizing three distinct user exp
   'Marketplace Development',
   6,
   'How to Build a 3-Sided Marketplace App | The Digital Dude',
-  'Learn the core architecture required to build a scalable on-demand marketplace connecting customers, providers, and central operations.'
+  'Learn the core architecture required to build a scalable on-demand marketplace connecting customers, providers, and central operations.',
+  '/blog/marketplace-architecture.jpg'
 )
-on conflict (slug) do nothing;
+on conflict (slug) do update set
+  cover_image = excluded.cover_image,
+  meta_title = excluded.meta_title,
+  meta_description = excluded.meta_description;
