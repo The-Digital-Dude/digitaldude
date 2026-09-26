@@ -60,6 +60,17 @@ export default function ContactPage() {
                 LinkedIn
               </a>
             </p>
+            <p className="mt-3 text-sm text-navy/70">
+              Prefer Google Calendar directly?{" "}
+              <a
+                href="https://calendar.app.google/KxYSGddA1FNWojHr8"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-purple underline"
+              >
+                Open Google Appointment Schedule &rarr;
+              </a>
+            </p>
           </div>
 
           <div className="mt-8">
