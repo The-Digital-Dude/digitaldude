@@ -150,6 +150,73 @@ export const DEMO_PROPOSAL: Proposal = {
   updated_at: new Date().toISOString()
 };
 
+// Global in-memory store for proposals (persists across server requests in memory)
+declare global {
+  // eslint-disable-next-line no-var
+  var __IN_MEMORY_PROPOSALS__: Proposal[] | undefined;
+}
+
+if (!globalThis.__IN_MEMORY_PROPOSALS__) {
+  globalThis.__IN_MEMORY_PROPOSALS__ = [DEMO_PROPOSAL];
+}
+
+export function getInMemoryProposals(): Proposal[] {
+  if (!globalThis.__IN_MEMORY_PROPOSALS__) {
+    globalThis.__IN_MEMORY_PROPOSALS__ = [DEMO_PROPOSAL];
+  }
+  return globalThis.__IN_MEMORY_PROPOSALS__;
+}
+
+export function findInMemoryProposal(idOrSlug: string): Proposal | undefined {
+  const list = getInMemoryProposals();
+  return list.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
+}
+
+export function addInMemoryProposal(proposal: Proposal): Proposal {
+  const list = getInMemoryProposals();
+  const existingIdx = list.findIndex((p) => p.id === proposal.id || p.slug === proposal.slug);
+  if (existingIdx >= 0) {
+    list[existingIdx] = proposal;
+  } else {
+    list.unshift(proposal);
+  }
+  return proposal;
+}
+
+export function updateInMemoryProposal(idOrSlug: string, updates: Partial<Proposal>): Proposal | null {
+  const list = getInMemoryProposals();
+  const idx = list.findIndex((p) => p.id === idOrSlug || p.slug === idOrSlug);
+  if (idx === -1) {
+    // If not found, create or update fallback
+    const newProp: Proposal = {
+      ...DEMO_PROPOSAL,
+      ...updates,
+      id: idOrSlug,
+      slug: updates.slug || idOrSlug,
+      updated_at: new Date().toISOString(),
+    } as Proposal;
+    list.unshift(newProp);
+    return newProp;
+  }
+
+  list[idx] = {
+    ...list[idx],
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+  return list[idx];
+}
+
+export function deleteInMemoryProposal(idOrSlug: string): boolean {
+  const list = getInMemoryProposals();
+  const idx = list.findIndex((p) => p.id === idOrSlug || p.slug === idOrSlug);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    return true;
+  }
+  return false;
+}
+
 export function generateProposalFromBooking(params: {
   bookingId?: string;
   name: string;
@@ -191,7 +258,7 @@ export function generateProposalFromBooking(params: {
     targetTimeline = "6–9 Weeks";
   }
 
-  return {
+  const newProp: Proposal = {
     id: `prop-${Date.now()}`,
     slug,
     booking_id: params.bookingId,
@@ -307,4 +374,9 @@ export function generateProposalFromBooking(params: {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
+
+  addInMemoryProposal(newProp);
+  return newProp;
 }
+
+

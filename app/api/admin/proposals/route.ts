@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
-import { DEMO_PROPOSAL, Proposal } from "@/lib/content/proposals";
+import {
+  Proposal,
+  getInMemoryProposals,
+  addInMemoryProposal,
+} from "@/lib/content/proposals";
 import { log } from "@/lib/logger";
 
 export async function GET(request: Request) {
@@ -19,17 +23,19 @@ export async function GET(request: Request) {
         .order("created_at", { ascending: false });
 
       if (!error && data && data.length > 0) {
-        return NextResponse.json({ ok: true, proposals: data });
+        // Sync database records with in-memory store
+        data.forEach((p) => addInMemoryProposal(p));
+        return NextResponse.json({ ok: true, proposals: getInMemoryProposals() });
       }
     } catch (err) {
       log("warn", { message: "Supabase proposals list notice", error: err });
     }
   }
 
-  // Fallback demo proposals
+  // Fallback to in-memory store
   return NextResponse.json({
     ok: true,
-    proposals: [DEMO_PROPOSAL],
+    proposals: getInMemoryProposals(),
   });
 }
 
@@ -67,69 +73,52 @@ export async function POST(request: Request) {
   const slug = `TDD-SPEC-${new Date().getFullYear()}-${code}`;
   const validUntilDate = valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-  const proposalRecord: Partial<Proposal> = {
+  const newProposal: Proposal = {
+    id: crypto.randomUUID(),
     slug,
     booking_id,
-    client_name,
-    client_email,
-    company_name,
-    country,
-    project_title,
-    system_type,
-    scope_summary,
-    problem_statement,
-    target_timeline,
-    budget_range,
-    tech_stack,
-    architecture_modules,
-    deliverable_phases,
-    status,
+    client_name: String(client_name).trim(),
+    client_email: String(client_email).trim(),
+    company_name: String(company_name).trim(),
+    country: String(country).trim(),
+    project_title: String(project_title).trim(),
+    system_type: String(system_type).trim(),
+    scope_summary: String(scope_summary).trim(),
+    problem_statement: String(problem_statement || "").trim(),
+    target_timeline: String(target_timeline).trim(),
+    budget_range: String(budget_range).trim(),
+    tech_stack: Array.isArray(tech_stack) ? tech_stack : [],
+    architecture_modules: Array.isArray(architecture_modules) ? architecture_modules : [],
+    deliverable_phases: Array.isArray(deliverable_phases) ? deliverable_phases : [],
+    status: status || "draft",
     valid_until: validUntilDate,
+    created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+
+  // Add to in-memory store
+  addInMemoryProposal(newProposal);
 
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
       const { data, error } = await supabase
         .from("proposals")
-        .insert(proposalRecord)
+        .insert(newProposal)
         .select()
         .single();
 
       if (!error && data) {
+        addInMemoryProposal(data);
         return NextResponse.json({ ok: true, proposal: data });
       } else if (error) {
-        log("error", { message: "Supabase insert error on proposal", error });
+        log("warn", { message: "Supabase insert notice on proposal", error });
       }
     } catch (err) {
-      log("error", { message: "Failed inserting proposal", error: err });
+      log("warn", { message: "Failed inserting proposal to Supabase", error: err });
     }
   }
 
-  // Fallback return
-  const fallbackCreated: Proposal = {
-    id: `prop-${Date.now()}`,
-    slug,
-    booking_id,
-    client_name,
-    client_email,
-    company_name,
-    country,
-    project_title,
-    system_type,
-    scope_summary,
-    problem_statement,
-    target_timeline,
-    budget_range,
-    tech_stack,
-    architecture_modules,
-    deliverable_phases,
-    status,
-    valid_until: validUntilDate,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-
-  return NextResponse.json({ ok: true, proposal: fallbackCreated });
+  return NextResponse.json({ ok: true, proposal: newProposal });
 }
+

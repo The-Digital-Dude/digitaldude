@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
-import { DEMO_PROPOSAL, Proposal } from "@/lib/content/proposals";
+import {
+  DEMO_PROPOSAL,
+  Proposal,
+  findInMemoryProposal,
+  addInMemoryProposal,
+} from "@/lib/content/proposals";
 import { log } from "@/lib/logger";
 
 export async function GET(
@@ -23,6 +28,7 @@ export async function GET(
         .single();
 
       if (!error && data) {
+        addInMemoryProposal(data);
         return NextResponse.json({ ok: true, proposal: data });
       }
     } catch (err) {
@@ -30,17 +36,17 @@ export async function GET(
     }
   }
 
+  // Check in-memory store
+  const local = findInMemoryProposal(slug);
+  if (local) {
+    return NextResponse.json({ ok: true, proposal: local });
+  }
+
   // Fallback demo matching
   if (slug === DEMO_PROPOSAL.slug || slug.startsWith("TDD-SPEC-DEMO")) {
     return NextResponse.json({ ok: true, proposal: DEMO_PROPOSAL });
   }
 
-  // Generic fallback if proposal was created locally / in-memory
-  const dynamicFallback: Proposal = {
-    ...DEMO_PROPOSAL,
-    slug: slug,
-    project_title: `Custom Architecture & Technical Specification (${slug})`,
-  };
-
-  return NextResponse.json({ ok: true, proposal: dynamicFallback });
+  return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
 }
+

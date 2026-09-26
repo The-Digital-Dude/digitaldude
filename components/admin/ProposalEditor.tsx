@@ -123,6 +123,47 @@ export function ProposalEditor({
       : defaultPhases
   );
 
+  // Sync when initialData loads or changes
+  useEffect(() => {
+    if (initialData) {
+      setClientName(initialData.client_name || "");
+      setClientEmail(initialData.client_email || "");
+      setCompanyName(initialData.company_name || "");
+      setCountry(initialData.country || "United Kingdom");
+      setProjectTitle(initialData.project_title || "");
+      setSystemType(initialData.system_type || "Custom Web Application");
+      setScopeSummary(initialData.scope_summary || "");
+      setProblemStatement(initialData.problem_statement || "");
+      setTargetTimeline(initialData.target_timeline || "4–8 Weeks");
+      setBudgetRange(initialData.budget_range || "£6,500 – £15,000");
+      setStatus(initialData.status || "draft");
+      setValidUntil(
+        initialData.valid_until || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
+      );
+      if (initialData.tech_stack) {
+        setTechStack(
+          Array.isArray(initialData.tech_stack)
+            ? initialData.tech_stack
+            : JSON.parse((initialData.tech_stack as any) || "[]")
+        );
+      }
+      if (initialData.architecture_modules) {
+        setModules(
+          Array.isArray(initialData.architecture_modules)
+            ? initialData.architecture_modules
+            : JSON.parse((initialData.architecture_modules as any) || "[]")
+        );
+      }
+      if (initialData.deliverable_phases) {
+        setPhases(
+          Array.isArray(initialData.deliverable_phases)
+            ? initialData.deliverable_phases
+            : JSON.parse((initialData.deliverable_phases as any) || "[]")
+        );
+      }
+    }
+  }, [initialData]);
+
   // Fetch recent bookings to populate from
   useEffect(() => {
     async function loadBookings() {
@@ -219,7 +260,8 @@ export function ProposalEditor({
     };
 
     try {
-      const url = isEdit && initialData?.id ? `/api/admin/proposals/${initialData.id}` : "/api/admin/proposals";
+      const targetIdentifier = initialData?.id || initialData?.slug;
+      const url = isEdit && targetIdentifier ? `/api/admin/proposals/${targetIdentifier}` : "/api/admin/proposals";
       const method = isEdit ? "PUT" : "POST";
 
       const res = await fetch(url, {
