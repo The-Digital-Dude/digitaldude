@@ -105,6 +105,10 @@ export const seo: Record<string, SeoEntry> = {
     title: "Privacy Policy | The Digital Dude",
     description: "How The Digital Dude collects, uses and protects your data.",
   },
+  terms: {
+    title: "Terms and Conditions | The Digital Dude",
+    description: "The terms that apply when you use The Digital Dude's website and book a call.",
+  },
 };
 
 export function buildMetadata(key: keyof typeof seo, path: string): Metadata {

@@ -114,9 +114,14 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-content flex-col gap-2 px-6 py-6 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} The Digital Dude. UK-registered company.</p>
-          <Link href="/privacy" className="hover:text-white">
-            Privacy policy
-          </Link>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:text-white">
+              Privacy policy
+            </Link>
+            <Link href="/terms" className="hover:text-white">
+              Terms and conditions
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
