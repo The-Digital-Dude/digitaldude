@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getSupabaseServerClient } from '@/lib/supabaseClient';
+import { SITE_URL } from '@/lib/utils';
 import { Clock, Tag, ArrowRight, BookOpen, Search } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -11,12 +12,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'The Digital Dude Blog - Insights & Playbooks',
     description: 'Practical guides and deep dives on revenue-focused engineering and performance marketing.',
-    url: 'https://thedigitaldude.com/blog',
+    url: `${SITE_URL}/blog`,
     type: 'website',
   },
   alternates: {
-    canonical: 'https://thedigitaldude.com/blog'
-  }
+    canonical: `${SITE_URL}/blog`,
+  },
 };
 
 export const revalidate = 60; // ISR revalidation every minute
