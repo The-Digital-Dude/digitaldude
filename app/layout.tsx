@@ -3,7 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { CookieConsent } from "@/components/CookieConsent";
 import { seo } from "@/lib/content/seo";
 import { SITE_URL } from "@/lib/utils";
 
@@ -77,7 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased">
-        <GoogleAnalytics />
+        <CookieConsent />
         <Header />
         <main className="pb-20 md:pb-0">{children}</main>
         <Footer />

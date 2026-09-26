@@ -38,9 +38,9 @@ export default function PrivacyPage() {
           </p>
           <p className="mt-2">
             We also use Google Analytics to see how visitors use the site (pages viewed, general
-            location, device type). This uses cookies. We don't currently show a cookie consent
-            banner before Analytics loads — if you're visiting from the UK or EU, be aware
-            analytics cookies are set on your first visit.
+            location, device type). This uses cookies, and only loads after you accept the cookie
+            banner shown on your first visit. If you decline, Analytics doesn't load and no
+            analytics cookies are set.
           </p>
           <p className="mt-2">We don't collect payment details on this website.</p>
         </div>
