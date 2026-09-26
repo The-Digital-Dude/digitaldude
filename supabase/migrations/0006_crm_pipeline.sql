@@ -31,3 +31,10 @@ begin
       check (lead_score in ('hot', 'warm', 'cold'));
   end if;
 end $$;
+
+-- Indexes for CRM pipeline queries
+create index if not exists idx_bookings_stage on bookings(stage);
+create index if not exists idx_bookings_lead_score on bookings(lead_score);
+create index if not exists idx_bookings_slot_start on bookings(slot_start desc);
+
+

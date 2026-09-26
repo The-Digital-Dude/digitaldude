@@ -27,11 +27,18 @@ create table if not exists proposals (
 -- Enable RLS
 alter table proposals enable row level security;
 
--- Public read policy for viewing proposal by slug
+-- Full read and write policy for proposals
 drop policy if exists "Allow public read of proposals" on proposals;
-create policy "Allow public read of proposals"
-  on proposals for select
-  using (true);
+drop policy if exists "Allow full access on proposals" on proposals;
+create policy "Allow full access on proposals"
+  on proposals for all
+  using (true)
+  with check (true);
+
+-- Indexes for performance
+create index if not exists idx_proposals_slug on proposals(slug);
+create index if not exists idx_proposals_status on proposals(status);
+create index if not exists idx_proposals_booking_id on proposals(booking_id);
 
 -- Insert sample demonstration proposal
 insert into proposals (
