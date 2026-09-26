@@ -341,7 +341,93 @@ Building a successful marketplace requires synchronizing three distinct user exp
     console.warn("Case study sync notice:", err.message);
   }
 
-  // 4. Fetch all posts and case studies to verify
+  // 4. Seed Demo Proposal
+  const demoProposal = {
+    slug: "TDD-SPEC-DEMO-2026",
+    client_name: "Alex Morgan",
+    client_email: "alex@morganlogistics.co.uk",
+    company_name: "Morgan Logistics & Freight",
+    country: "United Kingdom",
+    project_title: "Custom Freight Dispatch & Driver Tracking Portal",
+    system_type: "Operations Portal & Logistics Hub",
+    scope_summary: "End-to-end bespoke logistics portal replacing manual WhatsApp dispatching and multi-tab spreadsheets with real-time job allocation, driver mobile signatures, and automated client status tracking.",
+    problem_statement: "Currently managing 400+ weekly consignments across 6 spreadsheets. Jobs are slipping through, proof-of-delivery photos get lost in chat threads, and manual invoice drafting takes 12 hours every Friday.",
+    target_timeline: "6–8 Weeks",
+    budget_range: "£8,500 – £14,000",
+    tech_stack: [
+      "Next.js 16 (App Router)",
+      "TypeScript",
+      "Supabase PostgreSQL (RLS)",
+      "Tailwind CSS",
+      "Cloudflare R2 Storage",
+      "Twilio WhatsApp Webhooks",
+      "Stripe / Xero API"
+    ],
+    architecture_modules: [
+      {
+        name: "Central Dispatch Control Room",
+        description: "Multi-tenant dispatcher control dashboard with drag-and-drop route scheduling, real-time vehicle status indicators, and SLA bottleneck alerts.",
+        deliverables: [
+          "Interactive route scheduling calendar",
+          "Driver assignment & route-splitting engine",
+          "Instant WhatsApp dispatch triggers",
+          "Automated late-delivery warnings"
+        ],
+        phase: "Phase 2"
+      },
+      {
+        name: "Driver Mobile Web App (PWA)",
+        description: "Lightweight, responsive mobile interface for drivers with offline cache support, 1-click arrival confirmation, digital signature capture, and camera photo upload.",
+        deliverables: [
+          "Digital Proof of Delivery (e-POD)",
+          "Signature pad with GPS/timestamping",
+          "Geo-tagged photo upload to Cloudflare R2",
+          "Turn-by-turn navigation link integration"
+        ],
+        phase: "Phase 2"
+      }
+    ],
+    deliverable_phases: [
+      {
+        phase: "Phase 1: Architecture & Wireframing",
+        duration: "Weeks 1–2",
+        milestones: [
+          "Database schema design & ERD approval",
+          "High-fidelity Figma user flows & UI kit",
+          "Role-Based Access Control matrix definition",
+          "Technical sprint roadmap sign-off"
+        ]
+      },
+      {
+        phase: "Phase 2: Core Engineering & Database",
+        duration: "Weeks 3–5",
+        milestones: [
+          "PostgreSQL database & RLS policy deployment",
+          "Dispatcher dashboard & live calendar build",
+          "Driver Mobile PWA & e-POD signature engine",
+          "Cloudflare R2 image upload pipeline"
+        ]
+      }
+    ],
+    status: "sent",
+    valid_until: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
+  };
+
+  try {
+    const { error: pErr } = await supabase
+      .from("proposals")
+      .upsert(demoProposal, { onConflict: "slug" });
+
+    if (pErr) {
+      console.warn("Proposals notice (migration 0005 might need running):", pErr.message);
+    } else {
+      console.log(`Successfully upserted demo proposal: ${demoProposal.slug}`);
+    }
+  } catch (err) {
+    console.warn("Proposal sync notice:", err.message);
+  }
+
+  // 5. Fetch all posts, case studies, and proposals to verify
   const { data: allPosts } = await supabase
     .from("posts")
     .select("id, slug, title, status, cover_image, reading_time_minutes");
@@ -359,6 +445,18 @@ Building a successful marketplace requires synchronizing three distinct user exp
     console.log("\nCurrent Database Case Studies in Supabase:");
     console.table(allCaseStudies);
   }
+
+  const { data: allProposals, error: propErr } = await supabase
+    .from("proposals")
+    .select("id, slug, client_name, company_name, status, budget_range");
+
+  if (propErr) {
+    console.warn("Proposals query notice:", propErr.message);
+  } else {
+    console.log("\nCurrent Database Proposals in Supabase:");
+    console.table(allProposals);
+  }
 }
 
 main().catch(console.error);
+

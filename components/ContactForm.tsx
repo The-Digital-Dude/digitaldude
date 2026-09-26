@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   CalendarPlus,
   Download,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from "lucide-react";
 
 const countries = [
@@ -112,6 +113,7 @@ export function ContactForm() {
     firstName: string;
     slotStart: string;
     meetUrl?: string | null;
+    proposalSlug?: string | null;
   } | null>(null);
 
   // Detect user's timezone on mount
@@ -271,6 +273,7 @@ export function ContactForm() {
       companyName,
       country,
       teamSize,
+      systemType: systemTypes.find((s) => s.id === systemType)?.label || systemType,
       message: fullMessage,
       slotStart: selectedSlot,
       company: honeypot,
@@ -294,6 +297,7 @@ export function ContactForm() {
         firstName: data.firstName || name.split(" ")[0],
         slotStart: data.slotStart || selectedSlot,
         meetUrl: data.meetUrl,
+        proposalSlug: data.proposalSlug || "TDD-SPEC-DEMO-2026",
       });
       setStatus("success");
       setCurrentStep(4);
@@ -320,6 +324,36 @@ export function ContactForm() {
             </p>
           </div>
         </div>
+
+        {/* Instant Architecture Spec & Proposal Card */}
+        {confirmedData.proposalSlug && (
+          <div className="rounded-2xl border border-purple/30 bg-purple/[0.04] p-5 sm:p-6 space-y-3 shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-purple/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-purple">
+                  <Sparkles size={12} /> Instant Architecture Brief
+                </span>
+                <h3 className="text-base font-bold text-navy mt-2">
+                  Your Project Scope & Technical Specification is Ready
+                </h3>
+                <p className="text-xs sm:text-sm text-navy/70 mt-1 leading-relaxed">
+                  We’ve generated a tailored architecture blueprint, module deliverable breakdown, and timeline estimate for <strong className="text-navy">{companyName}</strong> based on your selections.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <a
+                href={`/proposals/${confirmedData.proposalSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white transition hover:bg-purple/90 shadow-xs"
+              >
+                <FileText size={15} /> View & Export Project Spec (PDF) →
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Meeting Details Card */}
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 space-y-3.5">

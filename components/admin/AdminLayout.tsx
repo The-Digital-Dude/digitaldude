@@ -13,14 +13,16 @@ import {
   LogOut,
   Menu,
   X,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/bookings", label: "Meetings & Bookings", icon: CalendarCheck, exact: false },
-  { href: "/admin/blogs", label: "Blog & Content", icon: FileText, exact: false },
+  { href: "/admin/proposals", label: "Proposals & Specs", icon: ScrollText, exact: false },
   { href: "/admin/case-studies", label: "Case Studies", icon: Briefcase, exact: false },
+  { href: "/admin/blogs", label: "Blog & Content", icon: FileText, exact: false },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
