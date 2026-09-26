@@ -140,22 +140,111 @@ Building a successful marketplace requires synchronizing three distinct user exp
       .select();
 
     if (error) {
-      console.error(`Error upserting ${post.slug}:`, error.message);
+      console.error(`Error upserting post ${post.slug}:`, error.message);
     } else {
-      console.log(`Successfully upserted: ${post.title}`);
+      console.log(`Successfully upserted post: ${post.title}`);
     }
   }
 
-  // 3. Fetch all posts to verify
-  const { data: allPosts, error: fErr } = await supabase
+  // 3. Seed Case Studies
+  const seedCaseStudies = [
+    {
+      slug: "property-compliance-crm",
+      industry: "Property",
+      tag: "Property · Australia",
+      title: "Property compliance CRM",
+      summary: "Five role-based portals managing 4,000+ rentals across 30+ agencies, 4x faster than before",
+      status: "Live",
+      image: "/images/case-studies/property-compliance.svg",
+      image_alt: "Property compliance CRM interface managing smoke alarm, gas, and electrical safety inspections across Australian rental properties",
+      headline: "From spreadsheet chaos to four times faster turnarounds",
+      page_summary: "A bespoke multi-portal CRM connecting real estate agencies, field inspectors, tenants, landlords and ops team — currently managing compliance across 4,000+ Australian rental properties.",
+      stats: [
+        "4,000+ rental properties under management",
+        "30+ real estate agencies active",
+        "4x faster job completion turnaround",
+        "Zero missed compliance deadlines since launch"
+      ],
+      challenge: "A growing Australian property compliance company was running inspections, technician dispatch, agency communications and certificate generation through shared spreadsheets, email chains and WhatsApp groups. As they scaled past 1,000 properties, jobs slipped, certificates took days to issue, and operations spent hours every day answering 'what is the status of property X?' from agency property managers.",
+      what_we_built: [
+        "Agency Portal: Real estate property managers log in, submit new properties, view live compliance statuses, and download safety certificates on demand.",
+        "Field Inspector Mobile App: Inspectors view their daily route, complete digital inspection checklists, take mandatory photo proof, and collect digital signatures on-site.",
+        "Operations Dashboard: Central dispatcher assigns jobs with location-based grouping, monitors delayed tasks, and reviews inspector submissions in real time.",
+        "Automated Certificate & Invoicing Engine: Safety certificates and invoices are generated automatically as soon as an inspection is marked complete.",
+        "Tenant & Landlord Notification Engine: Automated SMS and email booking reminders with self-service reschedule links to eliminate missed technician visits."
+      ],
+      what_changed: "The company expanded from managing 800 properties to over 4,000 across 30+ agencies without increasing their central admin headcount. Job turnaround dropped from 8 days to under 48 hours, and safety certificates are delivered within seconds of job completion.",
+      what_changed_label: "What changed",
+      built_with: "Next.js 16, TypeScript, Supabase PostgreSQL with RLS, Tailwind CSS, Google Maps Geocoding API, Brevo Transactional Email & SMS",
+      related: ["cleaning-marketplace", "logistics-platform"]
+    },
+    {
+      slug: "airline-ticketing-crm",
+      industry: "Travel",
+      tag: "Travel & Ticketing · Australia",
+      title: "Travel agency CRM",
+      summary: "A multi-channel CRM for an Australian ticketing agency bringing WhatsApp, Facebook, phone and walk-in leads into one place",
+      status: "Live",
+      image: "/images/case-studies/airline-ticketing.svg",
+      image_alt: "Travel agency ticketing CRM dashboard tracking agent response times, booking conversions, and GDS flight ticket issuance",
+      headline: "One dashboard for leads, quotes, bookings, and agent KPIs",
+      page_summary: "A centralized ticketing CRM engineered for an Australian travel agency processing high volumes of custom itinerary requests across WhatsApp, Facebook Messenger, phone, and walk-in leads.",
+      stats: [
+        "100% centralized lead capture from 4 channels",
+        "38% increase in lead-to-booking conversion rate",
+        "Average quote turnaround reduced from 4 hours to 18 minutes",
+        "Complete live visibility over agent sales performance"
+      ],
+      challenge: "An Australian travel agency had 15 agents handling hundreds of flight quote requests across personal WhatsApp chats, Facebook pages, phone calls, and walk-in consultations. Enquiries frequently fell through the cracks, management had zero visibility into quote status or conversion rates, and duplicate quotes were repeatedly sent to the same client.",
+      what_we_built: [
+        "Omnichannel Lead Capture: Auto-ingests leads from web forms, WhatsApp Business API, Facebook Messenger webhooks, and phone call logs into a unified queue.",
+        "Rapid Itinerary & Quote Builder: Agents generate multi-leg flight comparisons, markup calculations, and client-ready branded PDF quotes in minutes.",
+        "Smart Lead Routing: Distributes inbound leads based on agent availability, destination expertise, and historical conversion speed.",
+        "GDS & Payment Tracking: Links PNR booking numbers to Stripe payment receipts and automated ticket issuance reminders.",
+        "Executive KPI Dashboard: Live leaderboards tracking agent response times, active quotes, win rates, and daily gross revenue."
+      ],
+      what_changed: "Lead response times dropped from hours to minutes. Unassigned leads are automatically escalated if not contacted within 15 minutes, boosting overall booking conversion by 38%. Management can view real-time company-wide revenue metrics instantly from any device.",
+      what_changed_label: "What changed",
+      built_with: "Next.js, React, Node.js, PostgreSQL, WhatsApp Business Cloud API, Tailwind CSS, Stripe Payments",
+      related: ["property-compliance-crm", "recruitment-crm"]
+    }
+  ];
+
+  try {
+    for (const cs of seedCaseStudies) {
+      console.log(`Upserting case study: "${cs.slug}"...`);
+      const { data, error } = await supabase
+        .from("case_studies")
+        .upsert(cs, { onConflict: "slug" })
+        .select();
+
+      if (error) {
+        console.warn(`Notice upserting case study ${cs.slug}:`, error.message);
+      } else {
+        console.log(`Successfully upserted case study: ${cs.title}`);
+      }
+    }
+  } catch (err) {
+    console.warn("Case study sync notice:", err.message);
+  }
+
+  // 4. Fetch all posts and case studies to verify
+  const { data: allPosts } = await supabase
     .from("posts")
     .select("id, slug, title, status, cover_image, reading_time_minutes");
 
-  if (fErr) {
-    console.error("Fetch error:", fErr.message);
+  console.log("\nCurrent Database Posts in Supabase:");
+  console.table(allPosts);
+
+  const { data: allCaseStudies, error: csErr } = await supabase
+    .from("case_studies")
+    .select("id, slug, title, status, industry");
+
+  if (csErr) {
+    console.warn("Case studies query notice (table might need migration run):", csErr.message);
   } else {
-    console.log("\nCurrent Database Posts in Supabase:");
-    console.table(allPosts);
+    console.log("\nCurrent Database Case Studies in Supabase:");
+    console.table(allCaseStudies);
   }
 }
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { caseStudies, type Industry } from "@/lib/content/caseStudies";
+import { caseStudies as defaultCaseStudies, type CaseStudy, type Industry } from "@/lib/content/caseStudies";
 import { ProjectCard } from "@/components/ProjectCard";
 import { cn } from "@/lib/utils";
 
-const filters: Array<Industry | "All"> = [
+const baseFilters: Array<Industry | "All"> = [
   "All",
   "Property",
   "Travel",
@@ -16,16 +16,29 @@ const filters: Array<Industry | "All"> = [
   "Community",
 ];
 
-export function IndustryFilterBar() {
-  const [active, setActive] = useState<(typeof filters)[number]>("All");
+export function IndustryFilterBar({
+  projects = defaultCaseStudies,
+}: {
+  projects?: CaseStudy[];
+}) {
+  const [active, setActive] = useState<string>("All");
+
+  // Dynamically include any additional industries from custom case studies
+  const dynamicIndustries = Array.from(
+    new Set(projects.map((p) => p.industry).filter(Boolean))
+  );
+  
+  const allFilters = Array.from(
+    new Set([...baseFilters, ...dynamicIndustries])
+  );
 
   const visible =
-    active === "All" ? caseStudies : caseStudies.filter((c) => c.industry === active);
+    active === "All" ? projects : projects.filter((c) => c.industry === active);
 
   return (
     <div>
       <div className="flex flex-wrap gap-2">
-        {filters.map((filter) => (
+        {allFilters.map((filter) => (
           <button
             key={filter}
             onClick={() => setActive(filter)}

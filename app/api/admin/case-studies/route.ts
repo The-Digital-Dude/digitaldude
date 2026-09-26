@@ -1,0 +1,125 @@
+import { NextResponse } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabaseClient";
+import { isAdminAuthenticated } from "@/lib/adminAuth";
+import { log } from "@/lib/logger";
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export async function GET(request: Request) {
+  const isAuth = await isAdminAuthenticated(request);
+  if (!isAuth) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return NextResponse.json({ ok: false, error: "Database not connected" }, { status: 503 });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("case_studies")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      log("error", { message: "Failed to fetch case studies in admin", error });
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, caseStudies: data || [] });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  const isAuth = await isAdminAuthenticated(request);
+  if (!isAuth) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    return NextResponse.json({ ok: false, error: "Database not connected" }, { status: 503 });
+  }
+
+  try {
+    const body = await request.json();
+    const {
+      title,
+      slug: customSlug,
+      industry = "Custom Software",
+      tag = "Production · UK & Australia",
+      summary,
+      status = "Live",
+      image = "/images/case-studies/property-compliance.svg",
+      image_alt,
+      headline,
+      page_summary,
+      stats = [],
+      challenge,
+      what_we_built = [],
+      what_changed,
+      what_changed_label = "What changed",
+      built_with = "Next.js, TypeScript, Supabase, Tailwind CSS",
+      related = [],
+    } = body;
+
+    if (!title || !headline || !challenge || !what_changed) {
+      return NextResponse.json(
+        { ok: false, error: "Title, headline, challenge, and what changed are required." },
+        { status: 400 }
+      );
+    }
+
+    const slug = customSlug ? slugify(customSlug) : slugify(title);
+
+    const payload = {
+      title,
+      slug,
+      industry,
+      tag,
+      summary: summary || headline,
+      status,
+      image,
+      image_alt: image_alt || title,
+      headline,
+      page_summary: page_summary || summary || headline,
+      stats: Array.isArray(stats) ? stats : [],
+      challenge,
+      what_we_built: Array.isArray(what_we_built) ? what_we_built : [],
+      what_changed,
+      what_changed_label,
+      built_with,
+      related: Array.isArray(related) ? related : [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase.from("case_studies").insert(payload).select().single();
+
+    if (error) {
+      if (error.code === "23505") {
+        return NextResponse.json(
+          { ok: false, error: "A case study with this URL slug already exists." },
+          { status: 409 }
+        );
+      }
+      log("error", { message: "Failed to create case study", error, context: { slug } });
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+
+    log("info", { message: "Case study created successfully", context: { slug } });
+    return NextResponse.json({ ok: true, caseStudy: data });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
+  }
+}

@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/utils";
-import { caseStudies } from "@/lib/content/caseStudies";
 import { services } from "@/lib/content/services";
 import { industries } from "@/lib/content/industries";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
+import { getCaseStudies } from "@/lib/caseStudiesServer";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -20,11 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  const caseStudyPages: MetadataRoute.Sitemap = caseStudies.map((c) => ({
+  const allCaseStudies = await getCaseStudies();
+  const caseStudyPages: MetadataRoute.Sitemap = allCaseStudies.map((c) => ({
     url: `${SITE_URL}/work/${c.slug}`,
     lastModified: now,
     changeFrequency: "monthly",
-    priority: 0.7,
+    priority: 0.75,
   }));
 
   const servicePages: MetadataRoute.Sitemap = services.map((s) => ({

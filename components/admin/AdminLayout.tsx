@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   CalendarCheck,
   FileText,
+  Briefcase,
   ExternalLink,
   LogOut,
   Menu,
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/bookings", label: "Meetings & Bookings", icon: CalendarCheck, exact: false },
   { href: "/admin/blogs", label: "Blog & Content", icon: FileText, exact: false },
+  { href: "/admin/case-studies", label: "Case Studies", icon: Briefcase, exact: false },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
