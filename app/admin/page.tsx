@@ -327,7 +327,7 @@ export default function AdminDashboardPage() {
 
                         <td className="py-3.5 px-4">
                           <span className="capitalize font-bold text-purple text-xs">
-                            {lead.stage.replace(/_/g, " ")}
+                            {(lead.stage || "new_booking").replace(/_/g, " ")}
                           </span>
                         </td>
 
@@ -336,7 +336,7 @@ export default function AdminDashboardPage() {
                         </td>
 
                         <td className="py-3.5 px-4 uppercase text-[10px] font-bold text-navy/70">
-                          {lead.lead_score}
+                          {lead.lead_score || "warm"}
                         </td>
 
                         <td className="py-3.5 px-4 text-right">

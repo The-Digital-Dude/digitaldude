@@ -110,44 +110,49 @@ export function CrmKanbanBoard({
 
   return (
     <div className="space-y-4">
-      {/* 6-Column Kanban Container */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 overflow-x-auto pb-4">
-        {CRM_STAGES.map((stage) => {
-          const stageLeads = leads.filter((l) => (l.stage || "new_booking") === stage.id);
-          const stageTotalValue = stageLeads.reduce((acc, curr) => acc + (Number(curr.deal_value) || 0), 0);
+      {/* 6-Column Kanban Horizontal Flex Container */}
+      <div className="w-full overflow-x-auto pb-6 pt-1">
+        <div className="flex gap-4 min-w-max">
+          {CRM_STAGES.map((stage) => {
+            const stageLeads = leads.filter((l) => (l.stage || "new_booking") === stage.id);
+            const stageTotalValue = stageLeads.reduce(
+              (acc, curr) => acc + (Number(curr.deal_value) || 0),
+              0
+            );
 
-          return (
-            <div
-              key={stage.id}
-              className="flex flex-col rounded-3xl border border-slate-200/90 bg-slate-50/70 p-3.5 min-w-[260px] shadow-2xs"
-            >
-              {/* Stage Header */}
-              <div className="mb-3 border-b border-slate-200/80 pb-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-bold text-navy truncate max-w-[170px]" title={stage.name}>
-                    {stage.name}
-                  </h2>
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-bold text-navy">
-                    {stageLeads.length}
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[11px] text-navy/60">
-                  <span>Subtotal:</span>
-                  <strong className="font-semibold text-navy">{formatGbp(stageTotalValue)}</strong>
-                </div>
-              </div>
-
-              {/* Stage Cards Container */}
-              <div className="flex-1 space-y-3 min-h-[350px]">
-                {stageLeads.length === 0 ? (
-                  <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-[11px] text-navy/40">
-                    No active deals
+            return (
+              <div
+                key={stage.id}
+                className="flex w-[290px] min-w-[290px] flex-col rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-2xs"
+              >
+                {/* Stage Header */}
+                <div className="mb-3 border-b border-slate-200/80 pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-xs font-bold text-navy truncate" title={stage.name}>
+                      {stage.name}
+                    </h2>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white border border-slate-200 text-[10px] font-bold text-navy">
+                      {stageLeads.length}
+                    </span>
                   </div>
-                ) : (
-                  stageLeads.map((lead) => {
-                    const currentIndex = stageOrder.indexOf(lead.stage);
-                    const canPrev = currentIndex > 0;
-                    const canNext = currentIndex < stageOrder.length - 1;
+                  <div className="mt-1.5 flex items-center justify-between text-[11px] text-navy/60">
+                    <span>Subtotal:</span>
+                    <strong className="font-semibold text-navy">{formatGbp(stageTotalValue)}</strong>
+                  </div>
+                </div>
+
+                {/* Stage Cards Container */}
+                <div className="flex-1 space-y-3 min-h-[350px]">
+                  {stageLeads.length === 0 ? (
+                    <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-[11px] text-navy/40">
+                      No active deals
+                    </div>
+                  ) : (
+                    stageLeads.map((lead) => {
+                      const currentStage = lead.stage || "new_booking";
+                      const currentIndex = stageOrder.indexOf(currentStage);
+                      const canPrev = currentIndex > 0;
+                      const canNext = currentIndex < stageOrder.length - 1;
 
                     return (
                       <div
@@ -281,6 +286,7 @@ export function CrmKanbanBoard({
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Edit Deal Modal */}
