@@ -6,6 +6,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { ImageUploader } from '@/components/admin/ImageUploader';
 import { MarkdownToolbar } from '@/components/admin/MarkdownToolbar';
 import { SeoInspector } from '@/components/admin/SeoInspector';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { 
   ArrowLeft, 
   Save, 
@@ -494,8 +495,12 @@ export default function NewBlogPostPage() {
               </div>
             )}
 
-            <div className="prose prose-lg prose-indigo max-w-none text-navy/90 leading-relaxed whitespace-pre-wrap font-sans">
-              {formData.content || 'Start writing your article in the Editor tab to see live preview...'}
+            <div className="prose prose-lg prose-indigo max-w-none text-navy/90 leading-relaxed font-sans">
+              {formData.content ? (
+                <MarkdownRenderer content={formData.content} />
+              ) : (
+                <p className="italic text-navy/40">Start writing your article in the Editor tab to see live preview...</p>
+              )}
             </div>
           </div>
         )}

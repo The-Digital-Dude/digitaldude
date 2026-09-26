@@ -107,13 +107,20 @@ async function getPost(slug: string) {
         .eq('status', 'published')
         .single();
 
-      if (!error && data) return data;
+      if (!error && data) {
+        return {
+          ...data,
+          read_time: data.read_time || (data.reading_time_minutes ? `${data.reading_time_minutes} min read` : '5 min read'),
+        };
+      }
     }
   } catch {}
 
   if (fallbackArticles[slug]) return fallbackArticles[slug];
   return null;
 }
+
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -303,57 +310,8 @@ export default async function BlogPostDetailPage({ params }: Props) {
 
       {/* Article Content */}
       <article className="max-w-3xl mx-auto px-6 py-8">
-        <div className="prose prose-lg prose-indigo max-w-none text-navy/85 leading-relaxed space-y-6 font-sans">
-          {post.content.split('\n\n').map((paragraph: string, idx: number) => {
-            // Heading 2
-            if (paragraph.startsWith('## ')) {
-              return (
-                <h2 key={idx} className="text-2xl sm:text-3xl font-bold text-navy pt-6 pb-2 border-b border-black/5">
-                  {paragraph.replace('## ', '')}
-                </h2>
-              );
-            }
-            // Heading 3
-            if (paragraph.startsWith('### ')) {
-              return (
-                <h3 key={idx} className="text-xl sm:text-2xl font-bold text-navy pt-4">
-                  {paragraph.replace('### ', '')}
-                </h3>
-              );
-            }
-            // Code block
-            if (paragraph.startsWith('```')) {
-              const cleanCode = paragraph.replace(/```[a-z]*\n?/g, '').trim();
-              return (
-                <pre key={idx} className="bg-slate-900 text-cyan-300 p-5 rounded-2xl overflow-x-auto text-sm font-mono my-6 border border-slate-800">
-                  <code>{cleanCode}</code>
-                </pre>
-              );
-            }
-            // Bullet list
-            if (paragraph.startsWith('- ') || paragraph.startsWith('1. ')) {
-              const items = paragraph.split('\n');
-              return (
-                <ul key={idx} className="space-y-2 list-disc pl-6 text-navy/80">
-                  {items.map((item, itemIdx) => (
-                    <li key={itemIdx} className="pl-1">
-                      {item.replace(/^[-*]|\d+\.\s*/, '').trim()}
-                    </li>
-                  ))}
-                </ul>
-              );
-            }
-            // Horizontal rule
-            if (paragraph.trim() === '---') {
-              return <hr key={idx} className="my-8 border-t border-black/10" />;
-            }
-            // Standard Paragraph
-            return (
-              <p key={idx} className="text-base sm:text-lg text-navy/80 leading-relaxed">
-                {paragraph}
-              </p>
-            );
-          })}
+        <div className="prose prose-lg prose-indigo max-w-none text-navy/85 leading-relaxed font-sans">
+          <MarkdownRenderer content={post.content} />
         </div>
 
         {/* Share & Feedback */}

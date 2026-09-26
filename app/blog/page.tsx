@@ -77,12 +77,22 @@ export default async function BlogPage() {
     if (supabase) {
       const { data, error } = await supabase
         .from('posts')
-        .select('id, title, slug, excerpt, category, cover_image, read_time, published_at, author')
+        .select('*')
         .eq('status', 'published')
         .order('published_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        posts = data as Post[];
+        posts = data.map((p) => ({
+          id: p.id,
+          title: p.title,
+          slug: p.slug,
+          excerpt: p.excerpt,
+          category: p.category || 'Custom Software',
+          cover_image: p.cover_image,
+          read_time: p.read_time || (p.reading_time_minutes ? `${p.reading_time_minutes} min read` : '5 min read'),
+          published_at: p.published_at,
+          author: p.author || 'The Digital Dude Team',
+        }));
       } else {
         posts = fallbackPosts;
       }
