@@ -24,6 +24,22 @@ export function generateSlotsForDate(dateStr: string): string[] {
   return slots;
 }
 
+/** YYYY-MM-DD (UTC) of the next day, from today, that has bookable working hours left. */
+export function nextAvailableDateIso(): string {
+  const now = new Date();
+  let candidate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  for (let i = 0; i < 14; i++) {
+    const isToday = i === 0;
+    const stillTimeLeftToday = now.getUTCHours() < WORKING_HOURS.endHour - 1;
+    if (isWorkingDay(candidate) && (!isToday || stillTimeLeftToday)) {
+      return candidate.toISOString().slice(0, 10);
+    }
+    candidate = new Date(candidate.getTime() + 86400000);
+  }
+  return now.toISOString().slice(0, 10);
+}
+
 export function isDateWithinBookingWindow(dateStr: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
   const requested = new Date(`${dateStr}T00:00:00Z`);

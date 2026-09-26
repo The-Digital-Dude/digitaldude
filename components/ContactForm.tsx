@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
+import { nextAvailableDateIso } from "@/lib/availability";
 
 const countries = ["Australia", "United Kingdom", "Bangladesh", "Other"];
 const teamSizes = ["1 to 4", "5 to 20", "21 to 50", "51 to 200", "200+"];
@@ -31,7 +32,7 @@ function formatSlotDateTime(iso: string) {
 }
 
 export function ContactForm() {
-  const [date, setDate] = useState(todayIso());
+  const [date, setDate] = useState(nextAvailableDateIso());
   const [slots, setSlots] = useState<string[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState("");
