@@ -45,6 +45,18 @@ export const services: Service[] = [
         q: "How long does it take?",
         a: "A focused CRM usually takes 4 to 6 weeks. A multi-portal system with several user types takes 8 to 14 weeks.",
       },
+      {
+        q: "What does a CRM project cost?",
+        a: "We don't publish fixed prices because every CRM is scoped differently. You'll see the full cost in a fixed proposal before any work starts, and you pay 50% upfront with the rest across agreed milestones.",
+      },
+      {
+        q: "What happens after launch?",
+        a: "Every CRM includes 30 days of support after launch to fix any bugs at no extra cost. After that, you can choose a monthly support plan or just come back when you need something.",
+      },
+      {
+        q: "Do we own the CRM once it's built?",
+        a: "Yes. The code, the data and every account are yours from day one.",
+      },
     ],
   },
   {
@@ -78,6 +90,14 @@ export const services: Service[] = [
         q: "Can you add AI features?",
         a: "Yes. We've built AI matchmaking, AI-generated quizzes and automatic grading. We only suggest AI where it saves real time or improves results.",
       },
+      {
+        q: "How long does a SaaS build take?",
+        a: "A focused first version usually takes 8 to 14 weeks. Timeline depends on how many user roles, integrations and billing plans you need.",
+      },
+      {
+        q: "What happens after we launch?",
+        a: "Every project includes 30 days of support after launch to fix any bugs at no extra cost. After that, you can choose a monthly support plan or come back when you need something.",
+      },
     ],
   },
   {
@@ -109,6 +129,14 @@ export const services: Service[] = [
       {
         q: "Can staff use it on their phones?",
         a: "Yes. Everything we build works on mobile.",
+      },
+      {
+        q: "How long does an ERP or HRM project take?",
+        a: "Most run 8 to 14 weeks, similar to a multi-portal CRM, since they usually involve several modules and role-based access. Scope is agreed and fixed in the proposal before we start.",
+      },
+      {
+        q: "Who owns the system once it's live?",
+        a: "You do. The code, the data and every account are yours.",
       },
     ],
   },
@@ -142,6 +170,14 @@ export const services: Service[] = [
         q: "How long does a marketplace take?",
         a: "Usually 12 to 20 weeks for all three parts.",
       },
+      {
+        q: "What does a marketplace project cost?",
+        a: "It depends on scope across the three apps, so we don't publish fixed prices. You'll see the full cost in a proposal before we start, paid 50% upfront and the rest across agreed milestones.",
+      },
+      {
+        q: "What support is included after launch?",
+        a: "30 days of support after launch to fix any bugs at no extra cost, then a monthly support plan if you want ongoing help across all three apps.",
+      },
     ],
   },
   {
@@ -173,6 +209,14 @@ export const services: Service[] = [
         q: "How long does it take?",
         a: "Most websites take 3 to 6 weeks.",
       },
+      {
+        q: "What happens after the site is live?",
+        a: "You get 30 days of support to fix any bugs at no extra cost. After that, a monthly support plan covers updates and changes, or you can come back whenever you need something.",
+      },
+      {
+        q: "Do we own the website?",
+        a: "Yes. The code, the content and every account are yours.",
+      },
     ],
   },
   {
@@ -203,6 +247,14 @@ export const services: Service[] = [
       {
         q: "Can you fix our current site's SEO without rebuilding it?",
         a: "Often, yes. The audit will show whether fixes are enough or a rebuild makes more sense.",
+      },
+      {
+        q: "Can we get SEO without a full website rebuild?",
+        a: "Yes. SEO and growth work stands on its own — you don't need to rebuild your site with us first.",
+      },
+      {
+        q: "What's included in your reporting?",
+        a: "Monthly reporting on what's working: traffic, rankings movement and enquiries, in plain terms rather than vanity metrics.",
       },
     ],
   },

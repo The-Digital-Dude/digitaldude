@@ -12,7 +12,7 @@ export function ProjectCard({ project }: { project: CaseStudy }) {
             aggressive immutable cache headers make browsers ignore file updates. */}
         <img
           src={project.image}
-          alt={project.title}
+          alt={project.imageAlt}
           className="absolute inset-0 h-full w-full object-contain p-8"
         />
         <span className="absolute right-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy shadow">

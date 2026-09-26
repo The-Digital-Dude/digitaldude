@@ -74,7 +74,7 @@ export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
         <div className="relative mt-10 aspect-video w-full overflow-hidden rounded-2xl bg-lavender">
           <img
             src={project.image}
-            alt={project.title}
+            alt={project.imageAlt}
             loading="eager"
             className="absolute inset-0 h-full w-full object-contain p-10"
           />

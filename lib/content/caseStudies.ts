@@ -15,6 +15,7 @@ export type CaseStudy = {
   summary: string; // one-line summary used on cards
   status: "Live" | "Delivered";
   image: string;
+  imageAlt: string; // outcome-specific alt text, not just the project name
   headline: string; // case study page headline
   pageSummary: string; // case study page one-line summary
   stats: string[];
@@ -36,6 +37,8 @@ export const caseStudies: CaseStudy[] = [
       "Five role-based portals managing 4,000+ rentals across 30+ agencies, 4x faster than before",
     status: "Live",
     image: "/images/case-studies/property-compliance.svg",
+    imageAlt:
+      "Property compliance CRM dashboard showing 4,000+ rentals managed across 30+ agencies",
     headline: "A compliance CRM now running 4,000+ rentals across 30+ agencies",
     pageSummary:
       "One platform connecting agencies, property managers, technicians and the internal team, replacing spreadsheets and email threads.",
@@ -69,6 +72,7 @@ export const caseStudies: CaseStudy[] = [
       "Every lead from WhatsApp, Facebook, phone and walk-ins in one place, with a live KPI dashboard",
     status: "Live",
     image: "/images/case-studies/air-travel-crm.svg",
+    imageAlt: "Airline ticketing CRM dashboard unifying WhatsApp, Facebook, phone and walk-in leads",
     headline: "One CRM for every lead, from every channel",
     pageSummary:
       "A lead and customer management system for an airline ticketing agency, bringing WhatsApp, Facebook, phone and walk-in enquiries into one place.",
@@ -102,6 +106,7 @@ export const caseStudies: CaseStudy[] = [
       "AI matchmaking, 5-tier identity and police check verification, and subscription billing",
     status: "Live",
     image: "/images/case-studies/matrimony-saas.svg",
+    imageAlt: "Matrimony SaaS platform dashboard showing AI matchmaking and 5-tier verification",
     headline: "A matchmaking platform built on trust",
     pageSummary:
       "A premium subscription platform for a community matchmaking service, combining AI matching with strict identity verification.",
@@ -135,6 +140,8 @@ export const caseStudies: CaseStudy[] = [
       "Customer app, cleaner app and admin CRM with upfront payment and photo proof",
     status: "Delivered",
     image: "/images/case-studies/cleaning-marketplace.svg",
+    imageAlt:
+      "Cleaning marketplace apps showing customer booking, cleaner job flow and admin CRM",
     headline: "A three-app platform that runs a cleaning business end to end",
     pageSummary:
       "A customer booking app, a cleaner mobile app and an admin CRM, connected by one system with upfront payment and photo proof on every job.",
@@ -168,6 +175,8 @@ export const caseStudies: CaseStudy[] = [
       "Mobile-first breakdown management for drivers and dispatch, 40% faster response coordination",
     status: "Live",
     image: "/images/case-studies/truck-breakdown.svg",
+    imageAlt:
+      "Logistics coordination platform showing live breakdown incidents and driver status",
     headline: "Breakdowns handled in minutes, not phone calls",
     pageSummary:
       "A mobile-first platform that connects drivers and dispatch the moment something goes wrong on the road.",
@@ -199,6 +208,7 @@ export const caseStudies: CaseStudy[] = [
       "Real-time candidate portal, document tracking and automated status updates",
     status: "Delivered",
     image: "/images/case-studies/recruitment-crm.svg",
+    imageAlt: "Recruitment CRM dashboard showing candidate pipeline and document tracking",
     headline: "Every candidate, document and status update in one place",
     pageSummary:
       "A recruitment system with a real-time candidate portal, covering everything from application to post-placement tracking.",
@@ -231,6 +241,7 @@ export const caseStudies: CaseStudy[] = [
     summary: "AI-generated quizzes, automatic grading and a parent and student portal",
     status: "Delivered",
     image: "/images/case-studies/ai-education.svg",
+    imageAlt: "AI tutoring platform dashboard showing quiz generation and student progress",
     headline: "A tutoring platform where quizzes, marking and reports run themselves",
     pageSummary:
       "A student and parent portal with AI-generated quizzes, automatic grading and personalised feedback, plus an admin system for the tutoring centre.",
