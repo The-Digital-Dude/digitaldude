@@ -54,7 +54,8 @@ export default function EditBlogPostPage() {
     meta_description: ''
   });
 
-  const categories = [
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [categories, setCategories] = useState<string[]>([
     'SEO & Performance',
     'E-Commerce Growth',
     'Google Ads & PPC',
@@ -64,7 +65,7 @@ export default function EditBlogPostPage() {
     'Custom Software',
     'Marketplace Development',
     'CRM Systems'
-  ];
+  ]);
 
   useEffect(() => {
     if (!id) return;
@@ -451,20 +452,55 @@ export default function EditBlogPostPage() {
                 </h2>
 
                 <div>
-                  <label className="block text-xs font-bold text-navy/70 uppercase tracking-wider mb-1.5">
-                    Category
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-purple rounded-xl px-3 py-2 text-navy text-xs outline-none"
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-navy/70 uppercase tracking-wider">
+                      Category
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomCategory(!isCustomCategory);
+                      }}
+                      className="text-[11px] font-bold text-purple hover:underline"
+                    >
+                      {isCustomCategory ? "← Select standard" : "+ Add custom"}
+                    </button>
+                  </div>
+
+                  {!isCustomCategory ? (
+                    <select
+                      value={categories.includes(formData.category) ? formData.category : "__custom__"}
+                      onChange={(e) => {
+                        if (e.target.value === "__custom__") {
+                          setIsCustomCategory(true);
+                        } else {
+                          setFormData({ ...formData, category: e.target.value });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-purple rounded-xl px-3 py-2 text-navy text-xs outline-none"
+                    >
+                      {categories.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                      <option value="__custom__">+ Add custom category...</option>
+                    </select>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        placeholder="e.g. Fintech Architecture, AI Engineering"
+                        className="w-full bg-slate-50 border border-purple rounded-xl px-3 py-2 text-navy text-xs outline-none font-medium"
+                      />
+                      <p className="text-[10px] text-navy/50">
+                        Type any custom category. It will be assigned to this post upon saving.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>

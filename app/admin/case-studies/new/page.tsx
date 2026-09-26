@@ -50,7 +50,8 @@ export default function NewCaseStudyPage() {
     related: ['property-compliance-crm', 'airline-ticketing-crm']
   });
 
-  const industries = [
+  const [isCustomIndustry, setIsCustomIndustry] = useState(false);
+  const [industries, setIndustries] = useState<string[]>([
     'Property',
     'Travel',
     'Community',
@@ -59,8 +60,10 @@ export default function NewCaseStudyPage() {
     'Recruitment',
     'Education',
     'Custom Software',
-    'E-Commerce'
-  ];
+    'E-Commerce',
+    'Fintech',
+    'Healthcare'
+  ]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
@@ -455,20 +458,55 @@ export default function NewCaseStudyPage() {
                 </h3>
 
                 <div>
-                  <label className="block text-xs font-bold text-navy/70 uppercase tracking-wider mb-1.5">
-                    Industry
-                  </label>
-                  <select
-                    value={formData.industry}
-                    onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-purple rounded-xl px-3 py-2 text-navy text-xs outline-none"
-                  >
-                    {industries.map((ind) => (
-                      <option key={ind} value={ind}>
-                        {ind}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-navy/70 uppercase tracking-wider">
+                      Industry / Category
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomIndustry(!isCustomIndustry);
+                      }}
+                      className="text-[11px] font-bold text-purple hover:underline"
+                    >
+                      {isCustomIndustry ? "← Select standard" : "+ Add custom"}
+                    </button>
+                  </div>
+
+                  {!isCustomIndustry ? (
+                    <select
+                      value={industries.includes(formData.industry) ? formData.industry : "__custom__"}
+                      onChange={(e) => {
+                        if (e.target.value === "__custom__") {
+                          setIsCustomIndustry(true);
+                        } else {
+                          setFormData({ ...formData, industry: e.target.value });
+                        }
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-purple rounded-xl px-3 py-2 text-navy text-xs outline-none"
+                    >
+                      {industries.map((ind) => (
+                        <option key={ind} value={ind}>
+                          {ind}
+                        </option>
+                      ))}
+                      <option value="__custom__">+ Add custom industry/category...</option>
+                    </select>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={formData.industry}
+                        onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                        placeholder="e.g. Fintech, Healthcare, Manufacturing"
+                        className="w-full bg-slate-50 border border-purple rounded-xl px-3 py-2 text-navy text-xs outline-none font-medium"
+                      />
+                      <p className="text-[10px] text-navy/50">
+                        Type any custom industry. It will create a new category filter on the portfolio page.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div>
