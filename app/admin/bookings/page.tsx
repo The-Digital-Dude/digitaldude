@@ -31,6 +31,7 @@ interface Booking {
   slot_start: string;
   slot_end: string;
   status: string;
+  stage?: string;
   admin_notes: string | null;
   meet_url: string | null;
   created_at: string;
@@ -83,7 +84,7 @@ export default function AdminBookingsPage() {
 
   function openDrawer(b: Booking) {
     setSelectedBooking(b);
-    setNotes(b.admin_notes || "");
+    setNotes(b.admin_notes || b.message || "");
     setCurrentStatus(b.status || "confirmed");
   }
 
@@ -222,7 +223,7 @@ export default function AdminBookingsPage() {
                     <td className="py-4 text-navy/70">{b.country}</td>
                     <td className="py-4">
                       <span className="inline-block rounded-full bg-lavender px-2.5 py-0.5 text-xs font-semibold capitalize text-purple">
-                        {b.status.replace("_", " ")}
+                        {(b.status || b.stage || "confirmed").replace(/_/g, " ")}
                       </span>
                     </td>
                     <td className="py-4 text-right">

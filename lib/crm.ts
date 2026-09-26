@@ -20,6 +20,8 @@ export interface BookingLead {
   slot_end: string;
   meet_url?: string | null;
   stage: CrmStage;
+  status?: string;
+  admin_notes?: string | null;
   deal_value: number;
   lead_score: LeadScore;
   lead_notes?: string;
