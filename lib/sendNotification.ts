@@ -21,12 +21,41 @@ function formatDisplayDate(isoString?: string): string {
   }
 }
 
+function formatCompactUtc(isoString: string): string {
+  return isoString.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+/**
+ * Builds direct 1-click calendar links for Google Calendar and Outlook.
+ */
+function buildCalendarLinks(submission: ContactSubmission) {
+  if (!submission.slotStart) return null;
+
+  const start = new Date(submission.slotStart);
+  const end = submission.slotEnd
+    ? new Date(submission.slotEnd)
+    : new Date(start.getTime() + 30 * 60_000);
+
+  const title = `Discovery Call: ${submission.companyName} × The Digital Dude`;
+  const details = `30-minute discovery call with The Digital Dude to discuss your operations, workflows, and custom software systems.\n\nWebsite: https://www.digitaldude.co.uk\nContact: info@digitaldude.co.uk`;
+  const location = `Google Meet / Online Call`;
+
+  const startCompact = formatCompactUtc(start.toISOString());
+  const endCompact = formatCompactUtc(end.toISOString());
+
+  const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startCompact}/${endCompact}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+  const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(title)}&startdt=${encodeURIComponent(start.toISOString())}&enddt=${encodeURIComponent(end.toISOString())}&body=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+
+  return { googleUrl, outlookUrl };
+}
+
 /**
  * Builds a responsive, branded HTML email confirmation for the client.
  */
 function buildCustomerEmailHtml(submission: ContactSubmission): string {
   const firstName = submission.name.split(" ")[0] || submission.name;
   const formattedTime = formatDisplayDate(submission.slotStart);
+  const calendarLinks = buildCalendarLinks(submission);
 
   return `
 <!DOCTYPE html>
@@ -73,7 +102,7 @@ function buildCustomerEmailHtml(submission: ContactSubmission): string {
               </p>
 
               <!-- Booking Details Card -->
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f3ff; border: 1px solid #e8e6ff; border-radius: 12px; margin-bottom: 28px; padding: 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f3ff; border: 1px solid #e8e6ff; border-radius: 12px; margin-bottom: 24px; padding: 20px;">
                 <tr>
                   <td>
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
@@ -97,6 +126,23 @@ function buildCustomerEmailHtml(submission: ContactSubmission): string {
                   </td>
                 </tr>
               </table>
+
+              ${
+                calendarLinks
+                  ? `
+              <!-- 1-Click Calendar Add -->
+              <div style="margin-bottom: 28px; text-align: left;">
+                <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">Add to your calendar:</p>
+                <a href="${calendarLinks.googleUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #5b4fe8; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; margin-right: 8px; margin-bottom: 8px;">
+                  + Google Calendar
+                </a>
+                <a href="${calendarLinks.outlookUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #ffffff; color: #1a1a4e; border: 1px solid #e8e6ff; text-decoration: none; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 8px; margin-bottom: 8px;">
+                  + Outlook / Office 365
+                </a>
+              </div>
+              `
+                  : ""
+              }
 
               <!-- What to Expect -->
               <h2 style="margin: 0 0 14px 0; color: #1a1a4e; font-size: 16px; font-weight: 700;">
@@ -160,7 +206,7 @@ function buildCustomerEmailHtml(submission: ContactSubmission): string {
 /**
  * Sends both:
  * 1. An internal notification to the agency team (CONTACT_NOTIFY_EMAIL).
- * 2. A branded confirmation email to the person who booked the call.
+ * 2. A branded confirmation email to the person who booked the call with 1-click calendar links.
  */
 export async function sendNotification(submission: ContactSubmission) {
   const apiKey = process.env.BREVO_API_KEY;
@@ -172,6 +218,7 @@ export async function sendNotification(submission: ContactSubmission) {
 
   const sender = { name: "The Digital Dude", email: "info@digitaldude.co.uk" };
   const replyTo = { name: "The Digital Dude", email: "info@digitaldude.co.uk" };
+  const calendarLinks = buildCalendarLinks(submission);
 
   try {
     // 1. Send customer branded confirmation email
@@ -197,6 +244,9 @@ export async function sendNotification(submission: ContactSubmission) {
           `Duration: 30 minutes`,
           `Format: Google Meet / Video call`,
           "",
+          calendarLinks
+            ? `Add to Google Calendar: ${calendarLinks.googleUrl}\nAdd to Outlook: ${calendarLinks.outlookUrl}\n`
+            : "",
           "What to expect:",
           "1. We will map how your business and operations run today.",
           "2. We will identify bottlenecks and manual workflows slowing you down.",

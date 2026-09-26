@@ -3,6 +3,9 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { sendNotification } from "@/lib/sendNotification";
 import { SLOT_MINUTES, generateSlotsForDate, isDateWithinBookingWindow } from "@/lib/availability";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
+import { log } from "@/lib/logger";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
   // Rate limit: 10 booking attempts per IP per hour.
@@ -25,6 +28,10 @@ export async function POST(request: Request) {
 
   if (!name || !workEmail || !companyName || !country || !slotStart) {
     return NextResponse.json({ ok: false, error: "Missing required fields." }, { status: 400 });
+  }
+
+  if (!EMAIL_REGEX.test(String(workEmail).trim())) {
+    return NextResponse.json({ ok: false, error: "Please enter a valid work email address." }, { status: 400 });
   }
 
   const start = new Date(slotStart);
@@ -80,13 +87,17 @@ export async function POST(request: Request) {
   if (error) {
     // Unique constraint violation on slot_start: someone else just took it.
     if (error.code === "23505") {
+      log("warn", { message: "Booking conflict: slot already taken", context: { ip, slotStart: start.toISOString() } });
       return NextResponse.json(
         { ok: false, error: "That slot was just taken. Please pick another time." },
         { status: 409 }
       );
     }
+    log("error", { message: "Supabase insert error on booking", error, context: { ip, workEmail } });
     return NextResponse.json({ ok: false, error: "Could not save your booking." }, { status: 500 });
   }
+
+  log("info", { message: "Booking saved successfully", context: { companyName, slotStart: start.toISOString() } });
 
   await sendNotification({
     name,
