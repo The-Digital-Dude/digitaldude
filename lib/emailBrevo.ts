@@ -162,6 +162,37 @@ export function wrapInEmailTemplate(title: string, bodyHtml: string): string {
 }
 
 /**
+ * Converts plain text with paragraphs and bullet lines into responsive HTML
+ */
+export function formatEmailBodyToHtml(text: string): string {
+  const blocks = text.split(/\n{2,}/);
+  return blocks
+    .map((block) => {
+      const lines = block
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (
+        lines.length > 0 &&
+        lines.every((l) => l.startsWith("- ") || l.startsWith("* ") || l.startsWith("• "))
+      ) {
+        const items = lines
+          .map(
+            (l) =>
+              `<li style="margin-bottom: 6px; color: #4a4a75;">${l.replace(/^[-*•]\s*/, "")}</li>`
+          )
+          .join("");
+        return `<ul style="margin: 0 0 16px 0; padding-left: 20px; font-size: 14px; line-height: 1.6;">${items}</ul>`;
+      }
+      return `<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">${block.replace(
+        /\n/g,
+        "<br>"
+      )}</p>`;
+    })
+    .join("");
+}
+
+/**
  * 6 Pre-Built Agency Email Templates
  */
 export const EMAIL_TEMPLATES = [
@@ -169,6 +200,16 @@ export const EMAIL_TEMPLATES = [
     id: "inbound_welcome",
     name: "✨ New Inbound Lead Welcome & Intro",
     defaultSubject: "Thanks for reaching out, {{first_name}} — Next steps for {{company_name}}",
+    defaultBody: `Thank you for reaching out to The Digital Dude regarding software architecture and digital systems for {{company_name}}.
+
+Our engineering team has received your project inquiry and is reviewing your requirements.
+
+What Happens Next:
+- Initial Architecture Review: We evaluate your scope, database models, and target integrations.
+- Discovery Call: A 30-minute scoping session to map milestones, tech stack, and deliverable timeline.
+- Milestone Specification: We draft a comprehensive technical specification and fixed-cost proposal.
+
+If you have an RFP, wireframe deck, or workflow document ready, please reply directly to this email with your files attached.`,
     buildHtml: (params: {
       clientName: string;
       companyName: string;
@@ -221,6 +262,18 @@ export const EMAIL_TEMPLATES = [
     id: "cold_outreach",
     name: "🚀 Cold Outreach & B2B Introduction",
     defaultSubject: "Streamlining operations & custom software architecture for {{company_name}}",
+    defaultBody: `Hi {{first_name}},
+
+I came across {{company_name}} and wanted to reach out directly.
+
+At The Digital Dude, we partner with growing businesses to replace disconnected spreadsheets and legacy tools with high-performance, bespoke web applications and automated workflows.
+
+Key Advantages:
+- Bespoke Web Systems: Engineered specifically for your operational workflows.
+- Process Automation: Eliminate manual data entry, fragmented apps, and admin overhead.
+- 100% IP Ownership: Zero recurring seat licensing; complete ownership of your codebase.
+
+Would you be open to a brief 15-minute introductory call next week to explore where custom software could accelerate your operations?`,
     buildHtml: (params: {
       clientName: string;
       companyName: string;
@@ -287,6 +340,14 @@ export const EMAIL_TEMPLATES = [
     id: "discovery_followup",
     name: "📞 Discovery Call Follow-up & Next Steps",
     defaultSubject: "Great speaking today, {{first_name}} — Next steps for {{company_name}}",
+    defaultBody: `Thank you for taking the time to walk us through the operational challenges and growth vision for {{company_name}}.
+
+Our Next Steps:
+- Our architecture team is finalizing the module deliverable matrix and database schema.
+- We will deliver your bespoke Technical Specification & Milestone Proposal within 24–48 hours.
+- We will schedule a quick 15-minute alignment call to review wireframe concepts before kickoff.
+
+If you have any extra documentation, spreadsheet samples, or workflow diagrams to share in the meantime, simply reply directly to this email.`,
     buildHtml: (params: {
       clientName: string;
       companyName: string;
@@ -327,6 +388,14 @@ export const EMAIL_TEMPLATES = [
     id: "proposal_delivery",
     name: "📄 Proposal & Architecture Spec Delivery",
     defaultSubject: "Technical Architecture Specification & Project Scope — {{company_name}} × The Digital Dude",
+    defaultBody: `Following our discussion, our technical architecture team has drafted a comprehensive, bespoke technical specification and milestone roadmap for {{company_name}}.
+
+Key Scope Highlights:
+- Milestone 1: Core Database Architecture, Authentication & Role-Based Access Control.
+- Milestone 2: Automated Workflows, Real-Time API Integrations & Admin Control Room.
+- Milestone 3: Security Hardening, QA Testing & Production Deployment.
+
+You can review and download the interactive specification (PDF) from your private client link. Please let us know if any milestone adjustments are required before we lock in the sprint schedule.`,
     buildHtml: (params: {
       clientName: string;
       companyName: string;
@@ -388,6 +457,9 @@ export const EMAIL_TEMPLATES = [
     id: "proposal_checkin",
     name: "⏱️ Proposal Review & Scheduling Check-in",
     defaultSubject: "Checking in on your architecture specification — {{company_name}}",
+    defaultBody: `I wanted to check in and see if you and the team at {{company_name}} had a chance to review the architecture specification we prepared for you.
+
+We are currently booking engineering sprint slots for the upcoming month. If you'd like to discuss any scope refinements, milestone adjustments, or payment structuring, please let me know!`,
     buildHtml: (params: {
       clientName: string;
       companyName: string;
@@ -427,6 +499,11 @@ export const EMAIL_TEMPLATES = [
     id: "custom",
     name: "✉️ Custom Direct Message",
     defaultSubject: "Update regarding your project — {{company_name}}",
+    defaultBody: `Hello {{first_name}},
+
+Thank you for reaching out to The Digital Dude. We are excited about the opportunity to partner with {{company_name}}.
+
+Please let us know if you have any questions or when you are available for a brief sync.`,
     buildHtml: (params: {
       clientName: string;
       companyName: string;

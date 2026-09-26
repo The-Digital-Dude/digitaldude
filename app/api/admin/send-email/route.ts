@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
-import { sendBrevoEmail, EMAIL_TEMPLATES } from "@/lib/emailBrevo";
+import { sendBrevoEmail, EMAIL_TEMPLATES, wrapInEmailTemplate, formatEmailBodyToHtml } from "@/lib/emailBrevo";
+import { SITE_URL } from "@/lib/utils";
 import { log } from "@/lib/logger";
 
 export async function POST(request: Request) {
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
     companyName = "Client",
     templateId = "custom",
     customSubject,
+    customBody,
     customMessage,
     proposalSlug,
     proposalId,
@@ -41,36 +43,78 @@ export async function POST(request: Request) {
     .replace(/{{first_name}}/g, (toName || "Client").split(" ")[0]);
 
   // Build HTML
+  const customText = (customBody || customMessage || "").trim();
   let htmlContent = "";
-  if (templateId === "proposal_delivery") {
-    htmlContent = template.buildHtml({
-      clientName: toName || "Client",
-      companyName,
-      projectTitle,
-      proposalSlug,
-      scopeSummary,
-      budgetRange,
-      targetTimeline,
-    });
-  } else if (templateId === "discovery_followup" || templateId === "inbound_welcome" || templateId === "cold_outreach") {
-    htmlContent = template.buildHtml({
-      clientName: toName || "Client",
-      companyName,
-      customNotes: customMessage,
-      customMessage,
-    });
-  } else if (templateId === "proposal_checkin") {
-    htmlContent = template.buildHtml({
-      clientName: toName || "Client",
-      companyName,
-      proposalSlug,
-    });
+
+  if (customText) {
+    const firstName = (toName || "Client").split(" ")[0];
+    const formattedBody = formatEmailBodyToHtml(
+      customText
+        .replace(/{{company_name}}/g, companyName)
+        .replace(/{{client_name}}/g, toName || "Client")
+        .replace(/{{first_name}}/g, firstName)
+    );
+
+    let ctaSection = "";
+    if (proposalSlug || proposalId) {
+      const pUrl = `${SITE_URL}/proposals/${proposalSlug || proposalId}`;
+      ctaSection = `
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 24px; margin-bottom: 24px;">
+          <tr>
+            <td align="center">
+              <a href="${pUrl}" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 14px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
+                Review & Download Architecture Spec (PDF) →
+              </a>
+            </td>
+          </tr>
+        </table>
+      `;
+    } else if (templateId === "inbound_welcome" || templateId === "cold_outreach") {
+      ctaSection = `
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 24px; margin-bottom: 24px;">
+          <tr>
+            <td align="center">
+              <a href="${SITE_URL}/book" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 10px rgba(123, 97, 255, 0.25);">
+                Schedule a 15-Min Intro Call →
+              </a>
+            </td>
+          </tr>
+        </table>
+      `;
+    }
+
+    htmlContent = wrapInEmailTemplate(subject, `${formattedBody}${ctaSection}`);
   } else {
-    htmlContent = template.buildHtml({
-      clientName: toName || "Client",
-      companyName,
-      customMessage,
-    });
+    if (templateId === "proposal_delivery") {
+      htmlContent = template.buildHtml({
+        clientName: toName || "Client",
+        companyName,
+        projectTitle,
+        proposalSlug,
+        scopeSummary,
+        budgetRange,
+        targetTimeline,
+      });
+    } else if (templateId === "discovery_followup" || templateId === "inbound_welcome" || templateId === "cold_outreach") {
+      htmlContent = template.buildHtml({
+        clientName: toName || "Client",
+        companyName,
+        customNotes: customText,
+        customMessage: customText,
+      });
+    } else if (templateId === "proposal_checkin") {
+      htmlContent = template.buildHtml({
+        clientName: toName || "Client",
+        companyName,
+        proposalSlug,
+      });
+    } else {
+      htmlContent = template.buildHtml({
+        clientName: toName || "Client",
+        companyName,
+        customMessage: customText,
+      });
+    }
   }
 
   // Send via Brevo
