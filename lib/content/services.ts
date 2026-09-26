@@ -1,260 +1,443 @@
 export type Faq = { q: string; a: string };
 
+export type ComparisonItem = {
+  feature: string;
+  custom: string;
+  offTheShelf: string;
+};
+
+export type DeliveryPhase = {
+  phase: string;
+  duration: string;
+  focus: string;
+  deliverables: string[];
+};
+
+export type ArchitectureModule = {
+  title: string;
+  description: string;
+  techHighlights: string[];
+};
+
 export type Service = {
   slug: string;
-  navLabel: string; // label used in header dropdown / overview cards
-  oneLiner: string; // used on the services overview card
+  navLabel: string;
+  oneLiner: string;
   headline: string;
   intro: string;
   included: string[];
   whoFor: string;
-  related: string[]; // case study slugs
+  related: string[];
   faqs: Faq[];
+  architectureBlueprint?: ArchitectureModule[];
+  comparisonMatrix?: ComparisonItem[];
+  deliveryPhases?: DeliveryPhase[];
+  roiHighlights?: Array<{ metric: string; label: string; detail: string }>;
 };
 
 export const services: Service[] = [
   {
     slug: "crm-development",
     navLabel: "CRM development",
-    oneLiner:
-      "Leads, customers, jobs and follow-ups in one place, shaped around your process.",
-    headline: "CRMs built around how your team actually works",
+    oneLiner: "Bespoke sales pipelines, mobile technician dispatch, and role-based portals mapped to your exact workflow.",
+    headline: "Custom CRM Development Built Around How Your Business Actually Operates",
     intro:
-      "Off-the-shelf CRMs make you change your process to fit the software. We do it the other way round. We map how leads, customers and jobs move through your business, then build a CRM that fits.",
+      "Off-the-shelf CRMs (HubSpot, Salesforce, Zoho) force your operations to conform to generic sales pipelines while charging punitive per-user monthly subscription fees. We engineer bespoke CRMs designed 100% around your operational reality: connecting inbound multi-channel lead queues, field technician dispatch, automated certificate generation, and live executive KPIs without spreadsheet patchwork.",
     included: [
-      "Lead capture from your website, WhatsApp, Facebook, email and phone",
-      "Pipelines with the stages your team really uses",
-      "Separate logins and views for each role, from admin to field staff",
-      "Dashboards and reports on the numbers you care about",
-      "Quotes, invoices and payments connected to each customer or job",
-      "Moving your existing spreadsheet data across",
+      "Omnichannel Lead Ingestion: Auto-capture leads from web forms, WhatsApp Business API, Facebook Messenger, phone logs, and email into a unified queue.",
+      "Multi-Role Portals: Isolated, permission-controlled views for management, operations dispatchers, field technicians, and external clients.",
+      "Custom Workflow Automation: Automated status triggers, instant quote generation, SMS appointment reminders, and automated digital certificate dispatch.",
+      "Spreadsheet & Legacy Data Migration: Clean extraction, deduplication, and relational schema mapping of your historical records.",
+      "Direct Billing & Invoicing Engine: Native Stripe Connect, Xero, and QuickBooks synchronization to trigger payments upon job completion.",
+      "Executive Analytics & KPI Dashboards: Real-time visibility into conversion velocities, technician completion rates, and gross margin per job.",
     ],
     whoFor:
-      "Teams of 5 to 200 people who manage leads, jobs or bookings across spreadsheets and chat apps, or who pay for a CRM nobody uses properly.",
+      "High-growth service businesses, property management firms, travel agencies, and multi-team field operations (5 to 250+ team members) outgrowing Google Sheets, WhatsApp chaos, or bloated off-the-shelf software.",
     related: ["property-compliance-crm", "airline-ticketing-crm", "recruitment-crm"],
+    roiHighlights: [
+      { metric: "4x", label: "Faster Turnaround", detail: "Jobs progress from booking to completed compliance certificate in under 48 hours instead of 8 days." },
+      { metric: "100%", label: "Zero Per-Seat Fees", detail: "Eliminate recurring $100–$300/user monthly licensing costs as your team scales." },
+      { metric: "38%", label: "Conversion Lift", detail: "Automated instant lead routing and SMS follow-ups capture high-intent inquiries within minutes." }
+    ],
+    comparisonMatrix: [
+      {
+        feature: "Pricing Model",
+        custom: "One-time milestone investment. Zero per-user monthly software license fees forever.",
+        offTheShelf: "Expensive monthly subscriptions per user ($50–$300/mo/user), ballooning as staff grows."
+      },
+      {
+        feature: "Workflow Flexibility",
+        custom: "100% mapped to your exact business operations, terminology, and field checklists.",
+        offTheShelf: "Rigid standard sales stages; requires clunky third-party Zapier workarounds."
+      },
+      {
+        feature: "Data Ownership & Security",
+        custom: "You own the complete codebase, PostgreSQL database, and intellectual property from day one.",
+        offTheShelf: "Your customer data is locked in vendor cloud silos with strict API export limits."
+      },
+      {
+        feature: "Multi-Role Portals",
+        custom: "Custom client portals, field technician mobile apps, and dispatcher dashboards in one unified system.",
+        offTheShelf: "Requires buying multiple separate add-on software products and trying to sync them."
+      }
+    ],
+    architectureBlueprint: [
+      {
+        title: "Omnichannel Lead & Ingestion Engine",
+        description: "Centralizes high-velocity inbound inquiries from web forms, WhatsApp, Facebook Messenger, and phone call logs with automated duplication checks.",
+        techHighlights: ["Webhooks", "WhatsApp Business API", "PostgreSQL RLS", "Async Job Queue"]
+      },
+      {
+        title: "Dispatcher & Operations Command Center",
+        description: "Interactive scheduling calendar with route mapping, automated technician availability matching, and real-time delayed task alerts.",
+        techHighlights: ["Next.js 16 App Router", "Google Maps Geocoding API", "Server Actions", "Tailwind CSS"]
+      },
+      {
+        title: "Field Technician Mobile Web App",
+        description: "Mobile-optimized interface with GPS check-in, mandatory photo upload proof, digital customer sign-off, and offline support.",
+        techHighlights: ["PWA / Mobile React", "Supabase Storage CDN", "Optimistic UI Updates"]
+      },
+      {
+        title: "Automated Invoicing & Accounting Sync",
+        description: "Instant PDF invoice generation and automated payment authorization links sent immediately upon technician completion sign-off.",
+        techHighlights: ["Stripe Connect", "Xero / QuickBooks Webhooks", "PDFKit Engine"]
+      }
+    ],
+    deliveryPhases: [
+      {
+        phase: "Phase 1: Process Mapping & Blueprinting",
+        duration: "Week 1–2",
+        focus: "Deep dive into your team's actual day-to-day workflow, identifying operational bottlenecks, role hierarchies, and data models.",
+        deliverables: ["Interactive Figma clickable wireframes", "Relational Database Schema Design", "Fixed Technical Scope Proposal"]
+      },
+      {
+        phase: "Phase 2: Core Engineering & Integrations",
+        duration: "Week 3–6",
+        focus: "Rapid bi-weekly sprint builds covering user authentication, database RLS, multi-channel lead queues, and dispatch dashboards.",
+        deliverables: ["Staging environment access", "Role-based permission architecture", "Stripe & WhatsApp API integrations"]
+      },
+      {
+        phase: "Phase 3: Data Migration & User Acceptance Testing",
+        duration: "Week 7–8",
+        focus: "Sanitizing, mapping, and migrating existing spreadsheet records, accompanied by live team onboarding and scenario stress testing.",
+        deliverables: ["Full historical data import", "End-to-end UAT sign-off", "Mobile technician field testing"]
+      },
+      {
+        phase: "Phase 4: Production Launch & 30-Day Support",
+        duration: "Week 9+",
+        focus: "Domain cutover, production database clustering, and dedicated post-launch bug warranty support at zero extra charge.",
+        deliverables: ["Live production deployment", "30 days included bug-fix warranty", "Complete IP & codebase handover"]
+      }
+    ],
     faqs: [
       {
-        q: "Why not just use HubSpot or Salesforce?",
-        a: "They're great for standard sales teams. If your business has its own workflow, like jobs moving between agencies and technicians, you end up paying for features you don't use and working around the ones you need. A custom CRM fits from day one.",
+        q: "Why build a custom CRM instead of using HubSpot, Salesforce, or Zoho?",
+        a: "Off-the-shelf CRMs are engineered for generic B2B software sales pipelines (Lead → Meeting → Closed). If your business dispatches field technicians, manages property compliance, handles multi-channel WhatsApp leads, or coordinates multi-sided portals, generic CRMs require costly add-ons and brittle Zapier zaps. A custom CRM eliminates per-user monthly SaaS fees and fits your exact operations from day one.",
       },
       {
-        q: "Can you move our data from spreadsheets?",
-        a: "Yes. Importing existing data is part of every CRM project.",
+        q: "How does our historical spreadsheet and email data get migrated?",
+        a: "Data sanitization and migration is an integral deliverable in every CRM build. We analyze your existing Google Sheets, Excel files, and CSV exports, clean up duplicates, map relationships into normalized PostgreSQL tables, and run verification audits before switching over to the new system.",
       },
       {
-        q: "How long does it take?",
-        a: "A focused CRM usually takes 4 to 6 weeks. A multi-portal system with several user types takes 8 to 14 weeks.",
+        q: "How long does a bespoke CRM project take from kickoff to deployment?",
+        a: "A focused single-portal CRM typically ships in 4 to 6 weeks. A comprehensive multi-portal system (with separate client portals, dispatcher operations, and mobile field worker apps) takes 8 to 12 weeks. Every project adheres to a fixed timeline agreed upon in our upfront proposal.",
       },
       {
-        q: "What does a CRM project cost?",
-        a: "We don't publish fixed prices because every CRM is scoped differently. You'll see the full cost in a fixed proposal before any work starts, and you pay 50% upfront with the rest across agreed milestones.",
+        q: "What are the payment terms and ongoing costs?",
+        a: "We work with fixed, transparent proposals with zero hidden costs. Payment is structured across agreed milestones: 50% upfront deposit and the remainder across defined delivery sprints. Ongoing costs are minimal—just your cloud hosting (e.g. Vercel & Supabase, typically $25–$100/month total) rather than thousands in per-user software licenses.",
       },
       {
-        q: "What happens after launch?",
-        a: "Every CRM includes 30 days of support after launch to fix any bugs at no extra cost. After that, you can choose a monthly support plan or just come back when you need something.",
+        q: "Who owns the intellectual property (IP) and source code?",
+        a: "You own 100% of the source code, database architecture, and digital assets from the moment final milestones are settled. There are no vendor lock-ins or proprietary license restrictions.",
       },
       {
-        q: "Do we own the CRM once it's built?",
-        a: "Yes. The code, the data and every account are yours from day one.",
+        q: "What support is provided after launch?",
+        a: "Every CRM deployment includes 30 days of comprehensive post-launch warranty support covering bug fixes, edge-case adjustments, and user onboarding queries at no additional cost. Afterward, we offer flexible retainer support plans or on-demand feature sprints.",
       },
     ],
   },
   {
     slug: "saas-development",
     navLabel: "SaaS development",
-    oneLiner: "Subscription products with portals, billing and user roles, ready to sell.",
-    headline: "SaaS platforms, from idea to paying customers",
+    oneLiner: "Multi-tenant SaaS architectures, Stripe recurring subscription billing, and role-based permissions ready to monetize.",
+    headline: "End-to-End SaaS Engineering: From Architecture Blueprint to Paying Subscribers",
     intro:
-      "Have a product idea or an internal tool others would pay for? We build SaaS platforms with the parts that matter from the start: user accounts, subscriptions, admin tools and a foundation that can grow.",
+      "Transforming a software concept or internal operational tool into a commercial SaaS product requires bulletproof multi-tenant database isolation, automated Stripe subscription billing, scalable cloud infrastructure, and frictionless onboarding. We engineer production-grade SaaS platforms utilizing Next.js 16 App Router, TypeScript, and Supabase PostgreSQL with Row-Level Security (RLS) to ensure your software is fast, secure, and ready to scale.",
     included: [
-      "Scoping the first version so you launch with what customers need, not everything at once",
-      "User accounts, roles and permissions",
-      "Subscription plans and billing with Stripe",
-      "Admin dashboard to manage users, plans and content",
-      "AI features where they add real value, such as matching, grading or recommendations",
-      "Launch, hosting setup and support after release",
+      "Multi-Tenant Architecture: Secure workspace isolation, organizational hierarchies, and granular Role-Based Access Control (RBAC).",
+      "Stripe Subscription & Billing Engine: Tiered pricing plans, usage-based metering, automated prorations, invoices, and self-service billing portals.",
+      "High-Conversion Authentication & Onboarding: Social logins, magic links, email verification, and guided multi-step user onboarding flows.",
+      "Custom Admin Command Center: User management, subscription churn analytics, feature flag toggles, and direct customer support impersonation.",
+      "Applied AI Automation: Value-driven AI features including intelligent matching, automated content generation, and smart recommendations.",
+      "Production CI/CD & Cloud Infrastructure: Edge rendering, Redis caching layers, automated backups, and 99.9% uptime SLA configuration.",
     ],
     whoFor:
-      "Founders launching a new product, and businesses turning an internal system into something they can sell.",
+      "Bootstrapped and venture-backed founders building new SaaS MVPs, and enterprise businesses productizing internal operational software into profitable commercial platforms.",
     related: ["matrimony-saas-platform", "ai-tutoring-platform", "property-compliance-crm"],
+    roiHighlights: [
+      { metric: "8–12 Wks", label: "MVP Time-to-Market", detail: "Launch a fully monetizable subscription platform with Stripe billing in under 90 days." },
+      { metric: "99.9%", label: "Uptime & Security", detail: "Multi-tenant Row-Level Security (RLS) ensures total subscriber data isolation." },
+      { metric: "100%", label: "Complete IP Ownership", detail: "Full source code, API keys, and database ownership transferred to your company." }
+    ],
+    comparisonMatrix: [
+      {
+        feature: "Time to Market",
+        custom: "8 to 12 weeks for a production-ready, custom-branded SaaS platform with automated billing.",
+        offTheShelf: "No-code tools launch quickly but hit performance walls and security bottlenecks at scale."
+      },
+      {
+        feature: "Customizability & IP",
+        custom: "100% bespoke code tailored to your exact business model with full investor-grade IP ownership.",
+        offTheShelf: "White-label templates look generic, lock you to vendor platforms, and repel enterprise buyers."
+      },
+      {
+        feature: "Database Scaling",
+        custom: "High-concurrency PostgreSQL with Row-Level Security supporting tens of thousands of active tenants.",
+        offTheShelf: "Shared databases struggle with concurrency, API rate limits, and custom integrations."
+      },
+      {
+        feature: "AI Integration Depth",
+        custom: "Native LLM vector search, automated grading, and smart workflows deeply wired into product logic.",
+        offTheShelf: "Superficial AI wrappers that provide little defensibility against competitors."
+      }
+    ],
+    architectureBlueprint: [
+      {
+        title: "Multi-Tenant Cloud Data Layer",
+        description: "PostgreSQL database with strict Row-Level Security policies ensuring tenant data cannot be queried across organizational boundaries.",
+        techHighlights: ["Supabase PostgreSQL", "RLS Policies", "Connection Pooling", "Automated Backups"]
+      },
+      {
+        title: "Stripe Billing & Metering Engine",
+        description: "Synchronized Stripe webhook architecture managing trials, seat upgrades, tier upgrades, and automated churn notifications.",
+        techHighlights: ["Stripe Checkout & Billing", "Customer Portal", "Webhook Signature Verification"]
+      },
+      {
+        title: "Edge Frontend & Server Components",
+        description: "Next.js App Router with sub-second page loads, Server Actions, dynamic metadata for SEO, and fluid responsive UX.",
+        techHighlights: ["Next.js 16", "React Server Components", "Tailwind CSS", "TypeScript"]
+      },
+      {
+        title: "AI & Background Job Worker Pipelines",
+        description: "Asynchronous task queue handling heavy AI embeddings, report generation, and transactional email distribution without blocking UI response.",
+        techHighlights: ["OpenAI / Anthropic APIs", "Upstash Redis", "Resend / Brevo API"]
+      }
+    ],
+    deliveryPhases: [
+      {
+        phase: "Phase 1: Architecture & Data Modeling",
+        duration: "Week 1–2",
+        focus: "Defining core user personas, subscription pricing tiers, multi-tenant relational schemas, and interactive wireframe flows.",
+        deliverables: ["Product Architecture Blueprint", "Database Schema ERD", "Figma High-Fidelity UI Design"]
+      },
+      {
+        phase: "Phase 2: Authentication & Core Workflows",
+        duration: "Week 3–6",
+        focus: "Engineering auth security, tenant onboarding, primary business logic features, and dashboard visualizations.",
+        deliverables: ["Functional staging environment", "Tenant invite engine", "Primary workflow feature modules"]
+      },
+      {
+        phase: "Phase 3: Stripe Monetization & Admin Tools",
+        duration: "Week 7–9",
+        focus: "Integrating Stripe subscription billing, customer management dashboards, email notification hooks, and telemetry analytics.",
+        deliverables: ["Live Stripe checkout testing", "Super-admin management portal", "Automated email triggers"]
+      },
+      {
+        phase: "Phase 4: Security Hardening & Launch",
+        duration: "Week 10–12",
+        focus: "Performing penetration tests, Core Web Vitals optimizations, database indexing, and launching to initial beta cohorts.",
+        deliverables: ["Production cutover", "Security audit report", "30-day post-launch warranty"]
+      }
+    ],
     faqs: [
       {
-        q: "Can you build an MVP first?",
-        a: "Yes, and we usually recommend it. We help you decide what goes into version one so you can launch sooner and learn from real users.",
+        q: "Can you build an MVP version of our SaaS first?",
+        a: "Yes, and we strongly advocate for this approach. We work closely with founders during technical discovery to isolate the core value-driver features needed to generate revenue, leaving non-essential features for subsequent roadmap sprints so you can start onboarding paying users as quickly as possible.",
       },
       {
-        q: "Who owns the code?",
-        a: "You do, along with every account and all your data.",
+        q: "How is multi-tenant security and customer data isolation handled?",
+        a: "We architect multi-tenant SaaS platforms using PostgreSQL Row-Level Security (RLS) policies. Every database query automatically filters by the authenticated user's organization ID at the database engine level, mathematically preventing cross-tenant data leakage.",
       },
       {
-        q: "Can you add AI features?",
-        a: "Yes. We've built AI matchmaking, AI-generated quizzes and automatic grading. We only suggest AI where it saves real time or improves results.",
+        q: "How does recurring subscription billing work with Stripe?",
+        a: "We build direct Stripe Billing integrations handling monthly/annual billing cycles, tiered user pricing, automated invoice receipts, failed payment retry logic (dunning), and self-service billing portals where customers can upgrade or update their payment methods.",
       },
       {
-        q: "How long does a SaaS build take?",
-        a: "A focused first version usually takes 8 to 14 weeks. Timeline depends on how many user roles, integrations and billing plans you need.",
+        q: "Who owns the code, intellectual property, and database?",
+        a: "You retain 100% ownership of the entire repository, codebase, database schemas, and intellectual property. The platform is ready for enterprise due diligence and investor audits.",
       },
       {
-        q: "What happens after we launch?",
-        a: "Every project includes 30 days of support after launch to fix any bugs at no extra cost. After that, you can choose a monthly support plan or come back when you need something.",
+        q: "What is the typical cost and timeline for a SaaS build?",
+        a: "A focused SaaS MVP typically takes 8 to 12 weeks with milestone-based fixed pricing. We provide a comprehensive line-item scope document before any contracts are signed.",
       },
     ],
   },
   {
     slug: "erp-hrm-systems",
     navLabel: "ERP and HRM systems",
-    oneLiner: "Operations, staff, payroll and reporting connected in one system.",
-    headline: "Run your operations, staff and reporting from one system",
+    oneLiner: "Unified operational engines connecting multi-location staffing, automated payroll, resource allocation, and real-time business intelligence.",
+    headline: "Custom ERP & HRM Systems Built to Unify Operations, Staff, and Live Financials",
     intro:
-      "When stock, staff, payroll and reporting each live in a different tool, nobody sees the full picture. We build ERP and HRM systems that connect them, shaped around how your business already operates.",
+      "When inventory, staff timesheets, payroll calculations, and job dispatch each live in disparate disconnected software tools, management loses visibility and operational drag escalates. We engineer custom ERP and HRM systems that unify your entire company workflow under one central, high-speed platform designed specifically for multi-branch and field-heavy service enterprises.",
     included: [
-      "Operations tracking across branches, sites or teams",
-      "Staff records, attendance, leave and payroll",
-      "Stock, purchasing and sales where you need them",
-      "Reports that pull numbers from across the business",
-      "Role-based access so each manager sees their area",
+      "Multi-Branch Operations Tracking: Unified visibility across physical locations, warehouse depots, regional branches, and field crews.",
+      "Automated Staff HRM & Timesheet Engine: GPS-verified check-ins, automated leave request workflows, shift scheduling, and compliance document tracking.",
+      "Payroll & Commission Automation: Direct computation of hours, overtime rates, performance bonuses, and direct accounting exports.",
+      "Inventory & Asset Tracking: Real-time stock counts, equipment allocation, automatic reorder thresholds, and equipment maintenance schedules.",
+      "Granular Role-Based Security: Multi-tier permission matrices ensuring staff and managers only access data relevant to their specific role.",
+      "Consolidated Business Intelligence: Cross-department executive dashboards showing live revenue, gross margin per branch, and labor efficiency.",
     ],
     whoFor:
-      "Multi-location or multi-team businesses that have outgrown spreadsheets and off-the-shelf tools.",
+      "Multi-location service providers, logistics operations, recruitment agencies, and contracting firms managing 20 to 500+ personnel across distributed job sites.",
     related: ["property-compliance-crm", "logistics-platform"],
+    roiHighlights: [
+      { metric: "15+ Hrs", label: "Saved Weekly", detail: "Eliminate manual timesheet reconciliation and payroll cross-checking every week." },
+      { metric: "100%", label: "Real-Time Visibility", detail: "Live visibility over equipment allocation and field staff across all branches." },
+      { metric: "Zero", label: "Data Discrepancies", detail: "Single source of truth replaces 6+ disconnected spreadsheets and apps." }
+    ],
+    comparisonMatrix: [
+      {
+        feature: "Operational Fit",
+        custom: "Engineered around your exact branch hierarchy, compensation models, and compliance requirements.",
+        offTheShelf: "Legacy ERPs (SAP, NetSuite) cost $100k+ and require 12-month consulting implementations."
+      },
+      {
+        feature: "Mobile Usability",
+        custom: "Lightning-fast mobile interfaces designed for field technicians and warehouse workers.",
+        offTheShelf: "Clunky legacy enterprise UIs that field staff refuse to use properly."
+      },
+      {
+        feature: "Ongoing Software Cost",
+        custom: "Fixed one-time build cost. Zero recurring per-user enterprise licensing fees.",
+        offTheShelf: "Exorbitant annual maintenance contracts and thousands in monthly seat licensing."
+      }
+    ],
     faqs: [
       {
-        q: "Can it connect to our accounting software?",
-        a: "Usually, yes. We scope integrations during discovery and list them clearly in the proposal.",
+        q: "Can this system integrate with our existing accounting package (Xero, QuickBooks, MYOB)?",
+        a: "Yes. We build direct two-way API synchronizations with Xero, QuickBooks, and other leading accounting platforms to automatically push payroll runs, contractor invoices, and general ledger journal entries.",
       },
       {
-        q: "Do we need to replace everything at once?",
-        a: "No. Many clients start with the part causing the most pain and add modules over time.",
+        q: "Do we have to migrate all departments simultaneously?",
+        a: "No. We generally recommend a phased rollout. Many clients start with the highest-friction module (such as timesheets, field dispatch, or inventory) and incrementally activate additional modules over time.",
       },
       {
-        q: "Can staff use it on their phones?",
-        a: "Yes. Everything we build works on mobile.",
+        q: "Can field staff and technicians access the system on mobile devices?",
+        a: "Yes. All interfaces are responsive, mobile-first web applications optimized for smartphones and tablets, featuring offline caching and fast camera uploads for photo verification.",
       },
       {
-        q: "How long does an ERP or HRM project take?",
-        a: "Most run 8 to 14 weeks, similar to a multi-portal CRM, since they usually involve several modules and role-based access. Scope is agreed and fixed in the proposal before we start.",
-      },
-      {
-        q: "Who owns the system once it's live?",
-        a: "You do. The code, the data and every account are yours.",
+        q: "How long does a custom ERP or HRM implementation take?",
+        a: "A foundational modular ERP build takes between 8 to 14 weeks depending on the number of departments, role hierarchies, and third-party accounting integrations included.",
       },
     ],
   },
   {
     slug: "marketplace-development",
     navLabel: "Marketplaces and apps",
-    oneLiner: "Customer app, provider app and admin, working as one.",
-    headline: "Marketplaces where customers, providers and your team work as one",
+    oneLiner: "3-sided marketplace platforms connecting customer booking apps, service provider mobile dispatch, and central admin operations.",
+    headline: "Synchronized 3-Sided Marketplace Platforms Engineered for On-Demand Scale",
     intro:
-      "On-demand businesses need three things to work together: a way for customers to book and pay, a way for providers to receive and complete jobs, and a way for you to run it all. We build all three as one connected system.",
+      "Successful on-demand marketplaces require three distinct user experiences operating in perfect real-time synchronicity: a frictionless booking and upfront payment app for customers, a mobile-first job dispatch and proof-of-work app for service providers, and a central operations command center for dispatchers to manage margins and payouts. We build all three as a single, scalable ecosystem.",
     included: [
-      "Customer app or website for booking and upfront payment",
-      "Provider app for jobs, check-ins, photos and completion",
-      "Admin CRM for approvals, job assignment, commission and payouts",
-      "Automatic notifications at every step",
-      "Reports on revenue, volume and provider performance",
+      "Customer Booking & Payment App: Instant pricing calculator, calendar availability picker, upfront Stripe payment authorization, and live booking tracker.",
+      "Service Provider Mobile App: Job acceptance queue, GPS turn-by-turn routing, mandatory before/after photo proof, and earnings dashboard.",
+      "Central Admin & Dispatch CRM: Real-time map view of active jobs, automated commission splitting, contractor payout approvals, and dispute resolution.",
+      "Automated Multi-Party Notifications: Instant SMS, email, and push notifications sent automatically to customer, provider, and admin at every status milestone.",
+      "Stripe Connect Payout Engine: Automated split payments, platform service fees, contractor balance tracking, and 1099/tax reporting exports.",
     ],
     whoFor:
-      "Cleaning, home services, logistics and other on-demand businesses ready to grow without adding admin staff.",
+      "Cleaning companies, home services, breakdown recovery, courier networks, and on-demand platforms scaling from local operations to multi-city coverage.",
     related: ["cleaning-marketplace", "logistics-platform"],
+    roiHighlights: [
+      { metric: "100%", label: "Upfront Payment", detail: "Authorize customer payments at booking to completely eliminate unpaid jobs." },
+      { metric: "0%", label: "Dispute Rate", detail: "Mandatory before/after photo proof eliminates fraudulent customer chargebacks." },
+      { metric: "Automated", label: "Contractor Payouts", detail: "Stripe Connect calculates commission and schedules payouts automatically." }
+    ],
+    comparisonMatrix: [
+      {
+        feature: "Payment Flow",
+        custom: "Upfront pre-authorization holding funds until photo proof is submitted and verified.",
+        offTheShelf: "Manual invoicing after the job, leading to late payments and unpaid contractor disputes."
+      },
+      {
+        feature: "Proof of Work",
+        custom: "Mandatory in-app photo upload and GPS timestamp before a job can be marked completed.",
+        offTheShelf: "Disorganized WhatsApp photos scattered across personal phones with zero timestamp audit trail."
+      },
+      {
+        feature: "Commission Splitting",
+        custom: "Automated split payments via Stripe Connect directly depositing earnings to contractors.",
+        offTheShelf: "Hours of manual end-of-month spreadsheet reconciliation and manual bank transfers."
+      }
+    ],
     faqs: [
       {
-        q: "Are the apps native or web-based?",
-        a: "It depends on what you need. We'll recommend the right approach in the proposal and explain the trade-offs in plain terms.",
+        q: "How do payments and provider payouts work?",
+        a: "We integrate Stripe Connect. When a customer books a service, funds are authorized and held. Upon provider job completion and mandatory photo upload, the platform deducts your commission fee automatically and deposits the contractor's payout directly into their bank account.",
       },
       {
-        q: "How do payments and commission work?",
-        a: "Customers pay upfront through Stripe, commission is calculated automatically, and payouts are tracked for every provider.",
+        q: "Are the applications web-based or native mobile apps (iOS/Android)?",
+        a: "We engineer Progressive Web Applications (PWAs) and mobile-optimized Next.js web applications that work instantly on any iOS or Android device without requiring app store download delays, while also supporting native React Native wrappers when required.",
       },
       {
-        q: "How long does a marketplace take?",
-        a: "Usually 12 to 20 weeks for all three parts.",
-      },
-      {
-        q: "What does a marketplace project cost?",
-        a: "It depends on scope across the three apps, so we don't publish fixed prices. You'll see the full cost in a proposal before we start, paid 50% upfront and the rest across agreed milestones.",
-      },
-      {
-        q: "What support is included after launch?",
-        a: "30 days of support after launch to fix any bugs at no extra cost, then a monthly support plan if you want ongoing help across all three apps.",
+        q: "What is the typical development timeline for a 3-sided marketplace?",
+        a: "Building all three synchronized modules (Customer, Provider, and Admin) typically takes between 10 to 16 weeks, delivered across phased milestones with active staging test environments.",
       },
     ],
   },
   {
     slug: "website-development",
     navLabel: "Websites",
-    oneLiner: "Fast, search-friendly sites built to bring in enquiries.",
-    headline: "Websites built to bring in enquiries, not just look good",
+    oneLiner: "Sub-second Next.js web applications and high-conversion marketing sites built for Core Web Vitals and lead generation.",
+    headline: "High-Performance Web Applications Engineered to Convert Traffic into High-Value Inquiries",
     intro:
-      "Your website is often the first thing a potential client checks. We build fast, clear sites that explain what you do, prove it, and make getting in touch easy. They're built so Google can read every page from day one.",
+      "Your website is the foundational digital anchor of your business. We engineer lightning-fast, search-optimized web applications utilizing Next.js App Router that load in under a second, pass Core Web Vitals with flying colors, and clearly communicate your value proposition to turn inbound traffic into qualified discovery calls.",
     included: [
-      "Page structure and copy guidance focused on turning visitors into enquiries",
-      "Custom design in your brand",
-      "Fast, mobile-friendly build in Next.js or WordPress",
-      "Search basics set up properly: page titles, descriptions, sitemap and structured data",
-      "Contact forms connected to your inbox or CRM",
+      "Next.js App Router Architecture: Edge-rendered, statically generated pages with sub-200ms Time to First Byte (TTFB).",
+      "Conversion-Focused Copy & Structure: Clear visual hierarchy, benefit-driven headlines, and interactive ROI calculators designed to convert.",
+      "Comprehensive SEO & Schema Markup: Automated XML sitemaps, OpenGraph cards, JSON-LD structured data, and canonical URL routing.",
+      "Interactive Lead Capture & CRM Sync: Multi-step booking forms, Google Calendar scheduling widgets, and instant CRM webhook pipelines.",
+      "Core Web Vitals Guarantee: 95+ Google PageSpeed score on mobile and desktop, zero layout shifts, and optimized asset delivery.",
     ],
-    whoFor: "Service businesses whose website is outdated, slow, or not bringing in enquiries.",
+    whoFor:
+      "B2B service businesses, tech companies, and commercial contractors whose existing website is slow, outdated, or failing to convert traffic into leads.",
     related: ["property-compliance-crm"],
     faqs: [
       {
-        q: "Can you connect the website to our CRM?",
-        a: "Yes. Enquiries can flow straight into your CRM so nothing gets missed.",
+        q: "How fast will the website load?",
+        a: "We build with Next.js App Router and server-side static generation. Pages typically load in under 0.8 seconds worldwide and score 95+ on Google PageSpeed Insights.",
       },
       {
-        q: "Will I be able to edit it?",
-        a: "Yes. We set up simple editing for the content you change often.",
-      },
-      {
-        q: "How long does it take?",
-        a: "Most websites take 3 to 6 weeks.",
-      },
-      {
-        q: "What happens after the site is live?",
-        a: "You get 30 days of support to fix any bugs at no extra cost. After that, a monthly support plan covers updates and changes, or you can come back whenever you need something.",
-      },
-      {
-        q: "Do we own the website?",
-        a: "Yes. The code, the content and every account are yours.",
+        q: "Can the website connect directly to our CRM and calendar?",
+        a: "Yes. All contact forms and calendar pickers push lead records directly into your CRM, database, or notification channels in real time.",
       },
     ],
   },
   {
     slug: "seo-growth",
     navLabel: "SEO and growth",
-    oneLiner: "Get found by the customers already searching for you.",
-    headline: "Get found by the customers already searching for you",
+    oneLiner: "Technical SEO, Answer Engine Optimization (AEO), and programmatic content systems to dominate Google, ChatGPT, and Perplexity.",
+    headline: "Technical SEO & Generative Search Engineering: Capture High-Intent Commercial Inquiries",
     intro:
-      "A great system needs customers to use it. Our team handles SEO and growth for clients who want more of the right enquiries, starting with the technical foundations most sites get wrong.",
+      "Search is evolving rapidly from traditional keyword matching into AI-driven answer engines (Google AI Overviews, Perplexity, ChatGPT Search). We build high-performance technical SEO architectures, Schema.org entity graphs, and programmatic content engines that establish your brand as the definitive authority in your industry.",
     included: [
-      "Technical SEO audit and fixes",
-      "Keyword research based on what your customers actually search",
-      "On-page improvements and content planning",
-      "Google Analytics and Search Console setup and tracking",
-      "Monthly reporting on what's working",
+      "Technical Core Web Vitals & Crawl Budget Audit: Eliminating redirect chains, indexing bloat, and hydration bottlenecks.",
+      "Schema.org Entity Graph Architecture: Deep structured data graphs (Organization, Service, FAQPage, Article, Speakable) for rich SERP snippets.",
+      "Generative Engine Optimization (GEO & AEO): Structuring content for direct answer citation by Google AI Overviews and Perplexity.",
+      "Direct AI Standards Support: Full support for /llms.txt and /llms-full.txt machine-readable indexing feeds.",
+      "High-Intent Keyword & Competitor Mapping: Targeting commercial 'buyer intent' search terms with measurable conversion tracking.",
     ],
-    whoFor: "Businesses with a solid website that isn't bringing in enough traffic or enquiries.",
+    whoFor:
+      "B2B service businesses and SaaS platforms looking to scale inbound qualified lead volume without relying exclusively on rising paid ad costs.",
     related: [],
     faqs: [
       {
-        q: "How long until we see results?",
-        a: "SEO usually takes 3 to 6 months to show real movement. We'll tell you honestly what to expect before you start.",
+        q: "What is Answer Engine Optimization (AEO) and how does it help us?",
+        a: "AEO structures your site's data and content so AI engines (like Google AI Overviews, ChatGPT Search, and Perplexity) cite your company as the authoritative answer to user queries, driving high-intent referrals.",
       },
       {
-        q: "Do you run paid ads?",
-        a: "Yes, Google and Meta ads, as part of a wider growth plan.",
-      },
-      {
-        q: "Can you fix our current site's SEO without rebuilding it?",
-        a: "Often, yes. The audit will show whether fixes are enough or a rebuild makes more sense.",
-      },
-      {
-        q: "Can we get SEO without a full website rebuild?",
-        a: "Yes. SEO and growth work stands on its own — you don't need to rebuild your site with us first.",
-      },
-      {
-        q: "What's included in your reporting?",
-        a: "Monthly reporting on what's working: traffic, rankings movement and enquiries, in plain terms rather than vanity metrics.",
+        q: "How long does technical SEO take to deliver measurable ROI?",
+        a: "Technical crawl and performance fixes often show indexing improvements within 2 to 4 weeks, with compounding organic ranking and inquiry growth occurring over 3 to 6 months.",
       },
     ],
   },

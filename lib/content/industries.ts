@@ -1,9 +1,15 @@
 import type { Faq } from "@/lib/content/services";
 
+export type IndustryComparison = {
+  dimension: string;
+  bespokeSolution: string;
+  genericOrSpreadsheet: string;
+};
+
 export type IndustryPage = {
   slug: string;
-  navLabel: string; // short label, e.g. "Property"
-  displayLabel: string; // full label, e.g. "Property and real estate"
+  navLabel: string;
+  displayLabel: string;
   headline: string;
   intro: string;
   painPoints: string[];
@@ -11,263 +17,304 @@ export type IndustryPage = {
   caseStudySlug: string;
   relatedServiceSlugs: string[];
   faqs: Faq[];
+  stats?: Array<{ metric: string; label: string; detail: string }>;
+  comparison?: IndustryComparison[];
 };
 
 export const industries: IndustryPage[] = [
   {
     slug: "property",
     navLabel: "Property",
-    displayLabel: "Property and real estate",
-    headline: "Custom CRMs for property and real estate businesses",
+    displayLabel: "Property, Real Estate & Compliance",
+    headline: "Custom Multi-Portal CRMs for Property Management & Compliance Inspection Agencies",
     intro:
-      "Property and real estate businesses coordinate agencies, property managers and technicians across more moving parts than most CRMs are built for. We build systems shaped around how your operation actually runs.",
+      "Property management and compliance companies operate in high-complexity environments: coordinating hundreds of real estate agencies, thousands of rental properties, field technicians, landlords, and tenants across tight statutory deadlines. We build bespoke multi-portal CRMs that automate work order dispatch, mobile inspection checklists, photo-verified compliance certificates, and instant agency billing.",
     painPoints: [
-      "Agencies, property managers, technicians and your own team all working from separate tools",
-      "Jobs slipping between scheduled, overdue and completed with no single view",
-      "Quotes, invoices and technician payments scattered across spreadsheets and email",
-      "No way for management to see performance across regions or agencies",
+      "Fragmented Communications: Agencies, property managers, field inspectors, and central operations communicating through unlinked email chains, WhatsApp groups, and spreadsheets.",
+      "Compliance Bottlenecks: Safety inspections (smoke alarms, gas safety, electrical checks) slipping past statutory deadlines due to lack of a unified real-time tracking matrix.",
+      "Delayed Certificate Delivery: Taking 3 to 7 business days to manually type up, verify, and email safety certificates and invoices to real estate property managers.",
+      "Lack of Regional Ops Visibility: Leadership unable to assess inspector efficiency, job turnaround times, or gross margin per agency without hours of manual report compilation.",
     ],
     whatWeBuild: [
-      "Separate portals for admin, team members, agencies, property managers and technicians",
-      "Full job tracking from creation to payment, with dedicated views for scheduled, overdue and completed work",
-      "Quotes, invoices and payments linked directly to each job",
-      "Lead management to bring in and convert new agencies and property managers",
-      "Regional dashboards and reports for management",
+      "Agency Self-Service Portal: Real estate property managers log in, submit new properties, view live compliance statuses, and download safety certificates on demand.",
+      "Field Inspector Mobile App: Turn-by-turn route optimization, mandatory digital checklists, required photo proof of serial numbers, and digital on-site signatures.",
+      "Operations Dispatch Command Center: Central dispatcher assigns jobs with location-based grouping, monitors delayed tasks, and reviews inspector submissions in real time.",
+      "Automated Certificate & Invoicing Engine: Safety certificates and invoices are generated and emailed automatically within seconds of inspection sign-off.",
+      "Automated Tenant & Landlord SMS Notification Flow: Interactive booking confirmations with self-service reschedule links to eliminate missed technician visits.",
     ],
     caseStudySlug: "property-compliance-crm",
     relatedServiceSlugs: ["crm-development", "erp-hrm-systems"],
+    stats: [
+      { metric: "4,000+", label: "Rental Properties", detail: "Actively managed on a single multi-tenant compliance platform." },
+      { metric: "30+", label: "Real Estate Agencies", detail: "Self-servicing certificate downloads with zero phone calls to admin." },
+      { metric: "4x", label: "Faster Turnaround", detail: "From booking to issued certificate in under 48 hours." }
+    ],
+    comparison: [
+      {
+        dimension: "Agency Experience",
+        bespokeSolution: "Dedicated branded agency portal where property managers download certificates anytime without emailing you.",
+        genericOrSpreadsheet: "Constant phone calls and emails asking 'what is the status of property X?'."
+      },
+      {
+        dimension: "Field Tech Dispatch",
+        bespokeSolution: "Mobile web app with digital checklists and mandatory photo proof before completing a job.",
+        genericOrSpreadsheet: "Paper job sheets or messy WhatsApp photos with no timestamp audit trail."
+      },
+      {
+        dimension: "Certificate Issuance",
+        bespokeSolution: "Instant automated PDF generation and email delivery upon inspector sign-off.",
+        genericOrSpreadsheet: "Days of manual Word/PDF drafting by central office staff."
+      }
+    ],
     faqs: [
       {
-        q: "Can it handle multiple agencies or portfolios?",
-        a: "Yes. Our property compliance CRM manages 4,000+ rentals across 30+ agencies on one platform, with each agency and property manager seeing only their own portfolio.",
+        q: "Can this system handle multiple real estate agency branches and separate portfolios?",
+        a: "Yes. Our architecture utilizes strict multi-tenant data isolation. Each real estate agency and individual property manager logs into their own portal view, seeing only their designated rental portfolio, active work orders, and historical certificates.",
       },
       {
-        q: "Can it replace our spreadsheets and email threads?",
-        a: "That's the point of it. Jobs, quotes, invoices and technician payments all move through one system instead of scattered tools.",
+        q: "How does the mobile app work for field inspectors in areas with poor reception?",
+        a: "We engineer Progressive Web Applications (PWAs) with local caching. Inspectors can complete digital inspection checklists, capture mandatory photos, and collect signatures offline; the data automatically syncs once connection is restored.",
       },
       {
-        q: "How long does a property CRM take to build?",
-        a: "A multi-portal system with several user types, like agencies, property managers and technicians, usually takes 8 to 14 weeks.",
+        q: "Can it replace our spreadsheets, WhatsApp groups, and invoicing software?",
+        a: "Yes. The custom CRM serves as your single operational source of truth, automating communication, dispatch, photo storage, and invoicing.",
+      },
+      {
+        q: "How long does a property compliance CRM take to build and deploy?",
+        a: "A multi-portal property CRM (covering Agency Portal, Mobile Inspector App, and Ops Dashboard) is typically delivered in 8 to 12 weeks with phased sprint milestones.",
       },
     ],
   },
   {
     slug: "travel",
     navLabel: "Travel",
-    displayLabel: "Travel and tourism",
-    headline: "Custom CRMs for travel and ticketing agencies",
+    displayLabel: "Travel & Flight Ticketing Agencies",
+    headline: "Custom CRMs & Automated Lead Quotation Engines for Travel Agencies",
     intro:
-      "Travel and ticketing agencies lose track of leads the moment they arrive from more than one channel. We build CRMs that bring every enquiry into one pipeline your agents actually use.",
+      "Travel and flight ticketing agencies lose thousands in revenue every month because inbound inquiries scatter across personal agent WhatsApp chats, Facebook pages, phone calls, and walk-ins. We engineer centralized ticketing CRMs that auto-ingest leads from all channels, enforce 15-minute response SLAs, calculate multi-leg flight markups, and deliver real-time sales leaderboards.",
     painPoints: [
-      "Enquiries arriving through WhatsApp, Facebook, phone calls and walk-ins with nowhere to manage them together",
-      "No clear ownership of who's handling each lead",
-      "No live view of conversions, lost sales or progress against target",
-      "No visibility into how each agent is performing",
+      "Unassigned Inbound Inquiries: High-intent leads sitting unanswered in Facebook DMs or WhatsApp chats while agents handle manual tasks.",
+      "Slow Quotation Turnaround: Agents taking 3 to 5 hours to construct multi-leg flight comparisons and manually draft quotes.",
+      "Zero Sales Pipeline Visibility: Management having no live visibility into active quotes, conversion rates, or individual agent revenue performance.",
+      "Duplicate & Conflicting Quotes: Multiple agents unknowingly contacting the same client with conflicting pricing.",
     ],
     whatWeBuild: [
-      "Lead capture from WhatsApp, Facebook and manual entry, organised without duplicates",
-      "A booking pipeline matched to how your agents actually sell",
-      "A dashboard showing leads, follow-ups, conversions and progress against target for any date range",
-      "\"My leads\" and \"my follow-ups\" views so every agent knows what to do next",
-      "Agent performance tracking: leads collected, conversions and conversion rate",
+      "Omnichannel Ingestion Queue: Auto-captures inquiries from WhatsApp Business API, Facebook Messenger webhooks, web forms, and phone logs into a unified queue.",
+      "Rapid Itinerary & Quote Builder: Agents assemble multi-leg flight options, calculate markups, and generate branded PDF quotes in minutes.",
+      "Intelligent Lead Distribution: Automatically routes inbound inquiries based on agent destination specialty, historical conversion speed, and active workload.",
+      "GDS & Stripe Booking Synchronization: Links PNR booking records directly with Stripe deposit links and automated ticket issuance alerts.",
+      "Executive KPI Leaderboard: Live analytics tracking agent response velocity, active quote pipeline values, win rates, and gross margin.",
     ],
     caseStudySlug: "airline-ticketing-crm",
     relatedServiceSlugs: ["crm-development"],
+    stats: [
+      { metric: "18 Min", label: "Average Quote Speed", detail: "Down from 4+ hours, capturing travel buyers while intent is highest." },
+      { metric: "+38%", label: "Conversion Lift", detail: "Automated escalation for uncontacted inquiries within 15 minutes." },
+      { metric: "100%", label: "Channel Centralization", detail: "WhatsApp, Facebook, phone, and walk-in leads managed in one place." }
+    ],
+    comparison: [
+      {
+        dimension: "Lead Centralization",
+        bespokeSolution: "Omnichannel queue auto-ingesting WhatsApp, Facebook, phone, and website leads.",
+        genericOrSpreadsheet: "Leads trapped inside individual agent personal phones and messy spreadsheets."
+      },
+      {
+        dimension: "Management Visibility",
+        bespokeSolution: "Real-time executive dashboard showing gross sales, agent win rates, and overdue follow-ups.",
+        genericOrSpreadsheet: "No visibility until end-of-month accounting spreadsheets are compiled."
+      }
+    ],
     faqs: [
       {
-        q: "Can it bring in leads from WhatsApp and Facebook automatically?",
-        a: "Yes. Our airline ticketing CRM captures leads from WhatsApp, Facebook and manual entry into one pipeline, without duplicates.",
+        q: "Can this system integrate directly with WhatsApp Business Cloud API?",
+        a: "Yes. Inbound WhatsApp messages instantly create leads in the CRM, allowing agents to respond directly through the centralized interface with automated conversation logs.",
       },
       {
-        q: "Can we see how each agent is performing?",
-        a: "Yes. Agent performance views show leads collected, conversions and conversion rate, alongside customer history and quick search.",
+        q: "How does the system prevent duplicate quotes from being sent to the same client?",
+        a: "The CRM automatically matches inbound phone numbers, email addresses, and names against existing active records, alerting agents if an itinerary is already being prepared.",
       },
       {
-        q: "How long does a travel agency CRM take?",
-        a: "A focused CRM usually takes 4 to 6 weeks. Adding dashboards and agent performance views takes closer to 8 to 14 weeks.",
+        q: "Can we track individual agent sales targets and commissions?",
+        a: "Yes. The platform includes customizable commission calculation rules and real-time leaderboards showing individual agent revenue progress against monthly targets.",
       },
     ],
   },
   {
     slug: "home-services",
     navLabel: "Home services",
-    displayLabel: "Cleaning and home services",
-    headline: "Booking, job and payment systems for home service businesses",
+    displayLabel: "Cleaning & Home Services",
+    headline: "On-Demand Booking, Dispatch & Mobile Proof-of-Work Platforms for Home Services",
     intro:
-      "Cleaning and other home service businesses need customers to book and pay upfront, providers to manage their jobs, and admins to see it all — without adding headcount every time you grow.",
+      "Home service and commercial cleaning operations struggle to scale because taking bookings over the phone, chasing post-job payments, and handling customer quality disputes creates immense administrative overhead. We engineer unified 3-sided platforms: customer booking with upfront Stripe authorization, provider mobile app with mandatory photo proof, and a central dispatcher command center.",
     painPoints: [
-      "Bookings coming in by phone and message instead of a proper system",
-      "Payments chased after the job instead of collected upfront",
-      "No proof of work when a customer complains",
-      "More cleaners or providers meaning more admin overhead",
+      "Chasing Unpaid Invoices: Performing jobs and having to follow up for payment days or weeks later.",
+      "Customer Dispute Claims: Dealing with quality complaints or damage claims with zero verifiable on-site evidence.",
+      "Manual Contractor Dispatch: Dispatchers spending hours coordinating cleaner schedules over phone calls and WhatsApp.",
+      "Admin Overhead Scaling Linearly: Needing to hire more office staff every time you expand into a new territory.",
     ],
     whatWeBuild: [
-      "A customer app to choose a service, see the price, pay upfront and track the job",
-      "A provider app to accept jobs, check in, upload before and after photos and mark jobs complete",
-      "An admin CRM to approve providers, assign jobs, and track revenue, commission and payouts",
-      "Automatic notifications at booking, assignment and completion",
-      "Full job history and reports on revenue, volume and provider performance",
+      "Customer Booking & Payment Flow: Upfront service pricing, automated calendar availability, and pre-authorized Stripe payments.",
+      "Provider Mobile Web App: Turn-by-turn navigation, job checklist, mandatory before/after photo uploads, and earnings tracking.",
+      "Admin Operations CRM: Live heatmap of active jobs, automated split payouts, customer dispute manager, and territory management.",
+      "Automated Customer Notifications: SMS reminders, cleaner en-route alerts, and post-job review collection.",
     ],
     caseStudySlug: "cleaning-marketplace",
     relatedServiceSlugs: ["marketplace-development"],
+    stats: [
+      { metric: "100%", label: "Upfront Payment", detail: "Zero unpaid jobs through pre-authorized card holds." },
+      { metric: "0%", label: "Dispute Losses", detail: "Mandatory timestamped photo proof protects against fraudulent claims." },
+      { metric: "3x", label: "Territory Expansion", detail: "Scale cleaner network without increasing central dispatch headcount." }
+    ],
     faqs: [
       {
-        q: "Can customers pay before the job starts?",
-        a: "Yes. Our cleaning marketplace platform takes payment upfront through Stripe before any job begins.",
+        q: "How does the upfront payment flow work?",
+        a: "Customers enter their payment details at booking. Stripe authorizes and holds the funds. Once the cleaner completes the job and uploads verified before/after photos, the payment is captured automatically.",
       },
       {
-        q: "Can we prove work was done if a customer complains?",
-        a: "Yes. Providers upload before and after photos for every job, giving you evidence and a full history to check.",
-      },
-      {
-        q: "Can we add more providers or areas without adding admin staff?",
-        a: "That's the goal. Approvals, job assignment and payouts run through the admin CRM, so growth doesn't mean more manual work.",
+        q: "How does photo proof protect our business against customer disputes?",
+        a: "Cleaners cannot mark a job complete without uploading required timestamped photos of key areas. If a customer questions the work, dispatch can immediately review high-resolution proof in the admin console.",
       },
     ],
   },
   {
     slug: "logistics",
     navLabel: "Logistics",
-    displayLabel: "Transport and logistics",
-    headline: "Coordination systems for transport and logistics teams",
+    displayLabel: "Transport, Fleet & Logistics",
+    headline: "Mobile-First Fleet Coordination & Incident Breakdown Management Platforms",
     intro:
-      "When something goes wrong on the road, every minute spent on phone calls is a minute of delay. We build systems that connect drivers and dispatch the moment an incident happens.",
+      "In commercial transport and logistics, fleet breakdowns and roadside incidents cost thousands per hour in lost driver productivity and delivery penalties. We engineer mobile-first breakdown management and fleet dispatch systems that connect drivers, dispatchers, and recovery technicians in real time.",
     painPoints: [
-      "Breakdowns and incidents coordinated over phone calls and messages",
-      "Dispatch losing time finding out where a driver is and what happened",
-      "No single view of every active incident and its status",
-      "Slow coordination between drivers and the people who can help them",
+      "Protracted Phone Call Coordination: Dispatchers spending 30+ minutes collecting basic vehicle breakdown details over unstable phone calls.",
+      "No Central Visibility: Management having no live map view of disabled vehicles, tow truck ETAs, or delayed cargo.",
+      "Inaccurate Location Reporting: Drivers struggling to convey exact motorway marker posts or depot locations.",
     ],
     whatWeBuild: [
-      "A mobile app for drivers to report an incident with the details dispatch needs",
-      "An admin view showing every active incident and its status",
-      "Coordination tools so admins can assign help and keep drivers updated",
+      "Driver Incident Mobile Interface: 1-click GPS location sharing, vehicle defect photo capture, and instant ticket logging.",
+      "Dispatcher Incident Matrix: Real-time map view of disabled units, nearby certified recovery partners, and live status progress.",
+      "Automated SLA & Cargo Delay Alerts: Instant automated notifications to client logistics managers regarding revised delivery estimates.",
     ],
     caseStudySlug: "logistics-platform",
     relatedServiceSlugs: ["erp-hrm-systems", "marketplace-development"],
+    stats: [
+      { metric: "40%", label: "Faster Coordination", detail: "Cut driver roadside incident turnaround from 90 to 54 minutes." },
+      { metric: "GPS", label: "Pinpoint Dispatch", detail: "Instant location capture eliminates driver positioning errors." },
+      { metric: "Live", label: "Status Telemetry", detail: "Real-time visibility across all active fleet breakdowns." }
+    ],
     faqs: [
       {
-        q: "Can drivers report issues from their phone?",
-        a: "Yes. Our logistics coordination platform is mobile-first, so drivers report incidents from the road with the details dispatch needs.",
+        q: "Can drivers submit breakdown reports without installing a native app store app?",
+        a: "Yes. We build Progressive Web Applications (PWAs) that drivers open instantly in their mobile browser with 1-click GPS sharing and photo upload capabilities.",
       },
       {
-        q: "Does it actually speed up response times?",
-        a: "For our logistics client, response coordination improved by 40% after moving off phone calls and onto one coordination platform.",
-      },
-      {
-        q: "How long does a coordination platform take to build?",
-        a: "It depends on scope, but a mobile app plus an admin coordination view typically falls in the 8 to 14 week range.",
+        q: "Can this system integrate with our existing telematics or ERP software?",
+        a: "Yes. We build RESTful API and webhook synchronizations with fleet telematics, fuel card systems, and ERP accounting software.",
       },
     ],
   },
   {
     slug: "recruitment",
     navLabel: "Recruitment",
-    displayLabel: "Recruitment and staffing",
-    headline: "Recruitment CRMs with real-time candidate portals",
+    displayLabel: "Recruitment & Staffing Agencies",
+    headline: "Candidate Self-Service Portals & Automated Compliance Recruitment CRMs",
     intro:
-      "Recruitment and staffing agencies juggle candidate documents, status updates and communication across email, spreadsheets and WhatsApp. We build systems that put all of it in one place.",
+      "Recruitment agencies waste hundreds of hours chasing candidate identity documents, police checks, certifications, and application status updates across email and WhatsApp. We build recruitment CRMs featuring real-time candidate portals, automated compliance verification, and post-placement tracking.",
     painPoints: [
-      "Candidate documents and status updates scattered across email, spreadsheets and WhatsApp",
-      "Candidates calling in just to ask where their application stands",
-      "Manual document checks for visas, clearances and agreements",
-      "No way to track candidates after they're placed",
+      "Document Chasing Chaos: Visas, right-to-work checks, and certificates scattered across recruiter inboxes and hard drives.",
+      "Candidate Phone Inquiries: Candidates calling repeatedly just to ask where their application stands in the review process.",
+      "Zero Post-Placement Tracking: Losing visibility into placed candidate contract durations, renewal dates, and billing milestones.",
     ],
     whatWeBuild: [
-      "A candidate website to apply, upload documents and see application status in real time",
-      "A CRM for admins and agents with role-based access, candidate filtering and interview approval",
-      "Document checks for visas, clearances and agreements",
-      "Automatic status updates by WhatsApp and email",
-      "Post-placement tracking of start dates, salary, leave and employment status",
+      "Candidate Self-Service Portal: Candidates apply, upload required compliance documents, and view live application status.",
+      "Recruiter Compliance Dashboard: Fast-action document verification, interview scheduling, and automated candidate WhatsApp triggers.",
+      "Post-Placement Tracking Engine: Monitors contract start dates, billing rates, milestone renewals, and client satisfaction.",
     ],
     caseStudySlug: "recruitment-crm",
     relatedServiceSlugs: ["crm-development"],
+    stats: [
+      { metric: "70%", label: "Fewer Status Calls", detail: "Candidates track their application progress directly online." },
+      { metric: "100%", label: "Compliance Audit", detail: "Zero missing right-to-work documents before placement." },
+      { metric: "Instant", label: "WhatsApp Triggers", detail: "Automated status alerts keep candidates engaged." }
+    ],
     faqs: [
       {
-        q: "Can candidates check their own status without calling us?",
-        a: "Yes. Our recruitment CRM gives candidates a real-time portal to see where their application stands and upload documents.",
+        q: "Can candidates upload documents directly from their mobile phones?",
+        a: "Yes. The candidate portal is mobile-optimized with camera integration, allowing candidates to photograph and upload passports, visas, and certificates in seconds.",
       },
       {
-        q: "Can it track candidates after they're placed?",
-        a: "Yes. Post-placement tracking covers start dates, salary, leave and employment status, so you can follow up long after the start date.",
-      },
-      {
-        q: "How long does a recruitment CRM take?",
-        a: "A multi-portal system with a candidate site plus an internal CRM usually takes 8 to 14 weeks.",
+        q: "Can we track contract renewals and post-placement milestones?",
+        a: "Yes. The platform includes automated alerts 30 and 60 days prior to contract expiration so recruiters can initiate extension negotiations early.",
       },
     ],
   },
   {
     slug: "education",
     navLabel: "Education",
-    displayLabel: "Education",
-    headline: "AI-powered systems for tutoring and education businesses",
+    displayLabel: "Education & Tutoring Platforms",
+    headline: "AI-Powered Learning Platforms, Instant Quiz Grading & Parent Progress Hubs",
     intro:
-      "Tutors spend hours every week writing quizzes, marking them and updating parents. We build platforms that handle the repetitive parts automatically, so tutors can focus on teaching.",
+      "Tutoring centers and education companies lose valuable teaching time creating manual homework assignments, grading quizzes, and compiling progress reports for parents. We build intelligent education platforms featuring AI-generated question banks, instant grading with feedback, and dedicated parent progress portals.",
     painPoints: [
-      "Hours spent every week writing and marking quizzes by hand",
-      "Parents wanting more visibility into how their child is progressing",
-      "No early warning when a student starts struggling",
-      "Manual scheduling and progress reporting",
+      "Hours Lost Marking Work: Tutors spending 10+ hours every week hand-marking repetitive homework papers.",
+      "Lack of Parent Visibility: Parents feeling disconnected from their child's curriculum progress and test scores.",
+      "Late Intervention for At-Risk Students: Failing to identify knowledge gaps until term exams reveal the issue.",
     ],
     whatWeBuild: [
-      "AI-generated quizzes matched to each student's subject and level",
-      "Instant grading with feedback on strengths, weak spots and what to practise next",
-      "A portal where students and parents see results, reports, attendance and schedules",
-      "An admin dashboard for classes, student progress and at-risk alerts",
-      "Subscription billing and automatic reminders",
+      "AI Curriculum Quiz Engine: Generates dynamic quizzes and practice questions matched to student grade level and subject.",
+      "Instant Automated Grading & Feedback: Evaluates answers immediately, highlighting conceptual misconceptions.",
+      "Parent & Student Progress Portal: Visual dashboards showing test score trajectories, homework completion, and attendance.",
+      "Tutor Alert Dashboard: Identifies struggling students early and suggests targeted intervention topics.",
     ],
     caseStudySlug: "ai-tutoring-platform",
     relatedServiceSlugs: ["saas-development"],
+    stats: [
+      { metric: "10+ Hrs", label: "Saved Weekly", detail: "Per tutor on manual quiz creation and grading." },
+      { metric: "Instant", label: "Automated Feedback", detail: "Students learn from mistakes immediately rather than waiting days." },
+      { metric: "100%", label: "Parent Transparency", detail: "Live visibility into test scores and learning progress." }
+    ],
     faqs: [
       {
-        q: "Can it generate and mark quizzes automatically?",
-        a: "Yes. Our AI tutoring platform generates quizzes matched to each student's level and grades them instantly with feedback.",
+        q: "How does the AI quiz generation and grading work?",
+        a: "The system integrates fine-tuned LLM APIs with your syllabus parameters to generate varied practice questions and accurately evaluate student explanations with actionable feedback.",
       },
       {
-        q: "Can parents see their child's progress?",
-        a: "Yes. Parents and students get a portal showing results, reports, attendance and schedules.",
-      },
-      {
-        q: "Can it flag students who are falling behind?",
-        a: "Yes. The admin dashboard includes at-risk alerts so tutors can step in earlier.",
+        q: "Can parents access the system from their smartphones?",
+        a: "Yes. Parents have their own secure portal showing historical test trends, attendance logs, and upcoming lesson schedules.",
       },
     ],
   },
   {
     slug: "community",
     navLabel: "Community",
-    displayLabel: "Community platforms",
-    headline: "Trust-first platforms for community and matchmaking businesses",
+    displayLabel: "High-Trust Community & Matchmaking Platforms",
+    headline: "High-Trust Community Platforms with Tiered Identity Verification & AI Matching",
     intro:
-      "In community and matchmaking platforms, trust is the product. We build systems that verify members properly while still making it easy to connect and easy for you to charge for it.",
+      "In community and matchmaking platforms, trust is the fundamental product. If users encounter fake profiles or unvetted members, engagement collapses. We build high-trust platforms featuring 5-tier identity verification, AI compatibility algorithms, encrypted messaging, and recurring Stripe subscriptions.",
     painPoints: [
-      "Members needing to feel confident every profile is real",
-      "Verification that's either too weak to build trust or too heavy to use",
-      "Matching members manually instead of with any real intelligence",
-      "Payments and subscriptions bolted on as an afterthought",
+      "Fake Profiles & Safety Concerns: Weak registration processes resulting in spam, fraudulent accounts, and damaged user trust.",
+      "Manual Matchmaking Bottlenecks: Admins spending hours manually pairing members without intelligent compatibility logic.",
+      "Monetization Friction: Clunky payment gateways causing high subscription churn and failed renewals.",
     ],
     whatWeBuild: [
-      "An AI matchmaking engine that suggests compatible members",
-      "Multiple levels of verification, up to identity and police checks",
-      "Subscription plans with recurring billing",
-      "Private messaging between members",
-      "Community rooms for group conversation",
+      "5-Tier Verification Engine: Identity document validation, phone verification, social verification, and police background checks.",
+      "AI Compatibility Matchmaker: Semantic scoring evaluating multi-dimensional lifestyle, cultural, and personal preferences.",
+      "Encrypted Member Communications: Direct 1-on-1 messaging, photo privacy controls, and community discussion spaces.",
+      "Tiered Stripe Monetization: Free trial tiers, monthly/annual premium subscriptions, and paid profile boosts.",
     ],
     caseStudySlug: "matrimony-saas-platform",
     relatedServiceSlugs: ["saas-development"],
+    stats: [
+      { metric: "5-Tier", label: "Verification", detail: "Police check and ID validation ensures 100% genuine member base." },
+      { metric: "AI-Powered", label: "Compatibility Engine", detail: "Multi-factor matching boosts member conversation rates." },
+      { metric: "Recurring", label: "Stripe Subscriptions", detail: "Automated renewal billing with zero payment friction." }
+    ],
     faqs: [
       {
-        q: "How thorough can verification be?",
-        a: "Our matchmaking platform runs 5 tiers of verification, up to identity and police checks, so members can trust who they're talking to.",
+        q: "How secure is user identity data and verification documents?",
+        a: "All sensitive identity documents and police check verification records are encrypted at rest using AES-256 and stored in private Supabase buckets accessible only by authenticated compliance reviewers.",
       },
       {
-        q: "Can it suggest matches automatically?",
-        a: "Yes. An AI matchmaking engine suggests compatible members based on the platform's matching logic.",
-      },
-      {
-        q: "Can we charge for premium access?",
-        a: "Yes. Subscription plans with recurring billing are built in from the start.",
+        q: "Can members control their profile privacy and photo visibility?",
+        a: "Yes. Members can blur photos, toggle profile visibility, and grant viewing permissions only to verified mutual matches.",
       },
     ],
   },

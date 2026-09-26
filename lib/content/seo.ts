@@ -1,20 +1,37 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/utils";
 
 export type SeoEntry = {
   title: string;
   description: string;
+  category?: string;
+  keywords?: string[];
 };
 
 export const seo: Record<string, SeoEntry> = {
   home: {
-    title: "Custom CRM & SaaS Development | The Digital Dude",
+    title: "Custom CRM, SaaS & Marketplace Software Engineering | The Digital Dude",
     description:
-      "We build custom CRMs, SaaS platforms and operations systems for growing businesses in Australia and the UK. 7 shipped products. Book a call.",
+      "We design, architect and build bespoke CRMs, multi-tenant SaaS platforms, and operational systems for high-growth service businesses in the UK and Australia.",
+    keywords: [
+      "custom CRM development UK",
+      "bespoke CRM software Australia",
+      "SaaS engineering agency",
+      "custom marketplace software development",
+      "operational software systems",
+      "Next.js web application development"
+    ],
   },
   work: {
-    title: "Our Work: CRMs, SaaS & Marketplaces | The Digital Dude",
+    title: "Production Case Studies: CRMs, SaaS & Marketplaces | The Digital Dude",
     description:
-      "Seven live and delivered systems across property, travel, logistics, recruitment, education and home services. See what our team has built.",
+      "Explore production systems built and shipped across property, travel, logistics, recruitment, education, and on-demand marketplaces.",
+    keywords: [
+      "software case studies",
+      "custom CRM case study",
+      "SaaS architecture examples",
+      "marketplace app case study"
+    ],
   },
   "work/property-compliance-crm": {
     title: "Property Compliance CRM Case Study | The Digital Dude",
@@ -24,7 +41,7 @@ export const seo: Record<string, SeoEntry> = {
   "work/airline-ticketing-crm": {
     title: "Travel Agency CRM Case Study | The Digital Dude",
     description:
-      "A CRM for an Australian ticketing agency bringing WhatsApp, Facebook, phone and walk-in leads into one place with live KPIs.",
+      "A multi-channel ticketing CRM for an Australian travel agency consolidating WhatsApp, Facebook, phone and walk-in leads into one pipeline.",
   },
   "work/matrimony-saas-platform": {
     title: "Matchmaking SaaS Platform Case Study | The Digital Dude",
@@ -52,123 +69,218 @@ export const seo: Record<string, SeoEntry> = {
       "A tutoring platform with AI-generated quizzes, automatic grading and a parent and student portal.",
   },
   services: {
-    title: "Custom Software Development Services | The Digital Dude",
+    title: "Bespoke Software Engineering & Technical Services | The Digital Dude",
     description:
-      "CRMs, SaaS platforms, ERP and HRM systems, marketplaces and websites, built around how your business actually works.",
+      "Custom CRMs, multi-tenant SaaS platforms, ERP/HRM operations engines, and scalable on-demand marketplaces engineered for high ROI.",
+    keywords: [
+      "custom software development services",
+      "bespoke CRM developers",
+      "SaaS product development company",
+      "enterprise operations software"
+    ],
   },
   "services/crm-development": {
-    title: "Custom CRM Development | The Digital Dude",
+    title: "Custom CRM Development Company UK & Australia | The Digital Dude",
     description:
-      "Custom CRMs built around your process: lead capture, pipelines, role-based portals and dashboards. For teams of 5 to 200.",
+      "Replace spreadsheet bottlenecks and rigid off-the-shelf CRMs with bespoke sales, dispatch, mobile field apps, and role-based portals tailored to your exact workflow.",
+    keywords: [
+      "custom CRM development",
+      "bespoke CRM developers UK",
+      "custom CRM Australia",
+      "field service CRM development",
+      "spreadsheet replacement software"
+    ],
   },
   "services/saas-development": {
-    title: "SaaS Development Company | The Digital Dude",
+    title: "Full-Stack SaaS Product Development Agency | The Digital Dude",
     description:
-      "We build SaaS platforms from MVP to paying customers, with user accounts, subscriptions, admin tools and AI features.",
+      "End-to-end SaaS engineering: multi-tenant architecture, Stripe recurring billing, role-based access control (RBAC), AI integrations, and high-concurrency cloud infrastructure.",
+    keywords: [
+      "SaaS product development",
+      "SaaS MVP builder",
+      "multi-tenant SaaS architecture",
+      "Next.js SaaS development",
+      "Stripe billing integration"
+    ],
   },
   "services/erp-hrm-systems": {
-    title: "Custom ERP & HRM Systems | The Digital Dude",
+    title: "Custom ERP & HRM Systems Development | The Digital Dude",
     description:
-      "Connect operations, staff, payroll and reporting in one system built for multi-location and growing businesses.",
+      "Unified operational engines connecting multi-location staffing, automated payroll, resource allocation, and real-time business intelligence.",
+    keywords: [
+      "custom ERP development",
+      "custom HRM software",
+      "multi-location operations software",
+      "automated payroll systems"
+    ],
   },
   "services/marketplace-development": {
-    title: "Marketplace App Development | The Digital Dude",
+    title: "3-Sided Marketplace App Development | The Digital Dude",
     description:
-      "Customer, provider and admin apps built as one system, with upfront payments, job tracking and automatic payouts.",
+      "Synchronized marketplace architecture connecting customer booking apps, service provider mobile dispatch, and central operations admin with automated Stripe payouts.",
+    keywords: [
+      "marketplace app development",
+      "on-demand service platform development",
+      "3-sided marketplace architecture",
+      "Stripe Connect marketplace"
+    ],
   },
   "services/website-development": {
-    title: "Website Development for Service Businesses | The Digital Dude",
+    title: "High-Performance Web Application Engineering | The Digital Dude",
     description:
-      "Fast, search-friendly websites built in Next.js or WordPress to turn visitors into enquiries.",
+      "Sub-second Next.js web applications and conversion-optimized digital experiences built for sub-second page loads, Core Web Vitals, and lead generation.",
+    keywords: [
+      "Next.js web development agency",
+      "high performance web application",
+      "Core Web Vitals optimization"
+    ],
   },
   "services/seo-growth": {
-    title: "SEO & Growth Services | The Digital Dude",
+    title: "Technical SEO, AEO & Generative Search Engineering | The Digital Dude",
     description:
-      "Technical SEO, keyword research and growth tracking for businesses that want more of the right enquiries.",
+      "Programmatic SEO, Answer Engine Optimization (AEO), Schema.org graph engineering, and Core Web Vitals performance to dominate Google, ChatGPT, and Perplexity.",
+    keywords: [
+      "technical SEO agency",
+      "Answer Engine Optimization AEO",
+      "Generative Engine Optimization GEO",
+      "programmatic SEO Next.js",
+      "Schema.org structured data"
+    ],
   },
   "how-we-work": {
-    title: "How We Work | The Digital Dude",
+    title: "Engineering Process, Timelines & Fixed Scope | The Digital Dude",
     description:
-      "Our six-step process, typical timelines, payment terms and support after launch. No surprises in scope or cost.",
+      "Transparent 6-stage delivery framework, agile sprint milestones, fixed proposals, and 30-day post-launch warranty with zero scope ambiguity.",
+    keywords: [
+      "software development process",
+      "agile delivery methodology",
+      "fixed price software development"
+    ],
   },
   about: {
-    title: "About Us | The Digital Dude",
+    title: "About The Digital Dude | Engineering & Technical Growth Team",
     description:
-      "A UK-registered software team based in Dhaka, building CRMs and SaaS platforms for businesses in Australia and the UK since 2020.",
+      "UK-registered engineering team with international delivery hubs, building production CRMs and scalable SaaS platforms for businesses in the UK and Australia since 2020.",
   },
   contact: {
-    title: "Book a Call | The Digital Dude",
+    title: "Book a 30-Minute Discovery Consultation | The Digital Dude",
     description:
-      "Book a 30-minute call with our founder about how your business runs and whether a custom system would help.",
+      "Schedule a 30-minute technical discovery call with our founder. We'll map your system requirements, architecture, timelines, and fixed delivery scope.",
   },
   privacy: {
     title: "Privacy Policy | The Digital Dude",
-    description: "How The Digital Dude collects, uses and protects your data.",
+    description: "How The Digital Dude collects, uses, encrypts, and protects your data.",
   },
   terms: {
     title: "Terms and Conditions | The Digital Dude",
-    description: "The terms that apply when you use The Digital Dude's website and book a call.",
+    description: "The operational terms that govern client agreements, IP ownership, and project warranties.",
   },
   "industries/property": {
-    title: "Custom CRM for Property & Real Estate | The Digital Dude",
+    title: "Custom CRM & Compliance Software for Property & Real Estate | The Digital Dude",
     description:
-      "Custom CRMs for property and real estate businesses managing agencies, property managers and technicians. 4,000+ rentals managed on one platform.",
+      "Bespoke multi-portal software for real estate agencies, property managers, and field compliance technicians. 4,000+ rental properties actively managed.",
+    keywords: [
+      "property management CRM",
+      "real estate compliance software",
+      "smoke alarm inspection software Australia",
+      "field technician property app"
+    ],
   },
   "industries/travel": {
-    title: "Custom CRM for Travel Agencies | The Digital Dude",
+    title: "Custom CRM & Lead Routing Software for Travel Agencies | The Digital Dude",
     description:
-      "Custom CRMs for travel and ticketing agencies bringing WhatsApp, Facebook, phone and walk-in leads into one pipeline.",
+      "Omnichannel ticketing CRMs integrating WhatsApp, Facebook Messenger, phone, and walk-in leads into one centralized quotation and conversion engine.",
+    keywords: [
+      "travel agency CRM",
+      "flight ticketing CRM",
+      "WhatsApp lead management travel",
+      "GDS quotation software"
+    ],
   },
   "industries/home-services": {
-    title: "Booking & Job Systems for Home Services | The Digital Dude",
+    title: "On-Demand Booking & Dispatch Software for Home Services | The Digital Dude",
     description:
-      "Booking, job and payment systems for cleaning and home service businesses, with upfront payment and photo proof on every job.",
+      "End-to-end dispatch, upfront Stripe payment authorization, mobile technician photo proof, and automated client invoicing for cleaning and home services.",
+    keywords: [
+      "home service dispatch software",
+      "cleaning business CRM",
+      "field service mobile app with photo proof"
+    ],
   },
   "industries/logistics": {
-    title: "Coordination Systems for Logistics | The Digital Dude",
+    title: "Dispatch & Fleet Coordination Software for Logistics | The Digital Dude",
     description:
-      "Custom coordination systems for transport and logistics teams. 40% faster response coordination for one of our clients.",
+      "Mobile-first fleet breakdown management, real-time driver routing, and automated dispatcher coordination systems that cut response times by 40%.",
+    keywords: [
+      "logistics coordination software",
+      "fleet dispatch app",
+      "breakdown management system"
+    ],
   },
   "industries/recruitment": {
-    title: "Custom CRM for Recruitment Agencies | The Digital Dude",
+    title: "Candidate Portal & Automated Recruitment CRM | The Digital Dude",
     description:
-      "Recruitment CRMs with real-time candidate portals, document tracking and automated status updates.",
+      "High-speed recruitment pipelines with self-service candidate document portals, automated WhatsApp status triggers, and placement KPI dashboards.",
+    keywords: [
+      "custom recruitment CRM",
+      "candidate portal software",
+      "recruitment automation WhatsApp"
+    ],
   },
   "industries/education": {
-    title: "AI Systems for Tutoring & Education | The Digital Dude",
+    title: "AI Tutoring Platforms & LMS Software for Education | The Digital Dude",
     description:
-      "AI-powered platforms for tutoring and education businesses: automatic quiz generation, instant grading and parent portals.",
+      "AI-driven learning management systems with automated question generation, instant grading, interactive lesson hubs, and parent progress portals.",
+    keywords: [
+      "AI tutoring platform development",
+      "custom LMS software",
+      "AI grading and quiz software"
+    ],
   },
   "industries/community": {
-    title: "Platforms for Community & Matchmaking | The Digital Dude",
+    title: "High-Trust Community & Matchmaking SaaS Platforms | The Digital Dude",
     description:
-      "Trust-first platforms for community and matchmaking businesses with AI matching, tiered verification and subscription billing.",
+      "Secure community platforms engineered with AI compatibility scoring, 5-tier police check/identity verification, and encrypted subscriber portals.",
+    keywords: [
+      "matchmaking platform development",
+      "community SaaS software",
+      "identity verification platform"
+    ],
   },
 };
 
 export function buildMetadata(key: keyof typeof seo, path: string): Metadata {
   const entry = seo[key];
   if (!entry) throw new Error(`Missing SEO entry for key: "${key}". Add it to lib/content/seo.ts.`);
+
+  const canonicalUrl = `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const ogImageUrl = `${SITE_URL}/api/og?title=${encodeURIComponent(entry.title)}&tag=${encodeURIComponent(entry.description.slice(0, 90))}&category=${encodeURIComponent(entry.category || "Engineering")}`;
+
   return {
     title: entry.title,
     description: entry.description,
-    alternates: { canonical: path },
-    // Next.js replaces the whole openGraph/twitter object per segment rather
-    // than deep-merging with the root layout's, so every field needed on a
-    // page (including the image) has to be repeated here.
+    keywords: entry.keywords,
+    alternates: { canonical: canonicalUrl },
     openGraph: {
       title: entry.title,
       description: entry.description,
-      url: path,
+      url: canonicalUrl,
       siteName: "The Digital Dude",
       type: "website",
-      images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "The Digital Dude" }],
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: entry.title,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: entry.title,
       description: entry.description,
-      images: ["/og-image.png"],
+      images: [ogImageUrl],
     },
   };
 }
