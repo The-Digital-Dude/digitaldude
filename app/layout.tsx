@@ -66,7 +66,11 @@ const jsonLdWebsite = {
     logo: `${SITE_URL}/logo-full-color.png`,
     email: "info@digitaldude.co.uk",
     foundingDate: "2020",
-    sameAs: ["https://www.linkedin.com/company/td-dude"],
+    sameAs: [
+      "https://www.linkedin.com/company/td-dude",
+      "https://www.facebook.com/td.dude/",
+      "https://www.instagram.com/td.dude",
+    ],
   },
 };
 

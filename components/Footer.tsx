@@ -120,6 +120,26 @@ export function Footer() {
                 LinkedIn
               </a>
             </li>
+            <li>
+              <a
+                href="https://www.facebook.com/td.dude/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white"
+              >
+                Facebook
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.instagram.com/td.dude"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white"
+              >
+                Instagram
+              </a>
+            </li>
           </ul>
         </div>
       </div>
