@@ -1,0 +1,53 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A1A4E"/>
+      <stop offset="1" stop-color="#12123A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg3)"/>
+
+  <g stroke="#2A2A5C" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="150" x2="1200" y2="150"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+  </g>
+
+  <!-- three connected nodes: customer, admin, provider -->
+  <g font-family="Arial, sans-serif">
+    <!-- Customer node -->
+    <g transform="translate(210,150)">
+      <rect width="220" height="150" rx="16" fill="#20204E" stroke="#5B4FE8" stroke-width="2"/>
+      <circle cx="40" cy="40" r="16" fill="#5B4FE8"/>
+      <text x="70" y="46" fill="#E8E6FF" font-size="15" font-weight="700">Customer</text>
+      <rect x="24" y="76" width="172" height="12" rx="6" fill="#3A3A72"/>
+      <rect x="24" y="98" width="130" height="12" rx="6" fill="#3A3A72"/>
+      <rect x="24" y="120" width="90" height="18" rx="9" fill="#4ADE80" opacity="0.85"/>
+    </g>
+
+    <!-- Admin node (center, elevated) -->
+    <g transform="translate(490,90)">
+      <rect width="220" height="150" rx="16" fill="#5B4FE8"/>
+      <circle cx="40" cy="40" r="16" fill="#1A1A4E"/>
+      <text x="70" y="46" fill="#FFFFFF" font-size="15" font-weight="700">Admin</text>
+      <rect x="24" y="76" width="172" height="12" rx="6" fill="#8B7FF0"/>
+      <rect x="24" y="98" width="130" height="12" rx="6" fill="#8B7FF0"/>
+      <rect x="24" y="120" width="90" height="18" rx="9" fill="#1A1A4E"/>
+    </g>
+
+    <!-- Provider node -->
+    <g transform="translate(770,150)">
+      <rect width="220" height="150" rx="16" fill="#20204E" stroke="#4ADE80" stroke-width="2"/>
+      <circle cx="40" cy="40" r="16" fill="#4ADE80"/>
+      <text x="70" y="46" fill="#E8E6FF" font-size="15" font-weight="700">Provider</text>
+      <rect x="24" y="76" width="172" height="12" rx="6" fill="#3A3A72"/>
+      <rect x="24" y="98" width="130" height="12" rx="6" fill="#3A3A72"/>
+      <rect x="24" y="120" width="90" height="18" rx="9" fill="#5B4FE8" opacity="0.85"/>
+    </g>
+
+    <!-- connecting lines -->
+    <g stroke="#8B87B8" stroke-width="2" fill="none" stroke-dasharray="6 6">
+      <path d="M 430 225 L 490 195"/>
+      <path d="M 710 195 L 770 225"/>
+    </g>
+  </g>
+</svg>

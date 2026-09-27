@@ -1,0 +1,46 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A1A4E"/>
+      <stop offset="1" stop-color="#12123A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg1)"/>
+
+  <!-- faint grid texture -->
+  <g stroke="#2A2A5C" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="150" x2="1200" y2="150"/>
+    <line x1="0" y1="300" x2="1200" y2="300"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+  </g>
+
+  <!-- Left: generic template panel, greyed / rigid grid -->
+  <g transform="translate(140,165)">
+    <rect width="360" height="300" rx="16" fill="#20204E" stroke="#3A3A72" stroke-width="2"/>
+    <text x="24" y="38" fill="#8B87B8" font-family="Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="1">GENERIC TEMPLATE</text>
+    <g fill="#2E2E64">
+      <rect x="24" y="60" width="312" height="36" rx="6"/>
+      <rect x="24" y="106" width="312" height="36" rx="6"/>
+      <rect x="24" y="152" width="312" height="36" rx="6"/>
+      <rect x="24" y="198" width="150" height="36" rx="6"/>
+      <rect x="186" y="198" width="150" height="36" rx="6"/>
+    </g>
+    <text x="24" y="270" fill="#6C68A0" font-family="Arial, sans-serif" font-size="12">Lead → Demo → Closed</text>
+  </g>
+
+  <!-- Right: custom shaped panels, purple accent, irregular -->
+  <g transform="translate(700,120)">
+    <rect x="0" y="0" width="170" height="130" rx="14" fill="#5B4FE8"/>
+    <rect x="190" y="0" width="170" height="80" rx="14" fill="#8B7FF0"/>
+    <rect x="190" y="96" width="170" height="130" rx="14" fill="#20204E" stroke="#5B4FE8" stroke-width="2"/>
+    <rect x="0" y="146" width="170" height="196" rx="14" fill="#20204E" stroke="#5B4FE8" stroke-width="2"/>
+    <rect x="190" y="242" width="170" height="100" rx="14" fill="#4ADE80" opacity="0.85"/>
+    <text x="0" y="368" fill="#8B87B8" font-family="Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="1">SHAPED TO YOUR WORKFLOW</text>
+  </g>
+
+  <!-- Arrow between -->
+  <g stroke="#8B87B8" stroke-width="2" fill="none">
+    <path d="M 520 320 L 660 320" stroke-dasharray="6 6"/>
+    <path d="M 650 312 L 662 320 L 650 328" fill="none"/>
+  </g>
+</svg>

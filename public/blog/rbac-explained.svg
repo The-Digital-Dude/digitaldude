@@ -1,0 +1,59 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A1A4E"/>
+      <stop offset="1" stop-color="#12123A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg4)"/>
+
+  <g stroke="#2A2A5C" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="150" x2="1200" y2="150"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+  </g>
+
+  <!-- Central shield -->
+  <g transform="translate(540,140)">
+    <path d="M 60 0 L 120 24 L 120 90 Q 120 160 60 190 Q 0 160 0 90 L 0 24 Z" fill="#5B4FE8"/>
+    <path d="M 36 92 l 16 16 l 34 -40" stroke="#FFFFFF" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Role cards around the shield -->
+  <g font-family="Arial, sans-serif" font-size="13" fill="#C9C6EE">
+    <g transform="translate(160,190)">
+      <rect width="180" height="80" rx="12" fill="#20204E" stroke="#3A3A72" stroke-width="2"/>
+      <circle cx="30" cy="30" r="12" fill="#4ADE80"/>
+      <text x="52" y="34" fill="#E8E6FF" font-weight="700">Admin</text>
+      <text x="20" y="60">Full access</text>
+    </g>
+
+    <g transform="translate(860,190)">
+      <rect width="180" height="80" rx="12" fill="#20204E" stroke="#3A3A72" stroke-width="2"/>
+      <circle cx="30" cy="30" r="12" fill="#F5C451"/>
+      <text x="52" y="34" fill="#E8E6FF" font-weight="700">Partner</text>
+      <text x="20" y="60">Own records only</text>
+    </g>
+
+    <g transform="translate(160,360)">
+      <rect width="180" height="80" rx="12" fill="#20204E" stroke="#3A3A72" stroke-width="2"/>
+      <circle cx="30" cy="30" r="12" fill="#8B7FF0"/>
+      <text x="52" y="34" fill="#E8E6FF" font-weight="700">Staff</text>
+      <text x="20" y="60">Assigned jobs</text>
+    </g>
+
+    <g transform="translate(860,360)">
+      <rect width="180" height="80" rx="12" fill="#20204E" stroke="#3A3A72" stroke-width="2"/>
+      <circle cx="30" cy="30" r="12" fill="#F97066"/>
+      <text x="52" y="34" fill="#E8E6FF" font-weight="700">Customer</text>
+      <text x="20" y="60">Own data only</text>
+    </g>
+  </g>
+
+  <!-- connecting dashed lines -->
+  <g stroke="#8B87B8" stroke-width="1.5" fill="none" stroke-dasharray="5 5" opacity="0.7">
+    <path d="M 340 230 L 540 260"/>
+    <path d="M 860 230 L 660 260"/>
+    <path d="M 340 400 L 540 340"/>
+    <path d="M 860 400 L 660 340"/>
+  </g>
+</svg>
