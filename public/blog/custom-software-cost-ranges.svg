@@ -1,0 +1,44 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg6" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A1A4E"/>
+      <stop offset="1" stop-color="#12123A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg6)"/>
+
+  <g stroke="#2A2A5C" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="150" x2="1200" y2="150"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+  </g>
+
+  <!-- Bar chart of price ranges -->
+  <g font-family="Arial, sans-serif">
+    <g transform="translate(220,480)">
+      <rect x="0" y="-120" width="120" height="120" rx="8" fill="#5B4FE8"/>
+      <text x="60" y="20" fill="#8B87B8" font-size="13" text-anchor="middle">CRM</text>
+      <text x="60" y="-134" fill="#E8E6FF" font-size="14" text-anchor="middle" font-weight="700">$5.5k-12k</text>
+    </g>
+    <g transform="translate(390,480)">
+      <rect x="0" y="-165" width="120" height="165" rx="8" fill="#7C72EE"/>
+      <text x="60" y="20" fill="#8B87B8" font-size="13" text-anchor="middle">SaaS</text>
+      <text x="60" y="-179" fill="#E8E6FF" font-size="14" text-anchor="middle" font-weight="700">$8k-16k</text>
+    </g>
+    <g transform="translate(560,480)">
+      <rect x="0" y="-195" width="120" height="195" rx="8" fill="#8B7FF0"/>
+      <text x="60" y="20" fill="#8B87B8" font-size="13" text-anchor="middle">Marketplace</text>
+      <text x="60" y="-209" fill="#E8E6FF" font-size="14" text-anchor="middle" font-weight="700">$9.5k-18k</text>
+    </g>
+    <g transform="translate(730,480)">
+      <rect x="0" y="-210" width="120" height="210" rx="8" fill="#4ADE80"/>
+      <text x="60" y="20" fill="#8B87B8" font-size="13" text-anchor="middle">ERP / HRM</text>
+      <text x="60" y="-224" fill="#0A2E1A" font-size="14" text-anchor="middle" font-weight="700">$9k-19k</text>
+    </g>
+
+    <!-- dollar sign badge -->
+    <g transform="translate(960,190)">
+      <circle cx="0" cy="0" r="70" fill="#20204E" stroke="#5B4FE8" stroke-width="3"/>
+      <text x="0" y="20" fill="#5B4FE8" font-size="60" font-weight="700" text-anchor="middle">$</text>
+    </g>
+  </g>
+</svg>

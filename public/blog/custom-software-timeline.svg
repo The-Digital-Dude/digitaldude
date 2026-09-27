@@ -1,0 +1,43 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg7" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A1A4E"/>
+      <stop offset="1" stop-color="#12123A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg7)"/>
+
+  <g stroke="#2A2A5C" stroke-width="1" opacity="0.5">
+    <line x1="0" y1="150" x2="1200" y2="150"/>
+    <line x1="0" y1="450" x2="1200" y2="450"/>
+  </g>
+
+  <!-- Horizontal timeline -->
+  <g font-family="Arial, sans-serif">
+    <line x1="140" y1="315" x2="1060" y2="315" stroke="#3A3A72" stroke-width="4"/>
+
+    <!-- Phase 1 -->
+    <g transform="translate(220,315)">
+      <circle cx="0" cy="0" r="16" fill="#5B4FE8"/>
+      <rect x="-90" y="-90" width="180" height="60" rx="12" fill="#20204E" stroke="#5B4FE8" stroke-width="2"/>
+      <text x="0" y="-62" fill="#E8E6FF" font-size="13" text-anchor="middle" font-weight="700">Architecture</text>
+      <text x="0" y="-42" fill="#8B87B8" font-size="11" text-anchor="middle">Weeks 1-2</text>
+    </g>
+
+    <!-- Phase 2 -->
+    <g transform="translate(600,315)">
+      <circle cx="0" cy="0" r="16" fill="#8B7FF0"/>
+      <rect x="-100" y="40" width="200" height="60" rx="12" fill="#20204E" stroke="#8B7FF0" stroke-width="2"/>
+      <text x="0" y="68" fill="#E8E6FF" font-size="13" text-anchor="middle" font-weight="700">Core Engineering</text>
+      <text x="0" y="88" fill="#8B87B8" font-size="11" text-anchor="middle">Weeks 2-6</text>
+    </g>
+
+    <!-- Phase 3 -->
+    <g transform="translate(960,315)">
+      <circle cx="0" cy="0" r="16" fill="#4ADE80"/>
+      <rect x="-90" y="-90" width="180" height="60" rx="12" fill="#20204E" stroke="#4ADE80" stroke-width="2"/>
+      <text x="0" y="-62" fill="#E8E6FF" font-size="13" text-anchor="middle" font-weight="700">Launch &amp; Test</text>
+      <text x="0" y="-42" fill="#8B87B8" font-size="11" text-anchor="middle">Last 1-2 weeks</text>
+    </g>
+  </g>
+</svg>
