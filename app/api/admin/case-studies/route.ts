@@ -19,8 +19,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Only fall back to the static 7 when Supabase is genuinely
+  // unconfigured/unreachable — a configured query returning zero rows (all
+  // deleted) must show an empty admin list, not silently re-present the
+  // hardcoded content as if it were still in the database.
   const supabase = getSupabaseServerClient();
-  
+
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -28,9 +32,10 @@ export async function GET(request: Request) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        return NextResponse.json({ ok: true, caseStudies: data });
+      if (!error) {
+        return NextResponse.json({ ok: true, caseStudies: data || [] });
       }
+      log("warn", { message: "Supabase case studies query error", error });
     } catch (err) {
       log("warn", { message: "Supabase case studies query fallback", error: err });
     }

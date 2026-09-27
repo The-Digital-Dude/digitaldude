@@ -73,6 +73,13 @@ const fallbackPosts: Post[] = [
 export default async function BlogPage() {
   let posts: Post[] = [];
 
+  // Only use the placeholder Unsplash posts when Supabase is genuinely
+  // unconfigured/unreachable — a real, correctly-configured query that
+  // returns zero rows (e.g. every post unpublished) must render an empty
+  // state, not silently substitute 3 fake stock-photo articles as if they
+  // were real content.
+  let usedSupabase = false;
+
   try {
     const supabase = getSupabaseServerClient();
     if (supabase) {
@@ -82,8 +89,9 @@ export default async function BlogPage() {
         .eq('status', 'published')
         .order('published_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        posts = data.map((p) => ({
+      if (!error) {
+        usedSupabase = true;
+        posts = (data || []).map((p) => ({
           id: p.id,
           title: p.title,
           slug: p.slug,
@@ -94,13 +102,13 @@ export default async function BlogPage() {
           published_at: p.published_at,
           author: p.author || 'The Digital Dude Team',
         }));
-      } else {
-        posts = fallbackPosts;
       }
-    } else {
-      posts = fallbackPosts;
     }
   } catch {
+    // fall through to the unconfigured-fallback check below
+  }
+
+  if (!usedSupabase) {
     posts = fallbackPosts;
   }
 

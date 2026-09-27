@@ -14,6 +14,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
+  // Return real Supabase data directly when configured — never merge it into
+  // the shared in-memory store, which is permanently seeded with a fake demo
+  // proposal (Alex Morgan / Morgan Logistics) that would otherwise show up
+  // alongside real client proposals in the admin list (confirmed live: this
+  // was happening on every request, not just when the table was empty).
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
@@ -22,17 +27,17 @@ export async function GET(request: Request) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        // Sync database records with in-memory store
-        data.forEach((p) => addInMemoryProposal(p));
-        return NextResponse.json({ ok: true, proposals: getInMemoryProposals() });
+      if (!error) {
+        return NextResponse.json({ ok: true, proposals: data || [] });
       }
+      log("error", { message: "Failed to fetch proposals in admin", error });
     } catch (err) {
       log("warn", { message: "Supabase proposals list notice", error: err });
     }
   }
 
-  // Fallback to in-memory store
+  // Only fall back to the demo-seeded in-memory store when Supabase is
+  // genuinely unconfigured/unreachable (local/demo use).
   return NextResponse.json({
     ok: true,
     proposals: getInMemoryProposals(),

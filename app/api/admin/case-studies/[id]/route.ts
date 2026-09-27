@@ -36,11 +36,18 @@ export async function GET(
       }
 
       const { data, error } = await query.single();
-      if (!error && data) {
+      if (data) {
         return NextResponse.json({ ok: true, caseStudy: data });
       }
+      // PGRST116 = no row matched — a genuine "not found" from a working
+      // query, which must 404 rather than silently render stale hardcoded
+      // content for a case study that was actually deleted.
+      if (error && error.code === "PGRST116") {
+        return NextResponse.json({ ok: false, error: "Case study not found" }, { status: 404 });
+      }
     } catch {
-      // Fallback
+      // Supabase reachable but the call itself failed — fall through to the
+      // static fallback below.
     }
   }
 

@@ -2,6 +2,10 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { caseStudies as fallbackCaseStudies, type CaseStudy } from "@/lib/content/caseStudies";
 
 export async function getCaseStudies(): Promise<CaseStudy[]> {
+  // Only fall back to the hardcoded array when Supabase is genuinely
+  // unconfigured/unreachable — a real, configured query that returns zero
+  // rows (every case study unpublished) must render as empty, not silently
+  // substitute the static content as if it were still live in the database.
   try {
     const supabase = getSupabaseServerClient();
     if (supabase) {
@@ -11,8 +15,8 @@ export async function getCaseStudies(): Promise<CaseStudy[]> {
         .in("status", ["Live", "Delivered"])
         .order("created_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        return data.map((d) => ({
+      if (!error) {
+        return (data || []).map((d) => ({
           slug: d.slug,
           industry: d.industry,
           tag: d.tag,
@@ -39,9 +43,9 @@ export async function getCaseStudies(): Promise<CaseStudy[]> {
 }
 
 export async function getCaseStudy(slug: string): Promise<CaseStudy | null> {
-  try {
-    const supabase = getSupabaseServerClient();
-    if (supabase) {
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    try {
       const { data, error } = await supabase
         .from("case_studies")
         .select("*")
@@ -49,7 +53,7 @@ export async function getCaseStudy(slug: string): Promise<CaseStudy | null> {
         .in("status", ["Live", "Delivered"])
         .single();
 
-      if (!error && data) {
+      if (data) {
         return {
           slug: data.slug,
           industry: data.industry,
@@ -70,8 +74,18 @@ export async function getCaseStudy(slug: string): Promise<CaseStudy | null> {
           related: Array.isArray(data.related) ? data.related : [],
         };
       }
+
+      // PGRST116 = no row matched (a genuine "not found" from a working
+      // query) — that must 404, not silently render stale hardcoded content
+      // for a case study that was actually deleted or unpublished.
+      if (error && error.code === "PGRST116") {
+        return null;
+      }
+    } catch {
+      // Supabase reachable but the call itself failed (network/connection) —
+      // fall through to the static fallback below.
     }
-  } catch {}
+  }
 
   const match = fallbackCaseStudies.find((c) => c.slug === slug);
   return match || null;
