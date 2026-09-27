@@ -136,6 +136,7 @@ export default function AdminProposalsPage() {
               className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-navy outline-none focus:border-purple"
             >
               <option value="all">All Statuses</option>
+              <option value="instant_draft">Auto-Generated (Unreviewed)</option>
               <option value="draft">Draft</option>
               <option value="sent">Sent</option>
               <option value="accepted">Accepted</option>
@@ -202,10 +203,12 @@ export default function AdminProposalsPage() {
                               ? "bg-blue-50 text-blue-700 border border-blue-200"
                               : item.status === "completed"
                               ? "bg-purple/10 text-purple border border-purple/20"
+                              : item.status === "instant_draft"
+                              ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : "bg-slate-100 text-slate-700 border border-slate-200"
                           }`}
                         >
-                          {item.status}
+                          {item.status === "instant_draft" ? "Auto-Generated" : item.status}
                         </span>
                       </td>
 

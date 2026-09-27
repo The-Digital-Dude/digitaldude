@@ -671,6 +671,7 @@ export function ProposalEditor({
                 onChange={(e) => setStatus(e.target.value as any)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold text-navy outline-none focus:border-purple"
               >
+                <option value="instant_draft">Auto-Generated (Unreviewed)</option>
                 <option value="draft">Draft (Private)</option>
                 <option value="sent">Sent to Client</option>
                 <option value="accepted">Accepted / In Progress</option>

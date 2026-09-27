@@ -28,7 +28,12 @@ export interface Proposal {
   tech_stack: string[];
   architecture_modules: ArchitectureModule[];
   deliverable_phases: DeliverablePhase[];
-  status: "draft" | "sent" | "accepted" | "completed";
+  // "instant_draft" = auto-generated the moment someone books a call, before
+  // any human has reviewed it or spoken to the lead. Distinct from "draft"
+  // (a team member has started one manually) so it never gets mistaken for
+  // an actual quote your team sent, in the admin list or anywhere stats are
+  // computed from proposal status.
+  status: "instant_draft" | "draft" | "sent" | "accepted" | "completed";
   valid_until: string;
   created_at: string;
   updated_at: string;
@@ -232,28 +237,27 @@ export function generateProposalFromBooking(params: {
   
   let projectTitle = `${systemType} Architecture Specification`;
   let scopeSummary = `Bespoke web architecture tailored for ${params.company || "your team"}, designed to replace manual overhead with high-performance automated workflows and role-based portals.`;
-  let budgetRange = "$6,500 – $16,000";
+  // No price is quoted here — this is generated instantly from a booking
+  // form, before anyone on the team has spoken to the lead or scoped
+  // anything. A specific dollar range would be a fabricated quote.
+  const budgetRange = "To be confirmed after your discovery call";
   let targetTimeline = "4–8 Weeks";
 
   if (systemType.toLowerCase().includes("crm")) {
     projectTitle = `Custom Pipeline & Client CRM Architecture for ${params.company || "Client"}`;
     scopeSummary = `Bespoke CRM system centralizing multi-channel inbound inquiries, automated deal pipelines, client communications, and staff performance metrics.`;
-    budgetRange = "$5,500 – $12,000";
     targetTimeline = "4–6 Weeks";
   } else if (systemType.toLowerCase().includes("marketplace")) {
     projectTitle = `Two-Sided Service Marketplace Platform for ${params.company || "Client"}`;
     scopeSummary = `Scalable multi-tenant marketplace platform with vendor onboarding, real-time availability calendars, Stripe split payouts, and customer reviews.`;
-    budgetRange = "$9,500 – $18,000";
     targetTimeline = "6–10 Weeks";
   } else if (systemType.toLowerCase().includes("saas")) {
     projectTitle = `Multi-Tenant Cloud SaaS Product Architecture for ${params.company || "Client"}`;
     scopeSummary = `Modern SaaS application featuring tenant isolation, tiered Stripe billing, team workspaces, REST/Webhook APIs, and enterprise audit logs.`;
-    budgetRange = "$8,000 – $16,000";
     targetTimeline = "6–8 Weeks";
   } else if (systemType.toLowerCase().includes("erp") || systemType.toLowerCase().includes("hrm")) {
     projectTitle = `Operations, Inventory & Staff Management ERP for ${params.company || "Client"}`;
     scopeSummary = `Unified internal operations platform consolidating staff scheduling, inventory tracking, equipment maintenance, and payroll exports.`;
-    budgetRange = "$9,000 – $19,000";
     targetTimeline = "6–9 Weeks";
   }
 
@@ -368,7 +372,7 @@ export function generateProposalFromBooking(params: {
         ]
       }
     ],
-    status: "draft",
+    status: "instant_draft",
     valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()

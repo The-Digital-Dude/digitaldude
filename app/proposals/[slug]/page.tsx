@@ -8,6 +8,13 @@ import { verifyAdminSessionToken, ADMIN_COOKIE_NAME } from "@/lib/adminAuth";
 
 const SHARED_STATUSES = ["sent", "accepted", "completed", "active"];
 
+// "instant_draft" proposals (auto-generated the moment someone books a call,
+// before any human review) are viewable by whoever holds the unguessable
+// slug — that's the same visitor the booking confirmation just linked it to
+// — but deliberately excluded from SHARED_STATUSES so nothing that treats
+// SHARED_STATUSES as "the team has reviewed and sent this" gets confused.
+const PUBLICLY_VIEWABLE_STATUSES = [...SHARED_STATUSES, "instant_draft"];
+
 export async function generateMetadata({
   params,
 }: {
@@ -47,7 +54,7 @@ async function getProposal(slug: string): Promise<Proposal | null> {
         .single();
 
       if (!error && data) {
-        if (SHARED_STATUSES.includes(data.status) || isAdmin) {
+        if (PUBLICLY_VIEWABLE_STATUSES.includes(data.status) || isAdmin) {
           return data as Proposal;
         }
         return null;
@@ -61,7 +68,7 @@ async function getProposal(slug: string): Promise<Proposal | null> {
   const { findInMemoryProposal } = await import("@/lib/content/proposals");
   const inMem = findInMemoryProposal(slug);
   if (inMem) {
-    if (SHARED_STATUSES.includes(inMem.status) || isAdmin) {
+    if (PUBLICLY_VIEWABLE_STATUSES.includes(inMem.status) || isAdmin) {
       return inMem;
     }
     return null;

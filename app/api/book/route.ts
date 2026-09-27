@@ -163,17 +163,14 @@ export async function POST(request: Request) {
       tech_stack: autoProposal.tech_stack,
       architecture_modules: autoProposal.architecture_modules,
       deliverable_phases: autoProposal.deliverable_phases,
-      status: "sent",
+      status: autoProposal.status,
       valid_until: autoProposal.valid_until,
     });
 
     if (!pErr) {
       persistedProposalSlug = autoProposal.slug;
       const { addInMemoryProposal } = await import("@/lib/content/proposals");
-      addInMemoryProposal({
-        ...autoProposal,
-        status: "sent",
-      });
+      addInMemoryProposal(autoProposal);
     } else {
       log("warn", { message: "Could not persist auto proposal record", error: pErr });
     }

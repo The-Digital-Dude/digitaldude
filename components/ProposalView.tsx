@@ -121,6 +121,15 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
             </div>
           </div>
 
+          {proposal.status === "instant_draft" && (
+            <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs sm:text-sm text-amber-900 print:hidden">
+              <strong className="font-bold">This is an automatic starting point, not a final quote.</strong>{" "}
+              It was generated instantly from your booking form, before anyone on our team has spoken with you.
+              Timeline and scope below are illustrative — nothing here is confirmed until we&rsquo;ve talked and
+              agreed a real proposal together.
+            </div>
+          )}
+
           {/* Header & Meta Bar */}
           <div className="border-b border-slate-200 pb-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
