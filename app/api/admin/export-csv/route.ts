@@ -18,6 +18,8 @@ export async function GET(request: Request) {
   let leads: BookingLead[] = [];
 
   const supabase = getSupabaseServerClient();
+  let usedSupabase = false;
+
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -25,8 +27,9 @@ export async function GET(request: Request) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        leads = data.map((b) => ({
+      if (!error) {
+        usedSupabase = true;
+        leads = (data || []).map((b) => ({
           id: b.id,
           name: b.name,
           work_email: b.work_email,
@@ -50,7 +53,10 @@ export async function GET(request: Request) {
     }
   }
 
-  if (leads.length === 0) {
+  // Only export demo leads when Supabase genuinely isn't configured/reachable
+  // — a real, empty bookings table must export as an empty CSV, not silently
+  // substitute 5 fabricated leads for real ones.
+  if (!usedSupabase) {
     leads = DEMO_LEADS;
   }
 

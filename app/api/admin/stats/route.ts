@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
-import { getInMemoryLeads, addInMemoryLead, BookingLead } from "@/lib/crm";
+import { getInMemoryLeads, BookingLead } from "@/lib/crm";
 
 export async function GET(request: Request) {
   const isAuth = await isAdminAuthenticated(request);
@@ -15,15 +15,28 @@ export async function GET(request: Request) {
   let totalProposals = 1;
   let totalCaseStudies = 7;
 
+  // allBookings must reflect only real data when Supabase is configured.
+  // Previously this route upserted every real booking into the shared
+  // in-memory store (which auto-seeds with 5 hardcoded DEMO_LEADS on first
+  // access) and then computed every stat FROM that store — so the demo
+  // deals (worth a fixed £50,500) were permanently mixed into "real-time"
+  // pipeline numbers even in production, while /api/admin/bookings (used by
+  // the Kanban board) queried Supabase directly and correctly showed the
+  // true, separate state. That's why the board could show "No active
+  // deals" while the stat cards above it showed deals that don't exist.
+  let allBookings: BookingLead[] = [];
+  let usedSupabase = false;
+
   if (supabase) {
     try {
-      const { data: bData } = await supabase
+      const { data: bData, error: bError } = await supabase
         .from("bookings")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (bData && bData.length > 0) {
-        const mapped: BookingLead[] = bData.map((b) => ({
+      if (!bError) {
+        usedSupabase = true;
+        allBookings = (bData || []).map((b) => ({
           id: b.id,
           name: b.name,
           work_email: b.work_email,
@@ -41,7 +54,8 @@ export async function GET(request: Request) {
           assigned_to: b.assigned_to || "The Digital Dude Team",
           created_at: b.created_at || new Date().toISOString(),
         }));
-        mapped.forEach((l) => addInMemoryLead(l));
+      } else {
+        log("error", { message: "Admin stats: Supabase bookings fetch error", error: bError });
       }
 
       const { count: pCount } = await supabase
@@ -64,7 +78,12 @@ export async function GET(request: Request) {
     }
   }
 
-  const allBookings: BookingLead[] = getInMemoryLeads();
+  // Only touch the demo-seeded in-memory store when Supabase genuinely
+  // isn't configured/reachable (local/demo use) — never in a working
+  // production setup.
+  if (!usedSupabase) {
+    allBookings = getInMemoryLeads();
+  }
 
   // Calculate CRM Pipeline Metrics
   let totalPipelineValue = 0;
