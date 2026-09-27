@@ -2,13 +2,14 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Users, Cloud, Building2, Store, Globe, Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck } from "lucide-react";
 import { buildMetadata } from "@/lib/content/seo";
-import { caseStudies } from "@/lib/content/caseStudies";
+import { getCaseStudies } from "@/lib/caseStudiesServer";
 import { services } from "@/lib/content/services";
 import { ProjectCard } from "@/components/ProjectCard";
 import { StandardCTA } from "@/components/StandardCTA";
 import { SITE_URL } from "@/lib/utils";
 
 export const metadata: Metadata = buildMetadata("home", "/");
+export const revalidate = 60;
 
 const proofBar = [
   { value: "4,000+", label: "rentals managed on one of our CRMs" },
@@ -85,7 +86,8 @@ const whyUs = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const caseStudies = await getCaseStudies();
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",

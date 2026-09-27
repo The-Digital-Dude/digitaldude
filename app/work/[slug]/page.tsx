@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCaseStudy, getCaseStudies } from "@/lib/caseStudiesServer";
 import { CaseStudyTemplate } from "@/components/CaseStudyTemplate";
+import { seo, type SeoEntry } from "@/lib/content/seo";
 import { SITE_URL } from "@/lib/utils";
 
 export const revalidate = 60;
@@ -15,8 +16,12 @@ export async function generateMetadata({
   const project = await getCaseStudy(slug);
   if (!project) return {};
 
-  const title = `${project.title} Case Study | The Digital Dude`;
-  const description = project.pageSummary || project.summary;
+  // Use the hand-tuned SEO copy from the audit when it exists for this slug;
+  // fall back to a generated title/description for case studies added later
+  // via the admin panel that don't have a curated entry yet.
+  const seoEntry = (seo as Record<string, SeoEntry>)[`work/${slug}`];
+  const title = seoEntry?.title || `${project.title} Case Study | The Digital Dude`;
+  const description = seoEntry?.description || project.pageSummary || project.summary;
   const canonical = `${SITE_URL}/work/${project.slug}`;
 
   return {
