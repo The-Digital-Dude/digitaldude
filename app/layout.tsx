@@ -64,6 +64,8 @@ const jsonLdWebsite = {
     name: "The Digital Dude",
     url: SITE_URL,
     logo: `${SITE_URL}/logo-full-color.png`,
+    email: "info@digitaldude.co.uk",
+    foundingDate: "2020",
   },
 };
 

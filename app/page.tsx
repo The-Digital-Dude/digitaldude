@@ -6,7 +6,6 @@ import { getCaseStudies } from "@/lib/caseStudiesServer";
 import { services } from "@/lib/content/services";
 import { ProjectCard } from "@/components/ProjectCard";
 import { StandardCTA } from "@/components/StandardCTA";
-import { SITE_URL } from "@/lib/utils";
 
 export const metadata: Metadata = buildMetadata("home", "/");
 export const revalidate = 60;
@@ -88,17 +87,6 @@ const whyUs = [
 
 export default async function HomePage() {
   const caseStudies = await getCaseStudies();
-  const organizationJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "The Digital Dude",
-    url: SITE_URL,
-    logo: `${SITE_URL}/logo-full-color.png`,
-    email: "info@digitaldude.co.uk",
-    foundingDate: "2020",
-    description:
-      "We build custom CRMs, SaaS platforms and operations systems for growing businesses in Australia and the UK.",
-  };
 
   const featuredProjects = featuredSlugs
     .map((slug) => caseStudies.find((c) => c.slug === slug))
@@ -106,10 +94,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-      />
 
       {/* 1. Hero */}
       <section className="mx-auto max-w-content px-6 pb-16 pt-32 text-center sm:pt-44">
