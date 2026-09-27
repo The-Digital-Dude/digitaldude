@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     scope_summary,
     problem_statement = "",
     target_timeline = "4–8 Weeks",
-    budget_range = "£6,000 – £15,000",
+    budget_range = "$6,000 – $15,000",
     tech_stack = [],
     architecture_modules = [],
     deliverable_phases = [],

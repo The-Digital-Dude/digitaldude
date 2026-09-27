@@ -361,7 +361,7 @@ export default function NewBookingLeadPage() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-navy/70 mb-1.5">
-                    Estimated Deal Value (£)
+                    Estimated Deal Value ($)
                   </label>
                   <input
                     type="number"

@@ -24,7 +24,7 @@ import {
   Check,
   Mail,
 } from "lucide-react";
-import { BookingLead, CRM_STAGES, CrmStage, LeadScore, formatGbp } from "@/lib/crm";
+import { BookingLead, CRM_STAGES, CrmStage, LeadScore, formatUsd } from "@/lib/crm";
 import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
 import { CreateLeadModal } from "@/components/admin/CreateLeadModal";
 
@@ -154,7 +154,7 @@ export function CrmKanbanBoard({
                   </div>
                   <div className="mt-1.5 flex items-center justify-between text-[11px] text-navy/60">
                     <span>Subtotal:</span>
-                    <strong className="font-semibold text-navy">{formatGbp(stageTotalValue)}</strong>
+                    <strong className="font-semibold text-navy">{formatUsd(stageTotalValue)}</strong>
                   </div>
                 </div>
 
@@ -200,7 +200,7 @@ export function CrmKanbanBoard({
                         <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-2.5 py-1.5 text-xs">
                           <span className="text-[10px] uppercase font-bold text-navy/50">Deal Est:</span>
                           <span className="font-bold text-navy text-xs">
-                            {formatGbp(lead.deal_value || 8500)}
+                            {formatUsd(lead.deal_value || 8500)}
                           </span>
                         </div>
 
@@ -360,7 +360,7 @@ export function CrmKanbanBoard({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-navy/70 mb-1">
-                    Deal Value (£)
+                    Deal Value ($)
                   </label>
                   <input
                     type="number"

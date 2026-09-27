@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     "Country",
     "Team Size",
     "CRM Stage",
-    "Deal Value (GBP)",
+    "Deal Value (USD)",
     "Lead Score",
     "Meeting Date / Slot",
     "Internal Team Notes",

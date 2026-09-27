@@ -23,7 +23,7 @@ import {
   Plus,
   Mail,
 } from "lucide-react";
-import { BookingLead, formatGbp } from "@/lib/crm";
+import { BookingLead, formatUsd } from "@/lib/crm";
 import { CrmKanbanBoard } from "@/components/admin/CrmKanbanBoard";
 import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
 import { CreateLeadModal } from "@/components/admin/CreateLeadModal";
@@ -202,7 +202,7 @@ export default function AdminDashboardPage() {
               </span>
             </div>
             <p className="mt-2 text-2xl font-extrabold text-navy">
-              {stats ? formatGbp(stats.totalPipelineValue) : "£0"}
+              {stats ? formatUsd(stats.totalPipelineValue) : "$0"}
             </p>
             <p className="mt-1 text-[11px] text-navy/60">
               Across <strong className="text-navy">{stats?.activeDealsCount || 0} active deals</strong> in progress
@@ -219,7 +219,7 @@ export default function AdminDashboardPage() {
               </span>
             </div>
             <p className="mt-2 text-2xl font-extrabold text-emerald-600">
-              {stats ? formatGbp(stats.wonRevenue) : "£0"}
+              {stats ? formatUsd(stats.wonRevenue) : "$0"}
             </p>
             <p className="mt-1 text-[11px] text-navy/60">
               Win Rate: <strong className="text-emerald-700">{stats?.winRate || 0}%</strong> of total inbound
@@ -342,7 +342,7 @@ export default function AdminDashboardPage() {
                         </td>
 
                         <td className="py-3.5 px-4 font-bold text-navy">
-                          {formatGbp(lead.deal_value || 8500)}
+                          {formatUsd(lead.deal_value || 8500)}
                         </td>
 
                         <td className="py-3.5 px-4 uppercase text-[10px] font-bold text-navy/70">

@@ -46,7 +46,7 @@ export const DEMO_PROPOSAL: Proposal = {
   scope_summary: "End-to-end bespoke logistics portal replacing manual WhatsApp dispatching and multi-tab spreadsheets with real-time job allocation, driver mobile signatures, and automated client status tracking.",
   problem_statement: "Currently managing 400+ weekly consignments across 6 spreadsheets. Jobs are slipping through, proof-of-delivery photos get lost in chat threads, and manual invoice drafting takes 12 hours every Friday.",
   target_timeline: "6–8 Weeks",
-  budget_range: "£8,500 – £14,000",
+  budget_range: "$8,500 – $14,000",
   tech_stack: [
     "Next.js 16 (App Router)",
     "TypeScript",
@@ -232,28 +232,28 @@ export function generateProposalFromBooking(params: {
   
   let projectTitle = `${systemType} Architecture Specification`;
   let scopeSummary = `Bespoke web architecture tailored for ${params.company || "your team"}, designed to replace manual overhead with high-performance automated workflows and role-based portals.`;
-  let budgetRange = "£6,500 – £16,000";
+  let budgetRange = "$6,500 – $16,000";
   let targetTimeline = "4–8 Weeks";
 
   if (systemType.toLowerCase().includes("crm")) {
     projectTitle = `Custom Pipeline & Client CRM Architecture for ${params.company || "Client"}`;
     scopeSummary = `Bespoke CRM system centralizing multi-channel inbound inquiries, automated deal pipelines, client communications, and staff performance metrics.`;
-    budgetRange = "£5,500 – £12,000";
+    budgetRange = "$5,500 – $12,000";
     targetTimeline = "4–6 Weeks";
   } else if (systemType.toLowerCase().includes("marketplace")) {
     projectTitle = `Two-Sided Service Marketplace Platform for ${params.company || "Client"}`;
     scopeSummary = `Scalable multi-tenant marketplace platform with vendor onboarding, real-time availability calendars, Stripe split payouts, and customer reviews.`;
-    budgetRange = "£9,500 – £18,000";
+    budgetRange = "$9,500 – $18,000";
     targetTimeline = "6–10 Weeks";
   } else if (systemType.toLowerCase().includes("saas")) {
     projectTitle = `Multi-Tenant Cloud SaaS Product Architecture for ${params.company || "Client"}`;
     scopeSummary = `Modern SaaS application featuring tenant isolation, tiered Stripe billing, team workspaces, REST/Webhook APIs, and enterprise audit logs.`;
-    budgetRange = "£8,000 – £16,000";
+    budgetRange = "$8,000 – $16,000";
     targetTimeline = "6–8 Weeks";
   } else if (systemType.toLowerCase().includes("erp") || systemType.toLowerCase().includes("hrm")) {
     projectTitle = `Operations, Inventory & Staff Management ERP for ${params.company || "Client"}`;
     scopeSummary = `Unified internal operations platform consolidating staff scheduling, inventory tracking, equipment maintenance, and payroll exports.`;
-    budgetRange = "£9,000 – £19,000";
+    budgetRange = "$9,000 – $19,000";
     targetTimeline = "6–9 Weeks";
   }
 

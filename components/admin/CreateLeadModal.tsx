@@ -357,7 +357,7 @@ export function CreateLeadModal({
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-navy/70 mb-1">
-                Estimated Deal Value (£)
+                Estimated Deal Value ($)
               </label>
               <input
                 type="number"

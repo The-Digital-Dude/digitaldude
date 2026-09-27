@@ -90,7 +90,7 @@ export function ProposalEditor({
   const [scopeSummary, setScopeSummary] = useState(initialData?.scope_summary || "");
   const [problemStatement, setProblemStatement] = useState(initialData?.problem_statement || "");
   const [targetTimeline, setTargetTimeline] = useState(initialData?.target_timeline || "4–8 Weeks");
-  const [budgetRange, setBudgetRange] = useState(initialData?.budget_range || "£6,500 – £15,000");
+  const [budgetRange, setBudgetRange] = useState(initialData?.budget_range || "$6,500 – $15,000");
   const [status, setStatus] = useState(initialData?.status || "draft");
   const [validUntil, setValidUntil] = useState(
     () => initialData?.valid_until || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
@@ -135,7 +135,7 @@ export function ProposalEditor({
       setScopeSummary(initialData.scope_summary || "");
       setProblemStatement(initialData.problem_statement || "");
       setTargetTimeline(initialData.target_timeline || "4–8 Weeks");
-      setBudgetRange(initialData.budget_range || "£6,500 – £15,000");
+      setBudgetRange(initialData.budget_range || "$6,500 – $15,000");
       setStatus(initialData.status || "draft");
       setValidUntil(
         initialData.valid_until || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10)
@@ -657,7 +657,7 @@ export function ProposalEditor({
                 required
                 value={budgetRange}
                 onChange={(e) => setBudgetRange(e.target.value)}
-                placeholder="e.g. £8,500 – £14,000"
+                placeholder="e.g. $8,500 – $14,000"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-navy outline-none focus:border-purple focus:bg-white"
               />
             </div>

@@ -180,10 +180,10 @@ export const DEMO_LEADS: BookingLead[] = [
   }
 ];
 
-export function formatGbp(amount: number): string {
-  return new Intl.NumberFormat("en-GB", {
+export function formatUsd(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "GBP",
+    currency: "USD",
     maximumFractionDigits: 0,
   }).format(amount);
 }

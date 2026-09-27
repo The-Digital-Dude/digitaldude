@@ -14,7 +14,7 @@ create table if not exists proposals (
   scope_summary text not null,
   problem_statement text,
   target_timeline text not null default '4–8 Weeks',
-  budget_range text not null default '£5,000 – £15,000',
+  budget_range text not null default '$5,000 – $15,000',
   tech_stack jsonb not null default '["Next.js 16 (App Router)", "TypeScript", "Tailwind CSS", "Supabase (PostgreSQL / RLS)", "Cloudflare Edge", "Role-Based Access Control"]'::jsonb,
   architecture_modules jsonb not null default '[]'::jsonb,
   deliverable_phases jsonb not null default '[]'::jsonb,
@@ -68,7 +68,7 @@ insert into proposals (
   'End-to-end bespoke logistics portal replacing manual WhatsApp dispatching and multi-tab spreadsheets with real-time job allocation, driver mobile signatures, and automated client status tracking.',
   'Currently managing 400+ weekly consignments across 6 spreadsheets. Jobs are slipping through, proof-of-delivery photos get lost in chat threads, and manual invoice drafting takes 12 hours every Friday.',
   '6–8 Weeks',
-  '£8,500 – £14,000',
+  '$8,500 – $14,000',
   '["Next.js 16 App Router", "TypeScript", "Supabase PostgreSQL", "Tailwind CSS", "Cloudflare R2 Storage", "Twilio WhatsApp Webhooks", "Stripe Invoicing API"]'::jsonb,
   '[
     {
