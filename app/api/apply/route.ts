@@ -152,6 +152,36 @@ export async function POST(request: Request) {
       log("warn", { message: "Could not send application-received email", error: err });
     }
 
+    // Dispatch Meta Conversions API (CAPI) SubmitApplication Event
+    try {
+      const { sendMetaCapiEvent } = await import("@/lib/metaCapi");
+      const userAgent = request.headers.get("user-agent") || undefined;
+      const cookieHeader = request.headers.get("cookie") || "";
+      const fbpMatch = cookieHeader.match(/_fbp=([^;]+)/);
+      const fbcMatch = cookieHeader.match(/_fbc=([^;]+)/);
+
+      await sendMetaCapiEvent({
+        eventName: "SubmitApplication",
+        eventSourceUrl: `https://www.digitaldude.co.uk/careers/${jobSlug}`,
+        user: {
+          email: applicantEmail,
+          phone: applicantPhone || undefined,
+          firstName: applicantName.split(" ")[0],
+          lastName: applicantName.split(" ").slice(1).join(" ") || undefined,
+          clientIpAddress: ip,
+          clientUserAgent: userAgent,
+          fbp: fbpMatch ? fbpMatch[1] : undefined,
+          fbc: fbcMatch ? fbcMatch[1] : undefined,
+        },
+        customData: {
+          content_name: job.title,
+          job_slug: jobSlug,
+        },
+      });
+    } catch (capiErr) {
+      log("warn", { message: "Meta CAPI dispatch error on job application", error: capiErr });
+    }
+
     log("info", { message: "Job application received", context: { applicationId: application.id, jobSlug } });
 
     return NextResponse.json({ ok: true, applicationId: application.id });

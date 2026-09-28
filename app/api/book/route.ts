@@ -217,6 +217,37 @@ export async function POST(request: Request) {
     meetUrl: calendarMeeting?.meetUrl,
   });
 
+  // Dispatch Meta Conversions API (CAPI) Schedule / Lead Event
+  try {
+    const { sendMetaCapiEvent } = await import("@/lib/metaCapi");
+    const userAgent = request.headers.get("user-agent") || undefined;
+    const fbpMatch = cookieHeader.match(/_fbp=([^;]+)/);
+    const fbcMatch = cookieHeader.match(/_fbc=([^;]+)/);
+
+    await sendMetaCapiEvent({
+      eventName: "Schedule",
+      eventSourceUrl: "https://www.digitaldude.co.uk/contact",
+      user: {
+        email: workEmail,
+        firstName: String(name).split(" ")[0],
+        lastName: String(name).split(" ").slice(1).join(" ") || undefined,
+        clientIpAddress: ip,
+        clientUserAgent: userAgent,
+        fbp: fbpMatch ? fbpMatch[1] : undefined,
+        fbc: fbcMatch ? fbcMatch[1] : undefined,
+      },
+      customData: {
+        content_name: "Discovery Call Booking",
+        company_name: companyName,
+        country,
+        currency: "USD",
+        value: 0,
+      },
+    });
+  } catch (capiErr) {
+    log("warn", { message: "Meta CAPI dispatch error on booking", error: capiErr });
+  }
+
   return NextResponse.json({
     ok: true,
     firstName: String(name).split(" ")[0],
