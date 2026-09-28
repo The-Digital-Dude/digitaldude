@@ -3,6 +3,8 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { getAuthenticatedRep } from "@/lib/repAuth";
 import { log } from "@/lib/logger";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const repSession = await getAuthenticatedRep(request);
   if (!repSession) {
@@ -45,11 +47,13 @@ export async function GET(request: Request) {
     const meetingBonusPaidCount = bookings.filter((b) => b.meeting_bonus_payout_status === "paid").length;
     const dealCommissionPaidCount = wonBookings.filter((b) => b.deal_commission_payout_status === "paid").length;
 
-    // Count outreach logs
-    const { count: outreachCount } = await supabase
+    // Fetch outreach logs
+    const { data: outreachLogsData, count: outreachCount } = await supabase
       .from("rep_outreach_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("employee_id", employee.id);
+      .select("*", { count: "exact" })
+      .eq("employee_id", employee.id)
+      .order("sent_at", { ascending: false })
+      .limit(50);
 
     const commissionSummary = {
       currency: employee.currency || "BDT",
@@ -72,8 +76,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
+      employee,
       rep: employee,
+      bookings,
       sourcedBookings: bookings,
+      outreachLogs: outreachLogsData || [],
       commissionSummary,
     });
   } catch (error) {

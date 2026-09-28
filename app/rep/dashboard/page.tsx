@@ -321,29 +321,32 @@ export default function RepDashboardPage() {
         }
 
         const data = await res.json();
-        if (data.ok) {
-          setProfile(data.employee);
+        const repData = data.employee || data.rep;
+        if (data.ok && repData) {
+          setProfile(repData);
           setCommissionSummary(data.commissionSummary);
-          setBookings(data.bookings || []);
+          setBookings(data.bookings || data.sourcedBookings || []);
           setOutreachLogs(data.outreachLogs || []);
-          setOnboardingChecklist(data.employee?.onboarding_checklist || []);
+          setOnboardingChecklist(repData.onboarding_checklist || []);
 
-          if (data.employee?.payout_details) {
-            setPayoutMethod(data.employee.payout_details.method || "bkash");
-            setAccountNumber(data.employee.payout_details.account_number || "");
-            setBankName(data.employee.payout_details.bank_name || "");
-            setBranchName(data.employee.payout_details.branch_name || "");
-            setRoutingNumber(data.employee.payout_details.routing_number || "");
-            setPayoutNotes(data.employee.payout_details.notes || "");
+          if (repData.payout_details) {
+            setPayoutMethod(repData.payout_details.method || "bkash");
+            setAccountNumber(repData.payout_details.account_number || "");
+            setBankName(repData.payout_details.bank_name || "");
+            setBranchName(repData.payout_details.branch_name || "");
+            setRoutingNumber(repData.payout_details.routing_number || "");
+            setPayoutNotes(repData.payout_details.notes || "");
           }
 
           // If onboarding is incomplete, land on Onboarding tab first
-          if (!data.employee?.onboarding_completed) {
+          if (!repData.onboarding_completed) {
             setActiveTab("onboarding");
           }
+        } else {
+          router.push("/rep/login");
         }
       } catch {
-        // Network error
+        router.push("/rep/login");
       } finally {
         setLoading(false);
       }
@@ -777,7 +780,25 @@ export default function RepDashboardPage() {
   }
 
   if (!profile) {
-    return null;
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white text-center">
+        <div className="max-w-md w-full rounded-3xl bg-slate-900 border border-white/10 p-8 space-y-4 shadow-2xl">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple/20 text-purple">
+            <ShieldCheck size={28} />
+          </div>
+          <h2 className="text-lg font-bold text-white">Sales Rep Session Required</h2>
+          <p className="text-xs text-white/60">
+            Please log in with your authorized employee email to access the Sales CRM.
+          </p>
+          <button
+            onClick={() => router.push("/rep/login")}
+            className="w-full rounded-xl bg-purple py-2.5 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/20 transition"
+          >
+            Go to Sales Rep Login &rarr;
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const currencySymbol = profile.currency === "BDT" ? "৳" : profile.currency === "GBP" ? "£" : "$";
