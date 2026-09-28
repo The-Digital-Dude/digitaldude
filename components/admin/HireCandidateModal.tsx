@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   UserCheck,
@@ -53,6 +53,15 @@ export function HireCandidateModal({ application, onClose, onSuccess }: HireCand
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Lock body scroll while modal is active
+  useEffect(() => {
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = origOverflow;
+    };
+  }, []);
+
   const currencySymbol = currency === "BDT" ? "৳" : currency === "GBP" ? "£" : "$";
   const cleanRefCode = referralCode.trim().toLowerCase();
   const liveReferralUrl = `${SITE_URL}/contact?ref=${cleanRefCode || "rep"}`;
@@ -97,37 +106,33 @@ export function HireCandidateModal({ application, onClose, onSuccess }: HireCand
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl rounded-3xl bg-white p-6 md:p-8 shadow-2xl space-y-6 my-8">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-150">
+      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-3xl bg-white shadow-2xl border border-slate-100 overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4.5 sm:px-8 bg-white shrink-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
               <UserCheck size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-navy">Convert Candidate to Employee</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-navy">Convert Candidate to Employee</h2>
               <p className="text-xs text-navy/60">
                 Hire <strong className="text-navy">{application.applicant_name}</strong> into the team CRM &amp; initialize onboarding.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-xl p-1.5 text-navy/40 hover:bg-slate-100 hover:text-navy transition"
+            className="rounded-xl p-2 text-navy/40 hover:bg-slate-100 hover:text-navy transition"
           >
             <X size={18} />
           </button>
         </div>
 
-        {error && (
-          <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700 font-medium">
-            <AlertCircle size={15} className="shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleHireSubmit} className="space-y-5">
+        <form onSubmit={handleHireSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-8 space-y-5">
           {/* Candidate Profile Summary */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl bg-slate-50 p-4 border border-slate-200/80 text-xs">
             <div>
@@ -292,12 +297,20 @@ export function HireCandidateModal({ application, onClose, onSuccess }: HireCand
             )}
           </div>
 
-          {/* Modal Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700 font-medium">
+              <AlertCircle size={15} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+          {/* Modal Actions Fixed Footer */}
+          <div className="flex items-center justify-end gap-3 px-6 py-4 sm:px-8 border-t border-slate-100 bg-slate-50/90 backdrop-blur-xs shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-navy/70 hover:bg-slate-50 transition"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-navy/70 hover:bg-slate-100 transition"
             >
               Cancel
             </button>

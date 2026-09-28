@@ -170,6 +170,16 @@ export function AddCandidateModal({
     setSendEmail(["interview", "offered", "reviewing", "rejected"].includes(status));
   }, [status, applicantName, jobPostingId, jobs]);
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const origOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = origOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const selectedJob = jobs.find((j) => j.id === jobPostingId);
@@ -270,36 +280,37 @@ export function AddCandidateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto space-y-6">
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-5 top-5 rounded-full p-2 text-navy/40 hover:bg-slate-100 hover:text-navy transition"
-        >
-          <X size={18} />
-        </button>
-
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-200">
+      <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden">
         {/* Modal Header */}
-        <div>
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-purple/10 px-2.5 py-1 text-xs font-bold text-purple">
-            <UserPlus size={13} />
-            <span>Recruiting &amp; Talent Acquisition</span>
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4.5 sm:px-8 bg-white shrink-0">
+          <div>
+            <div className="inline-flex items-center gap-1.5 rounded-md bg-purple/10 px-2.5 py-1 text-xs font-bold text-purple">
+              <UserPlus size={13} />
+              <span>Recruiting &amp; Talent Acquisition</span>
+            </div>
+            <h2 className="text-lg sm:text-xl font-black text-navy mt-1">Add Candidate Manually</h2>
+            <p className="text-xs text-navy/60">
+              Create an offline applicant, referred talent, or headhunted candidate with dynamic email dispatch &amp; Google Meet scheduling.
+            </p>
           </div>
-          <h2 className="text-xl font-black text-navy mt-1.5">Add Candidate Manually</h2>
-          <p className="text-xs text-navy/60">
-            Create an offline applicant, referred talent, or headhunted candidate with dynamic status email dispatch and Google Meet scheduling.
-          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-2 text-navy/40 hover:bg-slate-100 hover:text-navy transition shrink-0 ml-4"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {errorMessage && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 font-semibold">
-            {errorMessage}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 sm:px-8 space-y-5">
+            {errorMessage && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 font-semibold">
+                {errorMessage}
+              </div>
+            )}
           {/* Row 1: Contact Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -582,12 +593,14 @@ export function AddCandidateModal({
             )}
           </div>
 
+          </div>
+
           {/* Footer CTA */}
-          <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 sm:px-8 border-t border-slate-100 bg-slate-50/90 backdrop-blur-xs shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-navy/70 hover:bg-slate-50 transition"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-navy/70 hover:bg-slate-100 transition"
             >
               Cancel
             </button>
@@ -595,7 +608,7 @@ export function AddCandidateModal({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-purple px-6 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-xs transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-purple px-6 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
             >
               {submitting ? (
                 <Loader2 size={14} className="animate-spin" />
