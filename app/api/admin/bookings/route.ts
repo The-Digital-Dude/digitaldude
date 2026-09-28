@@ -66,6 +66,7 @@ export async function GET(request: Request) {
         lead_notes: b.lead_notes || "",
         admin_notes: b.admin_notes || b.lead_notes || "",
         assigned_to: b.assigned_to || "The Digital Dude Team",
+        sourced_by_employee_id: b.sourced_by_employee_id || null,
         created_at: b.created_at || new Date().toISOString(),
         updated_at: b.updated_at || b.created_at || new Date().toISOString(),
       }));
@@ -154,6 +155,7 @@ export async function POST(request: Request) {
       lead_score = "warm",
       lead_notes = "",
       assigned_to = "The Digital Dude Team",
+      sourced_by_employee_id = null,
       send_welcome_email = false,
       custom_email_subject = "",
       custom_email_body = "",
@@ -189,6 +191,7 @@ export async function POST(request: Request) {
       lead_score: lead_score || "warm",
       lead_notes: String(lead_notes || "").trim(),
       assigned_to: String(assigned_to || "The Digital Dude Team").trim(),
+      sourced_by_employee_id: sourced_by_employee_id || null,
       created_at: nowIso,
       updated_at: nowIso,
     };
@@ -215,6 +218,7 @@ export async function POST(request: Request) {
           lead_score: newLead.lead_score,
           lead_notes: newLead.lead_notes,
           assigned_to: newLead.assigned_to,
+          sourced_by_employee_id: newLead.sourced_by_employee_id,
         })
         .select()
         .single();
