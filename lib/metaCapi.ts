@@ -1,10 +1,14 @@
 import crypto from "crypto";
 import { log } from "@/lib/logger";
 
-const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "621170946348283";
-const META_CAPI_ACCESS_TOKEN =
-  process.env.META_CAPI_ACCESS_TOKEN ||
-  "EAAXPGkqfCM8BSm8PYVQPIUupZATd6gaDrjmobZAt4nZCx4QqMBLTsdATYb4NhKCA7iGBHkch6HGOS5wcCFzx4CqnoNkFzshiTARosy1XK5dmkUCyJeZC9GN4wZBqsPWjEjKZAlmxgK5j2yZArLzP9ZBSFxydvHz4EzH7yOuJELuivFA5uqFeG5f8rmJdrlqbizBV6AZDZD";
+// No hardcoded fallback for either value: the access token especially must
+// only ever come from the environment. A prior version of this file had the
+// real token committed directly as a fallback default — in a public GitHub
+// repo, which exposed it to the entire internet from the moment it was
+// pushed. That token must be rotated in Meta Business Settings; removing it
+// from source here does not invalidate a token already leaked in git history.
+const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+const META_CAPI_ACCESS_TOKEN = process.env.META_CAPI_ACCESS_TOKEN;
 
 function hashSha256(value?: string | null): string | undefined {
   if (!value) return undefined;
