@@ -21,6 +21,8 @@ import {
   Loader2,
   Building,
   UserCheck,
+  Star,
+  FileText,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/utils";
 
@@ -46,6 +48,24 @@ interface SourcedBooking {
   created_at: string;
 }
 
+interface SourceApplication {
+  id: string;
+  applicant_name: string;
+  applicant_email: string;
+  cv_path: string;
+  proof_of_results_path: string | null;
+  written_test_response: string;
+  internal_notes?: string;
+  scorecard?: {
+    written_test?: number;
+    experience?: number;
+    communication?: number;
+    overall?: number;
+  };
+  created_at: string;
+  job_postings?: { title: string };
+}
+
 interface Employee {
   id: string;
   full_name: string;
@@ -59,6 +79,7 @@ interface Employee {
   deal_commission_percent_min: number | null;
   deal_commission_percent_max: number | null;
   status: string;
+  source_application_id?: string | null;
   onboarding_checklist: ChecklistItem[];
 }
 
@@ -100,6 +121,7 @@ export default function EmployeeDetailPage() {
   const id = params.id as string;
 
   const [employee, setEmployee] = useState<Employee | null>(null);
+  const [sourceApplication, setSourceApplication] = useState<SourceApplication | null>(null);
   const [sourcedBookings, setSourcedBookings] = useState<SourcedBooking[]>([]);
   const [commission, setCommission] = useState<CommissionSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,6 +157,7 @@ export default function EmployeeDetailPage() {
       const data = await res.json();
       if (data.ok) {
         setEmployee(data.employee);
+        setSourceApplication(data.sourceApplication || null);
         setSourcedBookings(data.sourcedBookings || []);
         setCommission(data.commissionSummary);
         setRates({
@@ -417,6 +440,74 @@ export default function EmployeeDetailPage() {
             </button>
           </div>
         </div>
+
+        {/* Candidate Hiring Origin & Evaluation Scorecard (if hired from job_applications) */}
+        {sourceApplication && (
+          <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-emerald-200/60 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <UserCheck size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-navy">Hired from Job Application</h3>
+                  <p className="text-xs text-navy/60">
+                    Applied for <strong className="text-navy">{sourceApplication.job_postings?.title || "Role"}</strong> on{" "}
+                    {new Date(sourceApplication.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href="/admin/applications"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-purple hover:underline"
+                >
+                  View in Applications Pipeline <ExternalLink size={12} />
+                </a>
+              </div>
+            </div>
+
+            {/* Scorecard Snapshot */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="rounded-xl bg-white p-3 border border-emerald-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-navy/50 block">Overall Score</span>
+                <div className="mt-1 flex items-center gap-1 font-extrabold text-navy text-sm">
+                  <Star size={14} className="fill-amber-400 text-amber-400" />
+                  <span>{sourceApplication.scorecard?.overall || "—"}</span>
+                  <span className="text-xs text-navy/40 font-normal">/5</span>
+                </div>
+              </div>
+              <div className="rounded-xl bg-white p-3 border border-emerald-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-navy/50 block">Written Test</span>
+                <div className="mt-1 flex items-center gap-1 font-bold text-navy">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  <span>{sourceApplication.scorecard?.written_test || "—"}/5</span>
+                </div>
+              </div>
+              <div className="rounded-xl bg-white p-3 border border-emerald-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-navy/50 block">Experience</span>
+                <div className="mt-1 flex items-center gap-1 font-bold text-navy">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  <span>{sourceApplication.scorecard?.experience || "—"}/5</span>
+                </div>
+              </div>
+              <div className="rounded-xl bg-white p-3 border border-emerald-100 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-navy/50 block">Communication</span>
+                <div className="mt-1 flex items-center gap-1 font-bold text-navy">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  <span>{sourceApplication.scorecard?.communication || "—"}/5</span>
+                </div>
+              </div>
+            </div>
+
+            {sourceApplication.internal_notes && (
+              <div className="text-xs text-navy/80 bg-white/80 p-3 rounded-xl border border-emerald-100 font-medium">
+                <span className="font-bold text-navy/60 block text-[11px] uppercase tracking-wider mb-1">Interviewer Notes:</span>
+                {sourceApplication.internal_notes}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Live Commission Summary Cards */}
         {commission && (

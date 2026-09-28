@@ -61,9 +61,21 @@ export async function GET(
     dealCommissionPaidCount,
   };
 
+  // Sourced Application detail if hired from job applications
+  let sourceApplication = null;
+  if (employee.source_application_id) {
+    const { data: appData } = await supabase
+      .from("job_applications")
+      .select("id, applicant_name, applicant_email, cv_path, proof_of_results_path, written_test_response, scorecard, internal_notes, created_at, job_postings(title)")
+      .eq("id", employee.source_application_id)
+      .single();
+    sourceApplication = appData || null;
+  }
+
   return NextResponse.json({
     ok: true,
     employee,
+    sourceApplication,
     sourcedBookings: bookings,
     commissionSummary,
   });

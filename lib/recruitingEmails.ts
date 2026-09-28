@@ -148,21 +148,95 @@ export async function sendOnboardingWelcomeEmail(params: {
   fullName: string;
   email: string;
   roleTitle: string;
+  referralCode?: string;
+  currency?: string;
+  meetingBonusMin?: number;
+  meetingBonusMax?: number;
+  dealCommissionMin?: number;
+  dealCommissionMax?: number;
+  employmentType?: string;
+  customNotes?: string;
 }) {
+  const currencySymbol = params.currency === "BDT" ? "৳" : params.currency === "GBP" ? "£" : "$";
+  const refCode = params.referralCode || "";
+  const referralUrl = refCode ? `${SITE_URL}/contact?ref=${refCode}` : "";
+
   const content = `
-    <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1a1a4e; line-height: 1.3;">
-      Welcome to The Digital Dude, ${firstName(params.fullName)}!
+    <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 800; color: #1a1a4e; line-height: 1.3;">
+      Welcome to The Digital Dude Team, ${firstName(params.fullName)}! 🎉
     </h1>
-    <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
-      We're glad to have you on board as our new <strong style="color: #1a1a4e;">${params.roleTitle}</strong>. Someone from the team will be in touch directly with your onboarding steps and everything you need to get started.
+    <p style="margin: 0 0 16px 0; font-size: 15px; line-height: 1.6; color: #4a4a75;">
+      We are thrilled to officially welcome you on board as our new <strong style="color: #7b61ff;">${params.roleTitle || "Team Member"}</strong>.
     </p>
-    <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #6b6b90;">
-      Questions in the meantime? Just reply to this email.
+
+    ${
+      referralUrl
+        ? `
+      <div style="background: #f4f0ff; border: 1px solid #7b61ff33; border-radius: 12px; padding: 18px; margin: 24px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #7b61ff;">
+          🔗 Your Unique Outreach &amp; Referral Link
+        </p>
+        <p style="margin: 0 0 12px 0; font-size: 13px; color: #4a4a75; line-height: 1.5;">
+          Share this link with prospective clients. Any meeting booked through your link is automatically tracked and credited to you:
+        </p>
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-family: monospace; font-size: 13px; color: #1a1a4e; word-break: break-all;">
+          <a href="${referralUrl}" style="color: #7b61ff; text-decoration: none; font-weight: 700;">${referralUrl}</a>
+        </div>
+      </div>
+      `
+        : ""
+    }
+
+    ${
+      params.dealCommissionMin
+        ? `
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #1a1a4e;">
+          💼 Compensation &amp; Commission Structure
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #4a4a75; line-height: 1.7;">
+          ${
+            params.meetingBonusMin && params.meetingBonusMax
+              ? `<li><strong>Meeting Bonus:</strong> ${currencySymbol}${params.meetingBonusMin.toLocaleString()} – ${currencySymbol}${params.meetingBonusMax.toLocaleString()} per qualified discovery call</li>`
+              : ""
+          }
+          <li><strong>Deal Commission:</strong> ${params.dealCommissionMin}% – ${params.dealCommissionMax || params.dealCommissionMin}% of closed contract value</li>
+          <li><strong>Payout Currency:</strong> ${params.currency || "BDT"}</li>
+        </ul>
+      </div>
+      `
+        : ""
+    }
+
+    ${
+      params.customNotes
+        ? `
+      <div style="background: #fdfefe; border-left: 4px solid #7b61ff; padding: 12px 16px; margin: 20px 0; font-size: 14px; color: #4a4a75; line-height: 1.6;">
+        ${params.customNotes.replace(/\n/g, "<br>")}
+      </div>
+      `
+        : ""
+    }
+
+    <h3 style="margin: 24px 0 12px 0; font-size: 16px; font-weight: 700; color: #1a1a4e;">
+      Next Onboarding Steps:
+    </h3>
+    <ol style="margin: 0 0 20px 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #4a4a75;">
+      <li>Review &amp; sign your Consultant Agreement and NDA.</li>
+      <li>Submit your preferred payout information (Bank/bKash/Nagad/Wise).</li>
+      <li>Join our workspace and review the Sales Playbook &amp; Pitch Deck.</li>
+      <li>Attend your 1-on-1 strategy kickoff call with the team.</li>
+    </ol>
+
+    <p style="margin: 24px 0 0 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
+      If you have any questions or need access assistance, simply reply directly to this email.<br>
+      Welcome aboard, and let's achieve great milestones together!
     </p>
   `;
+
   return sendBrevoEmail({
     to: [{ email: params.email, name: params.fullName }],
-    subject: "Welcome to The Digital Dude",
-    htmlContent: wrapInEmailTemplate("Welcome", content),
+    subject: `Welcome to The Digital Dude — ${params.roleTitle || "Onboarding Guide"}`,
+    htmlContent: wrapInEmailTemplate("Welcome to The Digital Dude", content),
   });
 }

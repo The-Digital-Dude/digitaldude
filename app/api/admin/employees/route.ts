@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
+import { sendOnboardingWelcomeEmail } from "@/lib/recruitingEmails";
 
 const DEFAULT_ONBOARDING_CHECKLIST = [
   { task: "Contract & Commission Agreement signed", done: false, done_at: null },
@@ -76,13 +77,15 @@ export async function POST(request: Request) {
       deal_commission_percent_max = 15,
       source_application_id = null,
       onboarding_checklist,
+      send_welcome_email = true,
+      custom_welcome_notes = "",
     } = body;
 
     if (!full_name || !email) {
       return NextResponse.json({ ok: false, error: "Full name and email are required." }, { status: 400 });
     }
 
-    const generatedRefCode = referral_code || slugifyName(full_name);
+    const generatedRefCode = (referral_code || slugifyName(full_name)).trim().toLowerCase();
 
     const { data, error } = await supabase
       .from("employees")
@@ -113,6 +116,27 @@ export async function POST(request: Request) {
         .from("job_applications")
         .update({ status: "hired", updated_at: new Date().toISOString() })
         .eq("id", source_application_id);
+    }
+
+    // Dispatch welcome email if enabled
+    if (send_welcome_email) {
+      try {
+        await sendOnboardingWelcomeEmail({
+          fullName: full_name,
+          email,
+          roleTitle: role_title,
+          referralCode: generatedRefCode,
+          currency,
+          meetingBonusMin: meeting_bonus_min,
+          meetingBonusMax: meeting_bonus_max,
+          dealCommissionMin: deal_commission_percent_min,
+          dealCommissionMax: deal_commission_percent_max,
+          employmentType: employment_type,
+          customNotes: custom_welcome_notes,
+        });
+      } catch (mailErr) {
+        log("warn", { message: "Failed to send onboarding welcome email", error: mailErr });
+      }
     }
 
     log("info", { message: "Employee created", context: { id: data.id, email } });

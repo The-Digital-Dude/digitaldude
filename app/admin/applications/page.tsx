@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   X,
   UserPlus,
+  UserCheck,
   Trash2,
   Download,
   Star,
@@ -23,6 +24,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { AddCandidateModal } from "@/components/admin/AddCandidateModal";
+import { HireCandidateModal } from "@/components/admin/HireCandidateModal";
 
 export interface Scorecard {
   written_test?: number;
@@ -151,7 +153,7 @@ export default function AdminApplicationsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selected, setSelected] = useState<Application | null>(null);
-  const [converting, setConverting] = useState(false);
+  const [candidateToHire, setCandidateToHire] = useState<Application | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
 
@@ -202,6 +204,11 @@ export default function AdminApplicationsPage() {
   }, [selected]);
 
   function handleOpenStatusChange(app: Application, targetStatus: string) {
+    if (targetStatus === "hired") {
+      setCandidateToHire(app);
+      return;
+    }
+
     const jobTitle = app.job_postings?.title || "the role";
     const defaults = getStatusEmailDefaults(targetStatus, app.applicant_name, jobTitle);
     const tomorrow = new Date();
@@ -363,33 +370,6 @@ export default function AdminApplicationsPage() {
       window.open(data.url, "_blank", "noopener,noreferrer");
     } else {
       alert(data.error || "Could not open this file.");
-    }
-  }
-
-  async function convertToEmployee(app: Application) {
-    if (!confirm(`Create an employee record for ${app.applicant_name}?`)) return;
-    setConverting(true);
-    try {
-      const res = await fetch("/api/admin/employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          full_name: app.applicant_name,
-          email: app.applicant_email,
-          role_title: app.job_postings?.title || "",
-          source_application_id: app.id,
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        alert("Employee created. Set their commission rates from the Employees page.");
-        fetchApplications();
-        setSelected(null);
-      } else {
-        alert(data.error || "Failed to create employee.");
-      }
-    } finally {
-      setConverting(false);
     }
   }
 
@@ -581,6 +561,18 @@ export default function AdminApplicationsPage() {
                         <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
                             <button
+                              onClick={() => setCandidateToHire(app)}
+                              className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold inline-flex items-center gap-1 transition ${
+                                app.status === "hired" || app.status === "offered"
+                                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                  : "border-slate-200 bg-white text-navy/70 hover:bg-slate-50"
+                              }`}
+                              title="Hire & Convert to Employee"
+                            >
+                              <UserCheck size={13} />
+                              {app.status === "hired" ? "Hired" : "Hire"}
+                            </button>
+                            <button
                               onClick={() => handleOpenStatusChange(app, "interview")}
                               className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition"
                               title="Invite to Interview"
@@ -642,7 +634,7 @@ export default function AdminApplicationsPage() {
             {/* Quick Actions & Stage Transition Bar */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-navy/60">
-                Change Pipeline Stage & Notify
+                Change Pipeline Stage &amp; Notify
               </label>
               <div className="flex flex-wrap items-center gap-2">
                 {STATUS_OPTIONS.map((s) => (
@@ -688,15 +680,12 @@ export default function AdminApplicationsPage() {
                   <ImageIcon size={15} className="text-blue-500" /> View Proof of Results
                 </button>
               )}
-              {selected.status === "hired" && (
-                <button
-                  onClick={() => convertToEmployee(selected)}
-                  disabled={converting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-purple/90 disabled:opacity-50 transition"
-                >
-                  <UserPlus size={15} /> {converting ? "Converting…" : "Convert to Employee"}
-                </button>
-              )}
+              <button
+                onClick={() => setCandidateToHire(selected)}
+                className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-purple/90 transition"
+              >
+                <UserCheck size={15} /> Convert to Employee / Hire
+              </button>
             </div>
 
             {/* Candidate Written Test Assessment */}
@@ -980,6 +969,26 @@ export default function AdminApplicationsPage() {
           setApplications((prev) => [newApp, ...prev]);
         }}
       />
+
+      {/* Hire / Convert Candidate to Employee Modal */}
+      {candidateToHire && (
+        <HireCandidateModal
+          application={{
+            id: candidateToHire.id,
+            applicant_name: candidateToHire.applicant_name,
+            applicant_email: candidateToHire.applicant_email,
+            job_title: candidateToHire.job_postings?.title,
+          }}
+          onClose={() => setCandidateToHire(null)}
+          onSuccess={() => {
+            setCandidateToHire(null);
+            fetchApplications();
+            if (selected?.id === candidateToHire.id) {
+              setSelected(null);
+            }
+          }}
+        />
+      )}
     </AdminLayout>
   );
 }
