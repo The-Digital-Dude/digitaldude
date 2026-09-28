@@ -22,6 +22,7 @@ import {
   AlertCircle,
   FileText
 } from "lucide-react";
+import { event } from "@/lib/metaPixel";
 
 const countries = [
   "Australia",
@@ -267,6 +268,8 @@ export function ContactForm() {
       message ? `\n[Project Scope / Details]:\n${message}` : "",
     ].join("\n");
 
+    const eventId = `book_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
     const payload = {
       name,
       workEmail,
@@ -277,6 +280,7 @@ export function ContactForm() {
       message: fullMessage,
       slotStart: selectedSlot,
       company: honeypot,
+      eventId,
     };
 
     try {
@@ -292,6 +296,26 @@ export function ContactForm() {
         setErrorMessage(data.error || "Could not complete your booking. Please try another time slot.");
         return;
       }
+
+      // Fire Client-Side Meta Pixel Events with deduplication eventId
+      event(
+        "Schedule",
+        {
+          content_name: "Discovery Call Booking",
+          currency: "USD",
+          value: 0,
+        },
+        eventId
+      );
+
+      event(
+        "Lead",
+        {
+          content_name: companyName,
+          content_category: systemType,
+        },
+        eventId
+      );
 
       setConfirmedData({
         firstName: data.firstName || name.split(" ")[0],

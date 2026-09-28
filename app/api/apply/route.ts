@@ -152,7 +152,9 @@ export async function POST(request: Request) {
       log("warn", { message: "Could not send application-received email", error: err });
     }
 
-    // Dispatch Meta Conversions API (CAPI) SubmitApplication Event
+    const clientEventId = String(formData.get("eventId") || "").trim() || undefined;
+
+    // Dispatch Meta Conversions API (CAPI) SubmitApplication & Lead Events
     try {
       const { sendMetaCapiEvent } = await import("@/lib/metaCapi");
       const userAgent = request.headers.get("user-agent") || undefined;
@@ -160,22 +162,38 @@ export async function POST(request: Request) {
       const fbpMatch = cookieHeader.match(/_fbp=([^;]+)/);
       const fbcMatch = cookieHeader.match(/_fbc=([^;]+)/);
 
+      const userMetadata = {
+        email: applicantEmail,
+        phone: applicantPhone || undefined,
+        firstName: applicantName.split(" ")[0],
+        lastName: applicantName.split(" ").slice(1).join(" ") || undefined,
+        clientIpAddress: ip,
+        clientUserAgent: userAgent,
+        fbp: fbpMatch ? fbpMatch[1] : undefined,
+        fbc: fbcMatch ? fbcMatch[1] : undefined,
+      };
+
+      // 1. SubmitApplication standard event
       await sendMetaCapiEvent({
         eventName: "SubmitApplication",
+        eventId: clientEventId,
         eventSourceUrl: `https://www.digitaldude.co.uk/careers/${jobSlug}`,
-        user: {
-          email: applicantEmail,
-          phone: applicantPhone || undefined,
-          firstName: applicantName.split(" ")[0],
-          lastName: applicantName.split(" ").slice(1).join(" ") || undefined,
-          clientIpAddress: ip,
-          clientUserAgent: userAgent,
-          fbp: fbpMatch ? fbpMatch[1] : undefined,
-          fbc: fbcMatch ? fbcMatch[1] : undefined,
-        },
+        user: userMetadata,
         customData: {
           content_name: job.title,
           job_slug: jobSlug,
+        },
+      });
+
+      // 2. Lead standard event (commonly used as Meta ad optimization objective)
+      await sendMetaCapiEvent({
+        eventName: "Lead",
+        eventId: clientEventId,
+        eventSourceUrl: `https://www.digitaldude.co.uk/careers/${jobSlug}`,
+        user: userMetadata,
+        customData: {
+          content_name: job.title,
+          content_category: "Job Application",
         },
       });
     } catch (capiErr) {

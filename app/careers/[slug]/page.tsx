@@ -5,6 +5,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { SITE_URL } from "@/lib/utils";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { JobApplicationForm } from "@/components/JobApplicationForm";
+import { JobViewTracker } from "@/components/JobViewTracker";
 import { MapPin, Briefcase, ArrowLeft } from "lucide-react";
 
 export const revalidate = 60;
@@ -63,6 +64,11 @@ export default async function JobPostingPage({
 
   return (
     <section className="mx-auto max-w-content px-6 pb-20 pt-32 sm:pt-40">
+      <JobViewTracker
+        jobTitle={job.title}
+        jobSlug={job.slug}
+        department={job.department}
+      />
       <Link href="/careers" className="inline-flex items-center gap-2 text-sm font-medium text-navy/60 hover:text-purple">
         <ArrowLeft size={15} /> Back to all roles
       </Link>

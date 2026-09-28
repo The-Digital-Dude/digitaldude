@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { event } from "@/lib/metaPixel";
 
 export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; jobTitle: string }) {
   const [applicantName, setApplicantName] = useState("");
@@ -24,6 +25,8 @@ export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; job
     setStatus("submitting");
     setErrorMessage("");
 
+    const eventId = `app_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+
     const form = new FormData();
     form.append("jobSlug", jobSlug);
     form.append("applicantName", applicantName);
@@ -33,6 +36,7 @@ export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; job
     form.append("cv", cvFile);
     if (proofFile) form.append("proofOfResults", proofFile);
     form.append("website", website);
+    form.append("eventId", eventId);
 
     try {
       const res = await fetch("/api/apply", { method: "POST", body: form });
@@ -42,6 +46,26 @@ export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; job
         setStatus("error");
         return;
       }
+
+      // Fire Client-Side Meta Pixel Events with deduplication eventId
+      event(
+        "SubmitApplication",
+        {
+          content_name: jobTitle,
+          job_slug: jobSlug,
+        },
+        eventId
+      );
+
+      event(
+        "Lead",
+        {
+          content_name: jobTitle,
+          content_category: "Job Application",
+        },
+        eventId
+      );
+
       setStatus("success");
     } catch {
       setErrorMessage("Network error. Please try again.");

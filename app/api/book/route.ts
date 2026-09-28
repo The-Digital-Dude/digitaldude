@@ -223,9 +223,11 @@ export async function POST(request: Request) {
     const userAgent = request.headers.get("user-agent") || undefined;
     const fbpMatch = cookieHeader.match(/_fbp=([^;]+)/);
     const fbcMatch = cookieHeader.match(/_fbc=([^;]+)/);
+    const clientEventId = body?.eventId ? String(body.eventId).trim() : undefined;
 
     await sendMetaCapiEvent({
       eventName: "Schedule",
+      eventId: clientEventId,
       eventSourceUrl: "https://www.digitaldude.co.uk/contact",
       user: {
         email: workEmail,
