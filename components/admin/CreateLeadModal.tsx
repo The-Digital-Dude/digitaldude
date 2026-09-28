@@ -114,6 +114,8 @@ export function CreateLeadModal({
   const [stage, setStage] = useState<CrmStage>(defaultStage);
   const [dealValue, setDealValue] = useState<number>(8500);
   const [leadScore, setLeadScore] = useState<LeadScore>("warm");
+  const [sourcedByEmployeeId, setSourcedByEmployeeId] = useState<string>("");
+  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
   const [slotStart, setSlotStart] = useState<string>(() => {
     const d = new Date();
     d.setMinutes(d.getMinutes() + 30);
@@ -154,6 +156,17 @@ export function CreateLeadModal({
       setEmailBody(currentTpl.defaultBody(name, companyName, leadNotes || message));
     }
   }, [selectedTemplateId, name, companyName, leadNotes, message, isSubjectCustomized, isBodyCustomized]);
+
+  // Load active employees for the "Sourced by" dropdown when the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch("/api/admin/employees?status=active")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.ok) setEmployees(data.employees || []);
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -205,6 +218,7 @@ export function CreateLeadModal({
           deal_value: Number(dealValue) || 8500,
           lead_score: leadScore,
           lead_notes: leadNotes.trim(),
+          sourced_by_employee_id: sourcedByEmployeeId || null,
           send_welcome_email: sendWelcomeEmail,
           custom_email_subject: sendWelcomeEmail ? emailSubject.trim() : undefined,
           custom_email_body: sendWelcomeEmail ? emailBody.trim() : undefined,
@@ -336,8 +350,8 @@ export function CreateLeadModal({
             </div>
           </div>
 
-          {/* Row 3: Pipeline Stage, Valuation, Score */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+          {/* Row 3: Pipeline Stage, Valuation, Score, Sourced By */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 border-t border-slate-100">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-navy/70 mb-1">
                 Initial Pipeline Stage
@@ -380,6 +394,24 @@ export function CreateLeadModal({
                 <option value="hot">🔥 Hot (High Intent)</option>
                 <option value="warm">⚡ Warm (Standard)</option>
                 <option value="cold">❄️ Cold (Nurture)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-navy/70 mb-1">
+                Sourced by (Employee)
+              </label>
+              <select
+                value={sourcedByEmployeeId}
+                onChange={(e) => setSourcedByEmployeeId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold text-navy outline-none focus:border-purple focus:bg-white"
+              >
+                <option value="">— None —</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.full_name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

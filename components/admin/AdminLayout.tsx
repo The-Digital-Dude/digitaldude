@@ -14,6 +14,9 @@ import {
   Menu,
   X,
   ScrollText,
+  ClipboardList,
+  Inbox,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +26,9 @@ const navItems = [
   { href: "/admin/proposals", label: "Proposals & Specs", icon: ScrollText, exact: false },
   { href: "/admin/case-studies", label: "Case Studies", icon: Briefcase, exact: false },
   { href: "/admin/blogs", label: "Blog & Content", icon: FileText, exact: false },
+  { href: "/admin/jobs", label: "Job Postings", icon: ClipboardList, exact: false },
+  { href: "/admin/applications", label: "Applications", icon: Inbox, exact: false },
+  { href: "/admin/employees", label: "Employees & Onboarding", icon: UserCheck, exact: false },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
