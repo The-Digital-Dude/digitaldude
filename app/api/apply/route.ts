@@ -171,6 +171,7 @@ export async function POST(request: Request) {
         clientUserAgent: userAgent,
         fbp: fbpMatch ? fbpMatch[1] : undefined,
         fbc: fbcMatch ? fbcMatch[1] : undefined,
+        externalId: application.id,
       };
 
       // 1. SubmitApplication standard event

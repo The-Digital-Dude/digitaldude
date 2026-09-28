@@ -38,6 +38,14 @@ export interface MetaCapiEventParams {
     clientUserAgent?: string | null;
     fbp?: string | null;
     fbc?: string | null;
+    /**
+     * A stable identifier from our own system (e.g. a booking or
+     * application row id) — distinct from email/phone, and the one
+     * genuinely missing matching parameter Meta's Event Match Quality
+     * tooling flagged. Hashed the same way as the other identifiers before
+     * being sent; Meta never receives the raw id.
+     */
+    externalId?: string | null;
   };
   customData?: Record<string, unknown>;
 }
@@ -68,6 +76,9 @@ export async function sendMetaCapiEvent(params: MetaCapiEventParams) {
   if (user.clientUserAgent) userDataPayload.client_user_agent = user.clientUserAgent;
   if (user.fbp) userDataPayload.fbp = user.fbp;
   if (user.fbc) userDataPayload.fbc = user.fbc;
+
+  const hashedExternalId = hashSha256(user.externalId);
+  if (hashedExternalId) userDataPayload.external_id = [hashedExternalId];
 
   const testEventCode = process.env.META_TEST_EVENT_CODE || undefined;
 

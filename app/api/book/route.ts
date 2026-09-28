@@ -113,7 +113,9 @@ export async function POST(request: Request) {
     } catch {}
   }
 
+  const bookingId = crypto.randomUUID();
   const { error } = await supabase.from("bookings").insert({
+    id: bookingId,
     name,
     work_email: workEmail,
     company_name: companyName,
@@ -237,6 +239,7 @@ export async function POST(request: Request) {
         clientUserAgent: userAgent,
         fbp: fbpMatch ? fbpMatch[1] : undefined,
         fbc: fbcMatch ? fbcMatch[1] : undefined,
+        externalId: bookingId,
       },
       customData: {
         content_name: "Discovery Call Booking",

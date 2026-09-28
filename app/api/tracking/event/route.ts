@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         clientUserAgent: userAgent,
         fbp: user.fbp || (fbpMatch ? fbpMatch[1] : undefined),
         fbc: user.fbc || (fbcMatch ? fbcMatch[1] : undefined),
+        externalId: user.externalId || undefined,
       },
       customData,
     });
