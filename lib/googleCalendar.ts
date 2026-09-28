@@ -191,3 +191,99 @@ export async function createGoogleCalendarMeeting({
     return null;
   }
 }
+
+/**
+ * Creates a dedicated candidate interview event on Google Calendar with a real Google Meet video link
+ * and automatically sends Google Calendar invites to the candidate and team.
+ */
+export async function createCandidateInterviewMeeting(params: {
+  candidateName: string;
+  candidateEmail: string;
+  jobTitle: string;
+  slotStart: string;
+  slotEnd?: string;
+  notes?: string;
+}): Promise<GoogleMeetingResult | null> {
+  const auth = getAuthorizedClient();
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
+
+  if (!auth) {
+    log("info", {
+      message: "Google Calendar OAuth not configured. Skipping automated Meet creation for interview.",
+    });
+    return null;
+  }
+
+  const startIso = new Date(params.slotStart).toISOString();
+  const endIso = params.slotEnd
+    ? new Date(params.slotEnd).toISOString()
+    : new Date(new Date(startIso).getTime() + 30 * 60000).toISOString();
+
+  try {
+    const calendar = google.calendar({ version: "v3", auth });
+
+    const summary = `Interview: ${params.candidateName} — ${params.jobTitle} at The Digital Dude`;
+    const description = [
+      `Candidate Interview: ${params.candidateName}`,
+      `Role: ${params.jobTitle}`,
+      `Candidate Email: ${params.candidateEmail}`,
+      "",
+      params.notes ? `Interview Notes:\n${params.notes}\n` : "",
+      "— The Digital Dude Recruiting",
+      "https://www.digitaldude.co.uk",
+    ].join("\n");
+
+    const requestId = `interview-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const response = await calendar.events.insert({
+      calendarId,
+      conferenceDataVersion: 1,
+      sendUpdates: "all",
+      requestBody: {
+        summary,
+        description,
+        start: { dateTime: startIso },
+        end: { dateTime: endIso },
+        attendees: [{ email: params.candidateEmail, displayName: params.candidateName }],
+        conferenceData: {
+          createRequest: {
+            requestId,
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        },
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: "email", minutes: 24 * 60 },
+            { method: "popup", minutes: 15 },
+          ],
+        },
+      },
+    });
+
+    const event = response.data;
+    const meetUrl =
+      event.hangoutLink ||
+      event.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === "video")?.uri ||
+      null;
+
+    log("info", {
+      message: "Google Meet interview created successfully",
+      context: { eventId: event.id, meetUrl, email: params.candidateEmail },
+    });
+
+    return {
+      eventId: event.id || "",
+      meetUrl,
+      htmlLink: event.htmlLink || null,
+    };
+  } catch (error) {
+    log("error", {
+      message: "Failed to create candidate Google Meet interview",
+      error,
+      context: { email: params.candidateEmail, slotStart: params.slotStart },
+    });
+    return null;
+  }
+}
+

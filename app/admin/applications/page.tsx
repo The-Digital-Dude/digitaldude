@@ -19,7 +19,10 @@ import {
   Loader2,
   CheckCircle2,
   SlidersHorizontal,
+  Plus,
+  ExternalLink,
 } from "lucide-react";
+import { AddCandidateModal } from "@/components/admin/AddCandidateModal";
 
 export interface Scorecard {
   written_test?: number;
@@ -69,8 +72,8 @@ function getStatusEmailDefaults(status: string, applicantName: string, jobTitle:
     case "interview":
       return {
         subject: `Interview Invitation — ${jobTitle} at The Digital Dude`,
-        message: `Hi ${first},\n\nWe thoroughly reviewed your application and written test for the ${jobTitle} role, and we would love to invite you to a 30-minute interview with our team.\n\nPlease choose a convenient time for our discussion using the booking link below.\n\nLooking forward to speaking with you!`,
-        bookingUrl: "https://calendly.com",
+        message: `Hi ${first},\n\nWe thoroughly reviewed your application and written test for the ${jobTitle} role, and we would love to invite you to a 30-minute interview with our team.\n\nPlease find your Google Meet interview room link below. Looking forward to our conversation!`,
+        bookingUrl: "",
         meetingLink: "",
       };
     case "offered":
@@ -150,6 +153,7 @@ export default function AdminApplicationsPage() {
   const [selected, setSelected] = useState<Application | null>(null);
   const [converting, setConverting] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
 
   // Status Change & Email Modal State
   const [pendingStatusModal, setPendingStatusModal] = useState<{
@@ -159,9 +163,11 @@ export default function AdminApplicationsPage() {
     subject: string;
     message: string;
     bookingUrl: string;
+    interviewDate: string;
     meetingLink: string;
   } | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [generatingMeet, setGeneratingMeet] = useState(false);
 
   // Scorecard & Notes State inside detail modal
   const [draftScorecard, setDraftScorecard] = useState<Scorecard>({});
@@ -198,6 +204,10 @@ export default function AdminApplicationsPage() {
   function handleOpenStatusChange(app: Application, targetStatus: string) {
     const jobTitle = app.job_postings?.title || "the role";
     const defaults = getStatusEmailDefaults(targetStatus, app.applicant_name, jobTitle);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(14, 0, 0, 0);
+
     setPendingStatusModal({
       application: app,
       newStatus: targetStatus,
@@ -205,8 +215,53 @@ export default function AdminApplicationsPage() {
       subject: defaults.subject,
       message: defaults.message,
       bookingUrl: defaults.bookingUrl,
+      interviewDate: tomorrow.toISOString().slice(0, 16),
       meetingLink: defaults.meetingLink,
     });
+  }
+
+  async function handleGenerateMeetForStatusModal() {
+    if (!pendingStatusModal) return;
+    const { application, interviewDate } = pendingStatusModal;
+    const jobTitle = application.job_postings?.title || "Software Role";
+
+    setGeneratingMeet(true);
+    try {
+      const res = await fetch("/api/admin/interviews/meet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateName: application.applicant_name,
+          candidateEmail: application.applicant_email,
+          jobTitle,
+          slotStart: new Date(interviewDate).toISOString(),
+          notes: application.internal_notes || application.written_test_response,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok && data.meetUrl) {
+        setPendingStatusModal((prev) => {
+          if (!prev) return null;
+          const updatedMsg = prev.message.includes(data.meetUrl)
+            ? prev.message
+            : `${prev.message}\n\nGoogle Meet Room: ${data.meetUrl}\nScheduled Time: ${new Date(
+                interviewDate
+              ).toLocaleString()}`;
+          return {
+            ...prev,
+            meetingLink: data.meetUrl,
+            message: updatedMsg,
+          };
+        });
+      } else {
+        alert(data.error || "Could not generate Google Meet room. Make sure Google OAuth is connected.");
+      }
+    } catch {
+      alert("Network error generating Google Meet link.");
+    } finally {
+      setGeneratingMeet(false);
+    }
   }
 
   async function handleConfirmStatusChange() {
@@ -241,7 +296,7 @@ export default function AdminApplicationsPage() {
       } else {
         alert(data.error || "Failed to update status.");
       }
-    } catch (err) {
+    } catch {
       alert("Network error updating status.");
     } finally {
       setUpdatingStatus(false);
@@ -296,6 +351,12 @@ export default function AdminApplicationsPage() {
   }
 
   async function viewDocument(id: string, type: "cv" | "proof") {
+    if (type === "cv" && selected?.cv_path.startsWith("url:")) {
+      const targetUrl = selected.cv_path.replace(/^url:/, "");
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+
     const res = await fetch(`/api/admin/applications/${id}/documents/${type}`);
     const data = await res.json();
     if (data.ok) {
@@ -408,6 +469,12 @@ export default function AdminApplicationsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAddCandidateOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-purple/90 transition"
+            >
+              <Plus size={14} /> Add Candidate
+            </button>
             <button
               onClick={exportToCsv}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-navy/80 shadow-2xs hover:bg-slate-50 transition"
@@ -597,12 +664,22 @@ export default function AdminApplicationsPage() {
 
             {/* Document Attachments & Employee Conversion */}
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              <button
-                onClick={() => viewDocument(selected.id, "cv")}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-navy shadow-2xs hover:bg-slate-50 transition"
-              >
-                <FileText size={15} className="text-purple" /> View CV / Resume
-              </button>
+              {selected.cv_path && selected.cv_path !== "manual:no-file-provided" && (
+                <button
+                  onClick={() => viewDocument(selected.id, "cv")}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-navy shadow-2xs hover:bg-slate-50 transition"
+                >
+                  {selected.cv_path.startsWith("url:") ? (
+                    <>
+                      <ExternalLink size={15} className="text-purple" /> Open CV Link
+                    </>
+                  ) : (
+                    <>
+                      <FileText size={15} className="text-purple" /> View CV / Resume
+                    </>
+                  )}
+                </button>
+              )}
               {selected.proof_of_results_path && (
                 <button
                   onClick={() => viewDocument(selected.id, "proof")}
@@ -794,38 +871,57 @@ export default function AdminApplicationsPage() {
                 </div>
 
                 {pendingStatusModal.newStatus === "interview" && (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-navy mb-1 flex items-center gap-1.5">
-                        <Calendar size={13} className="text-purple" /> Interview Booking URL
-                      </label>
-                      <input
-                        type="url"
-                        placeholder="e.g. https://calendly.com/your-name/30min"
-                        value={pendingStatusModal.bookingUrl}
-                        onChange={(e) =>
-                          setPendingStatusModal((prev) =>
-                            prev ? { ...prev, bookingUrl: e.target.value } : null
-                          )
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-navy outline-none focus:border-purple focus:bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-navy mb-1 flex items-center gap-1.5">
-                        <Video size={13} className="text-blue-500" /> Video Call Link (Optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. meet.google.com/abc-def-ghi"
-                        value={pendingStatusModal.meetingLink}
-                        onChange={(e) =>
-                          setPendingStatusModal((prev) =>
-                            prev ? { ...prev, meetingLink: e.target.value } : null
-                          )
-                        }
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-navy outline-none focus:border-purple focus:bg-white"
-                      />
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-3.5 space-y-3">
+                    <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                      <Video size={13} className="text-blue-600" /> Google Meet Interview Generator
+                    </span>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/70 mb-1 flex items-center gap-1">
+                          <Calendar size={12} /> Interview Date &amp; Time
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={pendingStatusModal.interviewDate}
+                          onChange={(e) =>
+                            setPendingStatusModal((prev) =>
+                              prev ? { ...prev, interviewDate: e.target.value } : null
+                            )
+                          }
+                          className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-navy outline-none focus:border-purple"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/70 mb-1 flex items-center gap-1">
+                          <Video size={12} /> Google Meet Room Link
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="meet.google.com/xxx-yyyy-zzz"
+                            value={pendingStatusModal.meetingLink}
+                            onChange={(e) =>
+                              setPendingStatusModal((prev) =>
+                                prev ? { ...prev, meetingLink: e.target.value } : null
+                              )
+                            }
+                            className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-xs font-mono text-navy outline-none focus:border-purple"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleGenerateMeetForStatusModal}
+                            disabled={generatingMeet}
+                            className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50 transition shadow-2xs shrink-0"
+                          >
+                            {generatingMeet ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <Video size={13} />
+                            )}
+                            {generatingMeet ? "Creating…" : "Generate Meet"}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -875,6 +971,15 @@ export default function AdminApplicationsPage() {
           </div>
         </div>
       )}
+
+      {/* Add Candidate Manually Modal */}
+      <AddCandidateModal
+        isOpen={isAddCandidateOpen}
+        onClose={() => setIsAddCandidateOpen(false)}
+        onCreated={(newApp) => {
+          setApplications((prev) => [newApp, ...prev]);
+        }}
+      />
     </AdminLayout>
   );
 }
