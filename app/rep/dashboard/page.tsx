@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   ShieldCheck,
   Link as LinkIcon,
@@ -29,6 +30,17 @@ import {
   Layers,
   HelpCircle,
   ChevronRight,
+  Plus,
+  Search,
+  Filter,
+  Trash2,
+  Edit3,
+  Users,
+  Menu,
+  X,
+  Phone,
+  Briefcase,
+  ArrowUpRight,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/utils";
 
@@ -68,8 +80,10 @@ interface RepProfile {
   deal_commission_percent_min: number | null;
   deal_commission_percent_max: number | null;
   status: string;
+  onboarding_completed?: boolean;
   onboarding_checklist: ChecklistItem[];
   payout_details?: Record<string, string>;
+  daily_outreach_limit?: number;
 }
 
 interface CommissionSummary {
@@ -96,181 +110,420 @@ interface OutreachLog {
   sent_at: string;
 }
 
-const OUTREACH_TEMPLATES = [
+interface RepLead {
+  id: string;
+  employee_id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  company_name: string | null;
+  job_title: string | null;
+  lead_source: string;
+  stage: "new" | "contacted" | "meeting_booked" | "negotiation" | "won" | "lost";
+  estimated_deal_value: number;
+  currency: string;
+  notes: string | null;
+  last_contacted_at: string | null;
+  created_at: string;
+}
+
+interface CustomTemplate {
+  id: string;
+  template_name: string;
+  subject: string;
+  body_content: string;
+  is_default?: boolean;
+}
+
+const BUILTIN_TEMPLATES = [
   {
-    id: "crm_operations",
-    name: "Custom CRM & Operations Architecture",
-    subject: "Replacing manual spreadsheets & WhatsApp dispatch for {companyName}",
-    body: `Hi {recipientName},\n\nI came across {companyName} and was really impressed by what your team is executing in your industry.\n\nAt The Digital Dude, we specialize in replacing messy Google Sheets and fragmented WhatsApp dispatches with custom-built, multi-portal CRM & ERP architectures built for scale.\n\nWe recently engineered a dispatch & CRM system for an operations firm that cut booking processing time by 80% and automated customer invoicing.\n\nWould you be open to a brief 15-minute technical discovery call next week to explore how a custom web portal could streamline operations at {companyName}?`,
+    id: "custom_crm",
+    name: "Custom CRM & Systems Modernization",
+    subject: "Modernizing operational workflows for {{company}}",
+    body: "Hi {{name}},\n\nI noticed {{company}} is rapidly expanding and likely managing complex workflows across multiple tools.\n\nAt The Digital Dude, we engineer bespoke CRMs, custom internal operations platforms, and automated workflow pipelines tailored specifically to your business model.\n\nWould you be open to a brief 20-minute discussion this week to explore how a tailored system can eliminate operational bottlenecks?",
   },
   {
-    id: "saas_mvp",
-    name: "SaaS Product / MVP Engineering",
-    subject: "Building and launching {companyName}'s SaaS platform with fixed timeline",
-    body: `Hi {recipientName},\n\nHope your week is going great!\n\nI wanted to reach out because our engineering team at The Digital Dude specializes in designing and building scalable SaaS platforms, multi-tenant portals, and modern Next.js web applications.\n\nWe provide full architecture blueprints, fixed-scope delivery timelines, and full IP transfer so founders own 100% of their codebase without tech debt.\n\nLet me know if you'd be open to a quick 15-minute architecture conversation — you can choose a time that fits your schedule via our live booking calendar below.`,
+    id: "mvp_saas",
+    name: "MVP & SaaS Web App Development",
+    subject: "Engineering your SaaS platform / product roadmap",
+    body: "Hi {{name}},\n\nReaching out from The Digital Dude. We specialize in rapid end-to-end architecture and full-stack development of high-performance web applications, MVP platforms, and SaaS products.\n\nIf you're currently planning or scoping technical development, we'd love to share some recent architecture case studies and discuss how we can accelerate your launch.\n\nLet me know if you have 15 minutes this Thursday or Friday.",
   },
   {
-    id: "marketplace",
-    name: "3-Sided Marketplace Development",
-    subject: "Scaling {companyName}'s provider & customer marketplace",
-    body: `Hi {recipientName},\n\nI'm reaching out from The Digital Dude. We architect high-performance marketplaces connecting customers, service providers, and administrative dispatchers.\n\nOur system architectures include automated escrow/Stripe payouts, real-time dispatch tracking, and custom CRM dashboards.\n\nIf upgrading or launching your marketplace infrastructure is on {companyName}'s roadmap this quarter, I'd love to invite you to a 30-minute discovery call with our senior tech leads.`,
+    id: "follow_up",
+    name: "Gentle Follow-Up & Case Study",
+    subject: "Re: Technical architecture for {{company}}",
+    body: "Hi {{name}},\n\nFollowing up on my previous message regarding custom software development and CRM systems for {{company}}.\n\nYou can review some of our live client transformations and technical architectures here: {{referral_link}}\n\nHappy to align on a quick discovery call at your convenience.",
   },
 ];
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  BDT: "৳",
-  GBP: "£",
-  USD: "$",
-  EUR: "€",
-};
+const LEAD_STAGES = [
+  { id: "all", label: "All Leads", color: "bg-slate-100 text-navy" },
+  { id: "new", label: "New Lead", color: "bg-blue-50 text-blue-700 border-blue-200" },
+  { id: "contacted", label: "Contacted", color: "bg-amber-50 text-amber-700 border-amber-200" },
+  { id: "meeting_booked", label: "Meeting Booked", color: "bg-purple/10 text-purple border-purple/30" },
+  { id: "negotiation", label: "In Negotiation", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  { id: "won", label: "Won / Closed", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  { id: "lost", label: "Lost / Closed", color: "bg-rose-50 text-rose-700 border-rose-200" },
+];
 
 export default function RepDashboardPage() {
   const router = useRouter();
 
-  const [rep, setRep] = useState<RepProfile | null>(null);
-  const [sourcedBookings, setSourcedBookings] = useState<SourcedBooking[]>([]);
-  const [commission, setCommission] = useState<CommissionSummary | null>(null);
-  const [outreachLogs, setOutreachLogs] = useState<OutreachLog[]>([]);
+  // Navigation State
+  const [activeTab, setActiveTab] = useState<"onboarding" | "overview" | "leads" | "outreach" | "payouts">("overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Core Data
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"leads" | "outreach" | "earnings" | "onboarding">("leads");
+  const [profile, setProfile] = useState<RepProfile | null>(null);
+  const [commissionSummary, setCommissionSummary] = useState<CommissionSummary | null>(null);
+  const [bookings, setBookings] = useState<SourcedBooking[]>([]);
+  const [outreachLogs, setOutreachLogs] = useState<OutreachLog[]>([]);
+  const [leads, setLeads] = useState<RepLead[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
 
-  // Referral Link Copy State
+  // UI States
   const [copiedLink, setCopiedLink] = useState(false);
+  const [leadSearch, setLeadSearch] = useState("");
+  const [leadStageFilter, setLeadStageFilter] = useState("all");
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false);
+  const [editingLead, setEditingLead] = useState<RepLead | null>(null);
 
-  // Outreach Composer Form State
-  const [selectedTemplate, setSelectedTemplate] = useState("crm_operations");
+  // New Lead Form
+  const [newLeadName, setNewLeadName] = useState("");
+  const [newLeadEmail, setNewLeadEmail] = useState("");
+  const [newLeadPhone, setNewLeadPhone] = useState("");
+  const [newLeadCompany, setNewLeadCompany] = useState("");
+  const [newLeadJobTitle, setNewLeadJobTitle] = useState("");
+  const [newLeadStage, setNewLeadStage] = useState<RepLead["stage"]>("new");
+  const [newLeadValue, setNewLeadValue] = useState<number>(0);
+  const [newLeadNotes, setNewLeadNotes] = useState("");
+  const [savingLead, setSavingLead] = useState(false);
+
+  // Outreach Composer State
+  const [selectedTemplateId, setSelectedTemplateId] = useState("custom_crm");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [outreachSubject, setOutreachSubject] = useState("");
-  const [outreachMessage, setOutreachMessage] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
   const [sendingOutreach, setSendingOutreach] = useState(false);
-  const [outreachSuccess, setOutreachSuccess] = useState<string | null>(null);
-  const [outreachError, setOutreachError] = useState<string | null>(null);
+  const [outreachStatus, setOutreachStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
-  // Payout Details Form State
-  const [payoutMethod, setPayoutMethod] = useState<"bkash" | "nagad" | "bank" | "wise">("bkash");
-  const [payoutAccountNum, setPayoutAccountNum] = useState("");
-  const [payoutAccountName, setPayoutAccountName] = useState("");
-  const [payoutBankName, setPayoutBankName] = useState("");
-  const [payoutRouting, setPayoutRouting] = useState("");
+  // Template Manager Modal
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateSubject, setNewTemplateSubject] = useState("");
+  const [newTemplateBody, setNewTemplateBody] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Payout Details Form
+  const [payoutMethod, setPayoutMethod] = useState("bkash");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [routingNumber, setRoutingNumber] = useState("");
+  const [payoutNotes, setPayoutNotes] = useState("");
   const [savingPayout, setSavingPayout] = useState(false);
   const [payoutSuccess, setPayoutSuccess] = useState(false);
 
-  async function fetchDashboard() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/rep/dashboard");
-      if (res.status === 401) {
-        router.push("/rep/login");
-        return;
+  // Onboarding Checklist
+  const [onboardingChecklist, setOnboardingChecklist] = useState<ChecklistItem[]>([]);
+  const [togglingOnboarding, setTogglingOnboarding] = useState(false);
+
+  // Load Dashboard Data
+  useEffect(() => {
+    async function fetchDashboard() {
+      try {
+        const res = await fetch("/api/rep/dashboard");
+        if (res.status === 401) {
+          router.push("/rep/login");
+          return;
+        }
+
+        const data = await res.json();
+        if (data.ok) {
+          setProfile(data.employee);
+          setCommissionSummary(data.commissionSummary);
+          setBookings(data.bookings || []);
+          setOutreachLogs(data.outreachLogs || []);
+          setOnboardingChecklist(data.employee?.onboarding_checklist || []);
+
+          if (data.employee?.payout_details) {
+            setPayoutMethod(data.employee.payout_details.method || "bkash");
+            setAccountNumber(data.employee.payout_details.account_number || "");
+            setBankName(data.employee.payout_details.bank_name || "");
+            setBranchName(data.employee.payout_details.branch_name || "");
+            setRoutingNumber(data.employee.payout_details.routing_number || "");
+            setPayoutNotes(data.employee.payout_details.notes || "");
+          }
+
+          // If onboarding is incomplete, land on Onboarding tab first
+          if (!data.employee?.onboarding_completed) {
+            setActiveTab("onboarding");
+          }
+        }
+      } catch {
+        // Network error
+      } finally {
+        setLoading(false);
       }
+    }
+
+    fetchDashboard();
+    fetchLeads();
+    fetchCustomTemplates();
+  }, [router]);
+
+  async function fetchLeads() {
+    try {
+      const res = await fetch("/api/rep/leads");
       const data = await res.json();
       if (data.ok) {
-        setRep(data.rep);
-        setSourcedBookings(data.sourcedBookings || []);
-        setCommission(data.commissionSummary);
-
-        // Pre-fill payout details if available
-        if (data.rep.payout_details) {
-          const pd = data.rep.payout_details;
-          setPayoutMethod(pd.method || "bkash");
-          setPayoutAccountNum(pd.account_number || "");
-          setPayoutAccountName(pd.account_name || "");
-          setPayoutBankName(pd.bank_name || "");
-          setPayoutRouting(pd.routing_number || "");
-        }
+        setLeads(data.leads || []);
       }
+    } catch {}
+  }
+
+  async function fetchCustomTemplates() {
+    try {
+      const res = await fetch("/api/rep/templates");
+      const data = await res.json();
+      if (data.ok) {
+        setCustomTemplates(data.templates || []);
+      }
+    } catch {}
+  }
+
+  // Handle template selection & variable replacement
+  useEffect(() => {
+    const allTemplates = [
+      ...BUILTIN_TEMPLATES,
+      ...customTemplates.map((t) => ({
+        id: t.id,
+        name: t.template_name,
+        subject: t.subject,
+        body: t.body_content,
+      })),
+    ];
+
+    const found = allTemplates.find((t) => t.id === selectedTemplateId) || BUILTIN_TEMPLATES[0];
+    if (found) {
+      const refLink = `${SITE_URL}/contact?ref=${profile?.referral_code || "rep"}`;
+      const nameVal = recipientName.trim() ? recipientName.trim().split(/\s+/)[0] : "there";
+      const compVal = companyName.trim() || "your team";
+
+      const replacedSubject = found.subject
+        .replace(/\{\{name\}\}/gi, nameVal)
+        .replace(/\{\{company\}\}/gi, compVal);
+
+      const replacedBody = found.body
+        .replace(/\{\{name\}\}/gi, nameVal)
+        .replace(/\{\{company\}\}/gi, compVal)
+        .replace(/\{\{referral_link\}\}/gi, refLink);
+
+      setEmailSubject(replacedSubject);
+      setEmailMessage(replacedBody);
+    }
+  }, [selectedTemplateId, recipientName, companyName, profile?.referral_code, customTemplates]);
+
+  // Copy Referral Link
+  function handleCopyReferralLink() {
+    const link = `${SITE_URL}/contact?ref=${profile?.referral_code || ""}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  }
+
+  // Handle Logout
+  async function handleLogout() {
+    try {
+      await fetch("/api/rep/auth/logout", { method: "POST" });
+      router.push("/rep/login");
     } catch {
       router.push("/rep/login");
-    } finally {
-      setLoading(false);
     }
   }
 
-  async function fetchOutreachLogs() {
+  // Save New Lead
+  async function handleSaveLead(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newLeadName.trim() || !newLeadEmail.trim()) {
+      alert("Lead Name and Email are required.");
+      return;
+    }
+
+    setSavingLead(true);
     try {
-      const res = await fetch("/api/rep/outreach");
+      const endpoint = editingLead ? `/api/rep/leads/${editingLead.id}` : "/api/rep/leads";
+      const method = editingLead ? "PATCH" : "POST";
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: newLeadName,
+          email: newLeadEmail,
+          phone: newLeadPhone,
+          company_name: newLeadCompany,
+          job_title: newLeadJobTitle,
+          stage: newLeadStage,
+          estimated_deal_value: newLeadValue,
+          notes: newLeadNotes,
+        }),
+      });
+
       const data = await res.json();
       if (data.ok) {
-        setOutreachLogs(data.logs || []);
+        setShowAddLeadModal(false);
+        setEditingLead(null);
+        resetLeadForm();
+        fetchLeads();
+      } else {
+        alert(data.error || "Failed to save lead.");
       }
     } catch {
-      // ignore
+      alert("Network error saving lead.");
+    } finally {
+      setSavingLead(false);
     }
   }
 
-  useEffect(() => {
-    fetchDashboard();
-    fetchOutreachLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  function resetLeadForm() {
+    setNewLeadName("");
+    setNewLeadEmail("");
+    setNewLeadPhone("");
+    setNewLeadCompany("");
+    setNewLeadJobTitle("");
+    setNewLeadStage("new");
+    setNewLeadValue(0);
+    setNewLeadNotes("");
+    setEditingLead(null);
+  }
 
-  // Update template fields when template or recipient details change
-  useEffect(() => {
-    const tmpl = OUTREACH_TEMPLATES.find((t) => t.id === selectedTemplate);
-    if (!tmpl) return;
+  // Delete Lead
+  async function handleDeleteLead(leadId: string) {
+    if (!confirm("Are you sure you want to delete this lead?")) return;
+    try {
+      const res = await fetch(`/api/rep/leads/${leadId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.ok) {
+        setLeads((prev) => prev.filter((l) => l.id !== leadId));
+      }
+    } catch {}
+  }
 
-    const first = recipientName.trim() || "there";
-    const comp = companyName.trim() || "your team";
+  // Shortcut to Email Lead from CRM
+  function handleEmailLeadShortcut(lead: RepLead) {
+    setRecipientEmail(lead.email);
+    setRecipientName(lead.full_name);
+    setCompanyName(lead.company_name || "");
+    setActiveTab("outreach");
+  }
 
-    const sub = tmpl.subject.replace(/{companyName}/g, comp).replace(/{recipientName}/g, first);
-    const body = tmpl.body.replace(/{companyName}/g, comp).replace(/{recipientName}/g, first);
+  // Update Lead Stage
+  async function handleUpdateLeadStage(leadId: string, nextStage: RepLead["stage"]) {
+    try {
+      const res = await fetch(`/api/rep/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: nextStage }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setLeads((prev) =>
+          prev.map((l) => (l.id === leadId ? { ...l, stage: nextStage } : l))
+        );
+      }
+    } catch {}
+  }
 
-    setOutreachSubject(sub);
-    setOutreachMessage(body);
-  }, [selectedTemplate, recipientName, companyName]);
+  // Create Custom Template
+  async function handleSaveCustomTemplate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTemplateName || !newTemplateSubject || !newTemplateBody) return;
 
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+    setSavingTemplate(true);
+    try {
+      const res = await fetch("/api/rep/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template_name: newTemplateName,
+          subject: newTemplateSubject,
+          body_content: newTemplateBody,
+        }),
+      });
 
-  async function handleSendOutreach(e?: React.FormEvent, forceSend = false) {
+      const data = await res.json();
+      if (data.ok) {
+        setCustomTemplates((prev) => [data.template, ...prev]);
+        setShowTemplateModal(false);
+        setNewTemplateName("");
+        setNewTemplateSubject("");
+        setNewTemplateBody("");
+        setSelectedTemplateId(data.template.id);
+      } else {
+        alert(data.error || "Failed to save template.");
+      }
+    } catch {
+      alert("Network error saving template.");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+
+  // Send Cold Outreach Email
+  async function handleSendOutreach(e: React.FormEvent, forceSend = false) {
     if (e) e.preventDefault();
-    if (!recipientEmail.trim() || !outreachSubject.trim() || !outreachMessage.trim()) return;
-
     setSendingOutreach(true);
-    setOutreachSuccess(null);
-    setOutreachError(null);
-    setDuplicateWarning(null);
+    setOutreachStatus(null);
+    if (!forceSend) setDuplicateWarning(null);
 
     try {
       const res = await fetch("/api/rep/outreach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          recipientEmail: recipientEmail.trim(),
-          recipientName: recipientName.trim() || undefined,
-          companyName: companyName.trim() || undefined,
-          subject: outreachSubject.trim(),
-          message: outreachMessage.trim(),
-          templateUsed: selectedTemplate,
+          recipientEmail,
+          recipientName,
+          companyName,
+          subject: emailSubject,
+          message: emailMessage,
+          templateUsed: selectedTemplateId,
           forceSend,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.ok) {
-        if (res.status === 409 && data.duplicateWarning) {
-          setDuplicateWarning(data.error || "You emailed this contact recently.");
-          return;
-        }
-        throw new Error(data.error || "Failed to dispatch outreach email.");
+      if (res.status === 409 && data.isDuplicate) {
+        setDuplicateWarning(data.error);
+        setSendingOutreach(false);
+        return;
       }
 
-      setOutreachSuccess(`Outreach email successfully delivered to ${recipientEmail.trim()}!`);
-      setRecipientEmail("");
-      setRecipientName("");
-      setCompanyName("");
-      setDuplicateWarning(null);
-      fetchOutreachLogs();
-      fetchDashboard();
-      setTimeout(() => setOutreachSuccess(null), 5000);
-    } catch (err: unknown) {
-      setOutreachError((err as Error).message || "An unexpected error occurred.");
+      if (data.ok) {
+        setOutreachStatus({ type: "success", message: data.message || "Outreach email sent successfully!" });
+        setDuplicateWarning(null);
+        setRecipientEmail("");
+        setRecipientName("");
+        setCompanyName("");
+
+        if (data.log) {
+          setOutreachLogs((prev) => [data.log, ...prev]);
+        }
+      } else {
+        setOutreachStatus({ type: "error", message: data.error || "Failed to send outreach email." });
+      }
+    } catch {
+      setOutreachStatus({ type: "error", message: "Network error sending email." });
     } finally {
       setSendingOutreach(false);
     }
   }
 
+  // Save Payout Details
   async function handleSavePayoutDetails(e: React.FormEvent) {
     e.preventDefault();
     setSavingPayout(true);
@@ -283,825 +536,1317 @@ export default function RepDashboardPage() {
         body: JSON.stringify({
           payout_details: {
             method: payoutMethod,
-            account_number: payoutAccountNum.trim(),
-            account_name: payoutAccountName.trim(),
-            bank_name: payoutMethod === "bank" ? payoutBankName.trim() : undefined,
-            routing_number: payoutMethod === "bank" ? payoutRouting.trim() : undefined,
+            account_number: accountNumber,
+            bank_name: bankName,
+            branch_name: branchName,
+            routing_number: routingNumber,
+            notes: payoutNotes,
           },
         }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Failed to update payout details.");
+      if (data.ok) {
+        setPayoutSuccess(true);
+        setTimeout(() => setPayoutSuccess(false), 3000);
       }
-
-      setPayoutSuccess(true);
-      setTimeout(() => setPayoutSuccess(false), 3000);
-    } catch (err: unknown) {
-      alert((err as Error).message || "Error saving payout details.");
-    } finally {
+    } catch {} finally {
       setSavingPayout(false);
     }
   }
 
-  async function toggleOnboardingTask(index: number, done: boolean) {
-    if (!rep) return;
+  // Toggle Onboarding Complete
+  async function handleCompleteOnboarding() {
+    setTogglingOnboarding(true);
     try {
-      const res = await fetch("/api/rep/onboarding", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskIndex: index, done }),
-      });
-
+      const res = await fetch("/api/rep/onboarding/complete", { method: "POST" });
       const data = await res.json();
       if (data.ok) {
-        setRep((prev) => (prev ? { ...prev, onboarding_checklist: data.onboarding_checklist } : null));
+        if (profile) {
+          setProfile({ ...profile, onboarding_completed: true });
+        }
+        setActiveTab("overview");
       }
-    } catch {
-      alert("Failed to update task.");
+    } catch {} finally {
+      setTogglingOnboarding(false);
     }
-  }
-
-  async function handleLogout() {
-    await fetch("/api/rep/auth/logout", { method: "POST" });
-    router.push("/rep/login");
-  }
-
-  function copyReferralLink() {
-    if (!rep) return;
-    const refCode = rep.referral_code || rep.id;
-    const link = `${SITE_URL}/contact?ref=${refCode}`;
-    navigator.clipboard.writeText(link);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0d0d1f] text-white">
-        <div className="flex items-center gap-3 text-sm text-purple">
-          <Loader2 size={18} className="animate-spin" /> Loading Rep Dashboard…
+      <div className="min-h-screen bg-navy flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3 text-white">
+          <Loader2 size={32} className="animate-spin text-purple" />
+          <p className="text-sm font-medium text-white/70">Loading Sales Rep Portal…</p>
         </div>
       </div>
     );
   }
 
-  if (!rep) return null;
+  if (!profile) {
+    return null;
+  }
 
-  const symbol = CURRENCY_SYMBOLS[rep.currency] || "$";
-  const refCode = rep.referral_code || rep.id;
-  const referralUrl = `${SITE_URL}/contact?ref=${refCode}`;
-  const checklist = rep.onboarding_checklist || [];
-  const completedTasks = checklist.filter((c) => c.done).length;
-  const senderAlias = rep.assigned_outreach_email || "info@digitaldude.co.uk";
+  const currencySymbol = profile.currency === "BDT" ? "৳" : profile.currency === "GBP" ? "£" : "$";
+  const repAlias = profile.assigned_outreach_email || `${profile.full_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "")}@digitaldude.co.uk`;
+  const corporateReplyTo = profile.assigned_outreach_email || "info@digitaldude.co.uk";
+  const referralLink = `${SITE_URL}/contact?ref=${profile.referral_code || "rep"}`;
+
+  // Filtered Leads
+  const filteredLeads = leads.filter((lead) => {
+    const matchesSearch =
+      lead.full_name.toLowerCase().includes(leadSearch.toLowerCase()) ||
+      lead.email.toLowerCase().includes(leadSearch.toLowerCase()) ||
+      (lead.company_name && lead.company_name.toLowerCase().includes(leadSearch.toLowerCase()));
+
+    const matchesStage = leadStageFilter === "all" || lead.stage === leadStageFilter;
+    return matchesSearch && matchesStage;
+  });
 
   return (
-    <div className="min-h-screen bg-[#0d0d1f] text-white selection:bg-purple selection:text-white pb-20">
-      {/* Top Header Bar */}
-      <header className="border-b border-white/10 bg-[#0d0d1f]/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-purple to-indigo-500 shadow-md shadow-purple/20">
-              <ShieldCheck size={20} className="text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-sm sm:text-base text-white">{rep.full_name}</span>
-                <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                  {rep.status}
-                </span>
-              </div>
-              <p className="text-xs text-white/50">
-                {rep.role_title || "Sales Rep (BDE)"} · {rep.email}
-              </p>
-            </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row antialiased">
+      {/* ========================================================================= */}
+      {/* MOBILE TOP BAR */}
+      {/* ========================================================================= */}
+      <div className="md:hidden flex items-center justify-between bg-navy/95 border-b border-white/10 px-5 py-3.5 sticky top-0 z-50 backdrop-blur-md">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-purple flex items-center justify-center text-white font-bold text-sm shadow-md">
+            DD
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition"
-            >
-              <LogOut size={13} />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+          <div>
+            <h1 className="text-sm font-bold text-white leading-tight">Sales Rep CRM</h1>
+            <p className="text-[10px] text-white/50">{profile.full_name}</p>
           </div>
         </div>
-      </header>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 rounded-xl bg-white/5 text-white/80 hover:text-white"
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
-        {/* Rep Referral Outreach Hero */}
-        <div className="relative rounded-3xl border border-purple/30 bg-gradient-to-br from-purple/10 via-indigo-950/40 to-purple/5 p-6 sm:p-8 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
-          <div className="space-y-2 max-w-2xl">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-purple/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-purple">
-              <Sparkles size={12} /> Your Dedicated Outreach &amp; Referral Link
-            </span>
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-              Share your link with founders &amp; prospect leads
-            </h2>
-            <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
-              When a prospect clicks your link, a 30-day attribution cookie is installed. Any discovery call they book is credited directly to you for meeting bonuses and closed-won commissions.
-            </p>
-            <div className="font-mono text-xs text-purple-200 bg-black/40 p-3 rounded-xl border border-purple/20 break-all select-all flex items-center justify-between gap-2">
-              <span>{referralUrl}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-            <button
-              onClick={copyReferralLink}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple to-indigo-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-purple/30 hover:brightness-110 transition"
-            >
-              {copiedLink ? <Check size={16} /> : <Copy size={16} />}
-              {copiedLink ? "Copied Referral Link!" : "Copy Outreach Link"}
-            </button>
-            <a
-              href={referralUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-4 py-3.5 text-xs font-semibold text-white/80 hover:bg-white/10 transition"
-            >
-              Test Link <ExternalLink size={13} />
-            </a>
-          </div>
-        </div>
-
-        {/* Live Metrics Ribbon */}
-        {commission && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md shadow-xl">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white/40 block">
-                Total Sourced Calls
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-white">
-                  {commission.qualifiedMeetings}
-                </span>
-                <span className="text-xs text-white/60">qualified discovery calls</span>
+      {/* ========================================================================= */}
+      {/* DEDICATED DARK / NAVY CRM SIDEBAR */}
+      {/* ========================================================================= */}
+      <aside
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-navy border-r border-white/10 flex flex-col justify-between p-4 transition-transform duration-200 ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        <div className="space-y-6">
+          {/* Brand Header */}
+          <div className="flex items-center justify-between pb-4 border-b border-white/10 px-2">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple shadow-lg text-white font-bold text-sm">
+                DD
               </div>
-              <p className="mt-1 text-[11px] text-white/40">
-                {commission.meetingBonusPaidCount} bonus payouts completed
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md shadow-xl">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white/40 block">
-                Meeting Bonus Accrued
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-1">
-                <span className="text-xl sm:text-2xl font-black text-white">
-                  {symbol}
-                  {commission.meetingBonusRangeTotal[0].toLocaleString()}
-                </span>
-                <span className="text-xs text-white/40">
-                  – {symbol}
-                  {commission.meetingBonusRangeTotal[1].toLocaleString()}
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-emerald-400 font-medium">
-                {symbol}{rep.meeting_bonus_min || 1000} – {symbol}{rep.meeting_bonus_max || 2000} per qualified call
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md shadow-xl">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white/40 block">
-                Closed-Won Deal Revenue
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-emerald-400">
-                  ${commission.wonDealValue.toLocaleString()}
-                </span>
-                <span className="text-xs text-white/60">({commission.wonDealsCount} won)</span>
-              </div>
-              <p className="mt-1 text-[11px] text-white/40">From your attributed bookings</p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-md shadow-xl">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white/40 block">
-                Deal Commission Accrued
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-1">
-                <span className="text-xl sm:text-2xl font-black text-purple">
-                  ${commission.dealCommissionRangeTotal[0].toLocaleString()}
-                </span>
-                <span className="text-xs text-white/40">
-                  – ${commission.dealCommissionRangeTotal[1].toLocaleString()}
-                </span>
-              </div>
-              <p className="mt-1 text-[11px] text-purple font-medium">
-                {rep.deal_commission_percent_min || 10}%–{rep.deal_commission_percent_max || 15}% closed deal commission
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Tab Navigation */}
-        <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-1">
-          <button
-            onClick={() => setActiveTab("leads")}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
-              activeTab === "leads"
-                ? "border-purple text-white bg-purple/10 rounded-t-xl"
-                : "border-transparent text-white/50 hover:text-white"
-            }`}
-          >
-            <TrendingUp size={14} /> My Leads &amp; Deals ({sourcedBookings.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("outreach")}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
-              activeTab === "outreach"
-                ? "border-purple text-white bg-purple/10 rounded-t-xl"
-                : "border-transparent text-white/50 hover:text-white"
-            }`}
-          >
-            <Send size={14} /> Cold Outreach Suite ({commission?.outreachSentCount || 0})
-          </button>
-          <button
-            onClick={() => setActiveTab("earnings")}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
-              activeTab === "earnings"
-                ? "border-purple text-white bg-purple/10 rounded-t-xl"
-                : "border-transparent text-white/50 hover:text-white"
-            }`}
-          >
-            <DollarSign size={14} /> Earnings &amp; Payout Account
-          </button>
-          <button
-            onClick={() => setActiveTab("onboarding")}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition ${
-              activeTab === "onboarding"
-                ? "border-purple text-white bg-purple/10 rounded-t-xl"
-                : "border-transparent text-white/50 hover:text-white"
-            }`}
-          >
-            <BookOpen size={14} /> Onboarding &amp; Playbook ({completedTasks}/{checklist.length})
-          </button>
-        </div>
-
-        {/* TAB 1: SOURCED LEADS & DEALS */}
-        {activeTab === "leads" && (
-          <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 shadow-2xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
               <div>
-                <h3 className="text-base font-bold text-white">Attributed Discovery Calls &amp; Pipeline Deals</h3>
-                <p className="text-xs text-white/50">
-                  Every meeting booked via your link appears here automatically with live deal stages.
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-white/5 bg-white/[0.02] text-[11px] font-bold uppercase tracking-wider text-white/50">
-                  <tr>
-                    <th className="py-3 px-4">Client / Company</th>
-                    <th className="py-3 px-4">Call Date</th>
-                    <th className="py-3 px-4">Deal Stage</th>
-                    <th className="py-3 px-4">Contract Value</th>
-                    <th className="py-3 px-4">Meeting Bonus</th>
-                    <th className="py-3 px-4">Deal Commission</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 font-medium">
-                  {sourcedBookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-white/[0.02] transition">
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-white">{b.name}</div>
-                        <div className="text-[11px] text-white/50">
-                          {b.company_name} · {b.work_email}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-white/70">
-                        {new Date(b.slot_start).toLocaleDateString()}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/80">
-                          {(b.stage || b.status || "confirmed").replace(/_/g, " ")}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-white">
-                        ${(Number(b.deal_value) || 8500).toLocaleString()}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-block rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border ${
-                            b.meeting_bonus_payout_status === "paid"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                              : b.meeting_bonus_payout_status === "approved"
-                              ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                          }`}
-                        >
-                          {b.meeting_bonus_payout_status || "pending"}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-block rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border ${
-                            b.deal_commission_payout_status === "paid"
-                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                              : b.deal_commission_payout_status === "approved"
-                              ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
-                              : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                          }`}
-                        >
-                          {b.deal_commission_payout_status || "pending"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {sourcedBookings.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-xs text-white/40">
-                        No discovery calls attributed yet. Start sending outreach emails in the Cold Outreach Suite tab!
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: COLD OUTREACH SUITE */}
-        {activeTab === "outreach" && (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Outreach Email Composer */}
-              <div className="lg:col-span-2 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 sm:p-8 shadow-2xl space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                      <Send size={18} className="text-purple" /> Send Client Outreach Email
-                    </h3>
-                    <p className="text-xs text-white/50 mt-0.5">
-                      Sends high-converting sales emails with your unique tracking link automatically embedded.
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-purple/10 border border-purple/30 px-3 py-1 text-[11px] font-mono text-purple-200">
-                    Sender: <strong className="text-white">{senderAlias}</strong>
-                  </div>
-                </div>
-
-                {outreachSuccess && (
-                  <div className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 p-3.5 text-xs text-emerald-300 font-medium">
-                    <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
-                    <span>{outreachSuccess}</span>
-                  </div>
-                )}
-
-                {outreachError && (
-                  <div className="flex items-center gap-2 rounded-2xl bg-red-500/10 border border-red-500/30 p-3.5 text-xs text-red-300 font-medium">
-                    <AlertCircle size={16} className="shrink-0 text-red-400" />
-                    <span>{outreachError}</span>
-                  </div>
-                )}
-
-                {duplicateWarning && (
-                  <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 space-y-2.5 text-xs text-amber-200">
-                    <div className="flex items-start gap-2">
-                      <AlertCircle size={16} className="shrink-0 text-amber-400 mt-0.5" />
-                      <span className="leading-relaxed font-medium">{duplicateWarning}</span>
-                    </div>
-                    <div className="flex items-center gap-2 pl-6">
-                      <button
-                        type="button"
-                        onClick={() => handleSendOutreach(undefined, true)}
-                        className="rounded-xl bg-amber-500 hover:bg-amber-400 text-navy font-bold px-3 py-1.5 text-xs transition shadow-xs cursor-pointer active:scale-95"
-                      >
-                        Send Anyway
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDuplicateWarning(null)}
-                        className="rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white/80 font-medium px-3 py-1.5 text-xs transition cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <form onSubmit={handleSendOutreach} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
-                      Choose Sales Pitch Template
-                    </label>
-                    <select
-                      value={selectedTemplate}
-                      onChange={(e) => setSelectedTemplate(e.target.value)}
-                      className="w-full rounded-2xl border border-white/10 bg-white/5 p-3 text-xs font-semibold text-white outline-none focus:border-purple focus:bg-white/10"
-                    >
-                      {OUTREACH_TEMPLATES.map((tmpl) => (
-                        <option key={tmpl.id} value={tmpl.id} className="bg-[#0d0d1f] text-white">
-                          {tmpl.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                        Recipient Work Email *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={recipientEmail}
-                        onChange={(e) => setRecipientEmail(e.target.value)}
-                        placeholder="prospect@company.com"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/20 outline-none focus:border-purple"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                        Recipient Name
-                      </label>
-                      <input
-                        type="text"
-                        value={recipientName}
-                        onChange={(e) => setRecipientName(e.target.value)}
-                        placeholder="e.g. Sarah Connor"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/20 outline-none focus:border-purple"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                        Prospect Company
-                      </label>
-                      <input
-                        type="text"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        placeholder="e.g. Apex Logistics Ltd"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-white/20 outline-none focus:border-purple"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                      Email Subject Line *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={outreachSubject}
-                      onChange={(e) => setOutreachSubject(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs font-semibold text-white outline-none focus:border-purple"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                      Email Body Content * (Auto-includes 1-click meeting booking button)
-                    </label>
-                    <textarea
-                      rows={8}
-                      required
-                      value={outreachMessage}
-                      onChange={(e) => setOutreachMessage(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white outline-none focus:border-purple leading-relaxed font-sans"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <p className="text-[11px] text-white/40">
-                      Replies will go directly to <strong className="text-white/70">{rep.email}</strong>
-                    </p>
-
-                    <button
-                      type="submit"
-                      disabled={sendingOutreach || !recipientEmail.trim()}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-purple to-indigo-600 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-purple/30 hover:brightness-110 disabled:opacity-50 transition"
-                    >
-                      {sendingOutreach ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          Sending via {senderAlias}…
-                        </>
-                      ) : (
-                        <>
-                          <Send size={14} /> Send Outreach Email
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Outreach Tips & Tracking Stats */}
-              <div className="space-y-6">
-                <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-purple flex items-center gap-1.5">
-                    <Sparkles size={14} /> High-Conversion Sales Tips
-                  </h4>
-                  <ul className="space-y-2.5 text-xs text-white/70 leading-relaxed">
-                    <li className="flex items-start gap-2">
-                      <ChevronRight size={14} className="text-purple shrink-0 mt-0.5" />
-                      <span><strong>Personalize First:</strong> Mention their exact company name and pain point (e.g. spreadsheet bottlenecks).</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChevronRight size={14} className="text-purple shrink-0 mt-0.5" />
-                      <span><strong>Value First:</strong> Frame the call as a 15-minute technical discovery / architecture advice session.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChevronRight size={14} className="text-purple shrink-0 mt-0.5" />
-                      <span><strong>Follow-Up Cadence:</strong> Most closed-won deals schedule after the 2nd follow-up message.</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="rounded-3xl border border-white/10 bg-purple/5 p-6 space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple">Attribution Safeguard</span>
-                  <p className="text-xs text-white/70 leading-relaxed">
-                    Every outreach email sent from this portal automatically tags the link with your code <code className="text-purple font-mono font-bold">{refCode}</code>.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Sent Outreach History Log */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
-              <h3 className="text-base font-bold text-white">Sent Outreach Log</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-white/5 text-[11px] font-bold uppercase tracking-wider text-white/50">
-                    <tr>
-                      <th className="py-2.5 px-3">Prospect Email</th>
-                      <th className="py-2.5 px-3">Company</th>
-                      <th className="py-2.5 px-3">Subject</th>
-                      <th className="py-2.5 px-3">Template</th>
-                      <th className="py-2.5 px-3">Date Sent</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 font-medium">
-                    {outreachLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-white/[0.02]">
-                        <td className="py-3 px-3 font-bold text-white">{log.recipient_email}</td>
-                        <td className="py-3 px-3 text-white/70">{log.company_name || "—"}</td>
-                        <td className="py-3 px-3 text-white/80 max-w-xs truncate">{log.subject}</td>
-                        <td className="py-3 px-3">
-                          <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/60">
-                            {log.template_used || "custom"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-white/50">
-                          {new Date(log.sent_at).toLocaleDateString()} {new Date(log.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </td>
-                      </tr>
-                    ))}
-                    {outreachLogs.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="py-8 text-center text-xs text-white/40">
-                          No outreach emails sent yet. Compose your first message above!
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                <h2 className="text-sm font-extrabold text-white tracking-wide">THE DIGITAL DUDE</h2>
+                <span className="text-[10px] font-semibold text-purple tracking-widest uppercase block">
+                  Rep Portal CRM
+                </span>
               </div>
             </div>
           </div>
-        )}
 
-        {/* TAB 3: EARNINGS & PAYOUT DETAILS */}
-        {activeTab === "earnings" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Compensation Overview */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 sm:p-8 space-y-6">
-              <div className="border-b border-white/5 pb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <DollarSign size={18} className="text-purple" /> Commission &amp; Bonus Structure
-                </h3>
-                <p className="text-xs text-white/50 mt-0.5">
-                  Your agreed compensation model and payout currency.
-                </p>
+          {/* Rep Profile Mini Card */}
+          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3.5 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-purple/20 border border-purple/40 text-purple flex items-center justify-center font-bold text-sm">
+                {profile.full_name.charAt(0)}
               </div>
-
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-white/50 uppercase tracking-wider block">Meeting Bonus Range</span>
-                    <span className="text-xl font-bold text-white">
-                      {symbol}{rep.meeting_bonus_min || 1000} – {symbol}{rep.meeting_bonus_max || 2000}
-                    </span>
-                  </div>
-                  <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                    Per Qualified Call
-                  </span>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-white/50 uppercase tracking-wider block">Closed Deal Commission</span>
-                    <span className="text-xl font-bold text-purple">
-                      {rep.deal_commission_percent_min || 10}% – {rep.deal_commission_percent_max || 15}%
-                    </span>
-                  </div>
-                  <span className="text-xs text-purple font-bold bg-purple/10 px-3 py-1 rounded-full border border-purple/20">
-                    Of Closed Contract Value
-                  </span>
-                </div>
-
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-white/50 uppercase tracking-wider block">Payout Currency</span>
-                    <span className="text-base font-bold text-white">{rep.currency} ({symbol})</span>
-                  </div>
-                  <span className="text-xs text-white/60">Bi-weekly / Monthly Payouts</span>
-                </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-bold text-white truncate">{profile.full_name}</p>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Active Rep
+                </span>
               </div>
             </div>
-
-            {/* Payout Account Manager */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 sm:p-8 space-y-6">
-              <div className="border-b border-white/5 pb-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <CreditCard size={18} className="text-purple" /> Payout Account Settings
-                  </h3>
-                  <p className="text-xs text-white/50 mt-0.5">
-                    Submit or update where your bonuses and commissions should be wired.
-                  </p>
-                </div>
-                {payoutSuccess && (
-                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                    <Check size={14} /> Saved!
-                  </span>
-                )}
-              </div>
-
-              <form onSubmit={handleSavePayoutDetails} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
-                    Payout Method
-                  </label>
-                  <select
-                    value={payoutMethod}
-                    onChange={(e) => setPayoutMethod(e.target.value as "bkash" | "nagad" | "bank" | "wise")}
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 p-3 text-xs font-semibold text-white outline-none focus:border-purple"
-                  >
-                    <option value="bkash" className="bg-[#0d0d1f]">bKash (Personal / Merchant)</option>
-                    <option value="nagad" className="bg-[#0d0d1f]">Nagad</option>
-                    <option value="bank" className="bg-[#0d0d1f]">Bank Transfer (Local / International)</option>
-                    <option value="wise" className="bg-[#0d0d1f]">Wise / Payoneer</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                    {payoutMethod === "bank" ? "Account / IBAN Number *" : "Mobile / Account Number *"}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={payoutAccountNum}
-                    onChange={(e) => setPayoutAccountNum(e.target.value)}
-                    placeholder={payoutMethod === "bank" ? "e.g. 205012345678" : "e.g. 01700000000"}
-                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white outline-none focus:border-purple"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                    Account Holder Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={payoutAccountName}
-                    onChange={(e) => setPayoutAccountName(e.target.value)}
-                    placeholder="Full legal name on account"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white outline-none focus:border-purple"
-                  />
-                </div>
-
-                {payoutMethod === "bank" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                        Bank Name
-                      </label>
-                      <input
-                        type="text"
-                        value={payoutBankName}
-                        onChange={(e) => setPayoutBankName(e.target.value)}
-                        placeholder="e.g. City Bank, HSBC"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white outline-none focus:border-purple"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-white/60 mb-1">
-                        Routing / Branch Code
-                      </label>
-                      <input
-                        type="text"
-                        value={payoutRouting}
-                        onChange={(e) => setPayoutRouting(e.target.value)}
-                        placeholder="e.g. 225272635"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white outline-none focus:border-purple"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={savingPayout}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple to-indigo-600 py-3 text-xs font-bold text-white shadow-lg shadow-purple/25 hover:brightness-110 disabled:opacity-50 transition"
-                >
-                  {savingPayout ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" /> Saving Payout Details…
-                    </>
-                  ) : (
-                    <>
-                      <Check size={14} /> Update Payout Account
-                    </>
-                  )}
-                </button>
-              </form>
+            <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-white/60">
+              <span>Alias:</span>
+              <span className="font-mono text-purple truncate max-w-[130px]">{repAlias}</span>
             </div>
           </div>
-        )}
 
-        {/* TAB 4: ONBOARDING & PLAYBOOK */}
+          {/* Navigation Links */}
+          <nav className="space-y-1.5">
+            <button
+              onClick={() => {
+                setActiveTab("onboarding");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+                activeTab === "onboarding"
+                  ? "bg-purple text-white shadow-lg shadow-purple/20"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <BookOpen size={16} />
+                <span>Onboarding &amp; Pitch Deck</span>
+              </div>
+              {!profile.onboarding_completed && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/40">
+                  START
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("overview");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+                activeTab === "overview"
+                  ? "bg-purple text-white shadow-lg shadow-purple/20"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <TrendingUp size={16} />
+              <span>Overview &amp; Analytics</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("leads");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+                activeTab === "leads"
+                  ? "bg-purple text-white shadow-lg shadow-purple/20"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Users size={16} />
+                <span>Leads CRM</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-white/80">
+                {leads.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("outreach");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+                activeTab === "outreach"
+                  ? "bg-purple text-white shadow-lg shadow-purple/20"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Send size={16} />
+                <span>Cold Outreach</span>
+              </div>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple/20 text-purple font-mono">
+                {outreachLogs.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("payouts");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+                activeTab === "payouts"
+                  ? "bg-purple text-white shadow-lg shadow-purple/20"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <CreditCard size={16} />
+              <span>Earnings &amp; Payouts</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="space-y-3 pt-4 border-t border-white/10">
+          {/* Quick Copy Outreach Link */}
+          <div className="rounded-xl bg-white/[0.04] border border-white/10 p-2.5 space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 block">
+              Your Referral Link
+            </span>
+            <button
+              onClick={handleCopyReferralLink}
+              className="w-full flex items-center justify-between rounded-lg bg-purple/10 hover:bg-purple/20 border border-purple/30 p-1.5 text-xs text-purple transition font-medium"
+            >
+              <span className="font-mono text-[11px] truncate mr-1">?ref={profile.referral_code}</span>
+              {copiedLink ? <Check size={14} className="text-emerald-400 shrink-0" /> : <Copy size={14} className="shrink-0" />}
+            </button>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition"
+          >
+            <LogOut size={15} />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* MAIN CONTENT AREA */}
+      {/* ========================================================================= */}
+      <main className="flex-1 min-h-screen p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
+        {/* ===================================================================== */}
+        {/* VIEW 1: ONBOARDING & TRAINING */}
+        {/* ===================================================================== */}
         {activeTab === "onboarding" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Interactive Checklist */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 sm:p-8 space-y-6">
-              <div className="border-b border-white/5 pb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <CheckCircle2 size={18} className="text-purple" /> Your Onboarding Checklist
-                </h3>
-                <p className="text-xs text-white/50 mt-0.5">
-                  Complete each task as you get set up with our sales operations.
+          <div className="max-w-4xl space-y-6 animate-in fade-in duration-150">
+            {/* Onboarding Header Banner */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-navy via-slate-900 to-purple/30 border border-purple/30 p-6 sm:p-8 shadow-2xl">
+              <div className="relative z-10 space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full bg-purple/20 px-3 py-1 text-xs font-bold text-purple border border-purple/40">
+                  <Sparkles size={13} />
+                  <span>Representative Kickoff Guide</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Welcome to The Digital Dude Sales Team
+                </h1>
+                <p className="text-xs sm:text-sm text-white/70 max-w-2xl leading-relaxed">
+                  Everything you need to source discovery calls, qualify high-ticket clients, and earn competitive milestone bonuses &amp; deal commissions.
+                </p>
+
+                <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleCompleteOnboarding}
+                    disabled={togglingOnboarding}
+                    className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                  >
+                    {togglingOnboarding ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : profile.onboarding_completed ? (
+                      <CheckCircle2 size={14} />
+                    ) : (
+                      <Check size={14} />
+                    )}
+                    {profile.onboarding_completed ? "Onboarding Marked Complete" : "Mark Onboarding as Complete"}
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("leads")}
+                    className="rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/10 transition"
+                  >
+                    Go to Leads CRM →
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Core Modules Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Module 1: Value Prop */}
+              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-purple font-bold text-sm">
+                  <Layers size={18} />
+                  <h3>1. Our Core Value Proposition</h3>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  We build high-performance <strong>Custom CRMs, SaaS Platforms, Operations Systems, and AI-Driven Workflows</strong> for rapidly scaling businesses in the UK, Australia, US, and Bangladesh.
+                </p>
+                <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-slate-400 space-y-1">
+                  <p>• <strong>Deal Size:</strong> $3,000 to $50,000+ USD (or 300,000৳ to 5,000,000৳ BDT)</p>
+                  <p>• <strong>Ideal Client:</strong> CEOs, CTOs, Founders, Operations Directors, Agency Owners.</p>
+                </div>
+              </div>
+
+              {/* Module 2: Commission Structure */}
+              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                  <Award size={18} />
+                  <h3>2. Your Compensation Structure</h3>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  You earn across two lucrative milestones on every opportunity you bring:
+                </p>
+                <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-slate-400 space-y-1">
+                  <p>• <strong>Qualified Meeting Bonus:</strong> {currencySymbol}{profile.meeting_bonus_min || 1000} – {currencySymbol}{profile.meeting_bonus_max || 2000} per held call.</p>
+                  <p>• <strong>Closed Deal Commission:</strong> {profile.deal_commission_percent_min || 10}% – {profile.deal_commission_percent_max || 15}% of total contract revenue.</p>
+                </div>
+              </div>
+
+              {/* Module 3: Objection Handling */}
+              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                  <HelpCircle size={18} />
+                  <h3>3. Cold Outreach &amp; Objections</h3>
+                </div>
+                <div className="space-y-2 text-xs text-slate-300">
+                  <p><strong>&ldquo;We already use off-the-shelf software:&rdquo;</strong></p>
+                  <p className="text-slate-400 italic pl-2 border-l border-amber-400/40">
+                    &ldquo;Most off-the-shelf tools don&apos;t talk to each other, forcing duplicate manual entry. We custom-build unified systems where data flows seamlessly.&rdquo;
+                  </p>
+                </div>
+              </div>
+
+              {/* Module 4: Step-by-Step Workflow */}
+              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
+                  <TrendingUp size={18} />
+                  <h3>4. Daily Execution Cadence</h3>
+                </div>
+                <ul className="text-xs text-slate-300 space-y-1.5">
+                  <li>1. Find prospects on LinkedIn / Apollo and add to <strong>Leads CRM</strong>.</li>
+                  <li>2. Dispatch personalized outreach via the <strong>Cold Outreach</strong> tab.</li>
+                  <li>3. Send them your unique booking link: <span className="font-mono text-purple">{referralLink}</span></li>
+                  <li>4. Our technical leadership conducts the call — you earn meeting bonus + deal commission!</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* VIEW 2: OVERVIEW & ANALYTICS */}
+        {/* ===================================================================== */}
+        {activeTab === "overview" && (
+          <div className="space-y-6 animate-in fade-in duration-150">
+            {/* Top Bar Banner */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-white">Representative Performance</h1>
+                <p className="text-xs text-white/60">Live metrics tracked to your unique referral tag: <strong>{profile.referral_code}</strong></p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleCopyReferralLink}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple/20 border border-purple/40 px-3.5 py-2 text-xs font-bold text-purple hover:bg-purple/30 transition"
+                >
+                  {copiedLink ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                  <span>Copy Outreach Link</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Performance Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
+                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
+                  <span>Discovery Calls</span>
+                  <Calendar size={16} className="text-purple" />
+                </div>
+                <div className="text-2xl font-black text-white">{commissionSummary?.totalBookingsCount || 0}</div>
+                <p className="text-[11px] text-emerald-400 font-medium">
+                  {commissionSummary?.qualifiedMeetings || 0} Qualified &amp; Held
                 </p>
               </div>
 
-              <div className="space-y-3">
-                {checklist.map((task, idx) => (
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
+                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
+                  <span>Meeting Bonus Range</span>
+                  <DollarSign size={16} className="text-emerald-400" />
+                </div>
+                <div className="text-2xl font-black text-white">
+                  {currencySymbol}{commissionSummary?.meetingBonusRangeTotal[0] || 0} – {currencySymbol}{commissionSummary?.meetingBonusRangeTotal[1] || 0}
+                </div>
+                <p className="text-[11px] text-white/50">
+                  {commissionSummary?.meetingBonusPaidCount || 0} bonuses paid out
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
+                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
+                  <span>Deals Won</span>
+                  <Award size={16} className="text-blue-400" />
+                </div>
+                <div className="text-2xl font-black text-white">{commissionSummary?.wonDealsCount || 0}</div>
+                <p className="text-[11px] text-white/50">
+                  {currencySymbol}{commissionSummary?.wonDealValue?.toLocaleString() || 0} total deal volume
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
+                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
+                  <span>Deal Commissions</span>
+                  <Sparkles size={16} className="text-purple" />
+                </div>
+                <div className="text-2xl font-black text-white">
+                  {currencySymbol}{commissionSummary?.dealCommissionRangeTotal[0] || 0} – {currencySymbol}{commissionSummary?.dealCommissionRangeTotal[1] || 0}
+                </div>
+                <p className="text-[11px] text-white/50">
+                  {commissionSummary?.dealCommissionPaidCount || 0} commissions finalized
+                </p>
+              </div>
+            </div>
+
+            {/* Discovery Calls Table */}
+            <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-white">Discovery Calls &amp; Deals Sourced</h3>
+                  <p className="text-xs text-white/50">Clients who booked through your referral tag</p>
+                </div>
+                <span className="text-xs font-bold text-purple">{bookings.length} Tracked</span>
+              </div>
+
+              {bookings.length === 0 ? (
+                <div className="text-center py-10 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
+                  <Calendar size={28} className="mx-auto text-white/20" />
+                  <p className="text-xs text-white/50">No discovery calls tracked yet.</p>
+                  <p className="text-[11px] text-white/40">Use the Leads CRM or Cold Outreach tab to start sending your link!</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-3">Client</th>
+                        <th className="py-3 px-3">Company</th>
+                        <th className="py-3 px-3">Scheduled Date</th>
+                        <th className="py-3 px-3">Call Status</th>
+                        <th className="py-3 px-3">Meeting Bonus</th>
+                        <th className="py-3 px-3">Deal Comm</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {bookings.map((b) => (
+                        <tr key={b.id} className="hover:bg-white/[0.02]">
+                          <td className="py-3 px-3">
+                            <span className="font-bold text-white block">{b.name}</span>
+                            <span className="text-[11px] text-white/50 font-mono">{b.work_email}</span>
+                          </td>
+                          <td className="py-3 px-3 text-white/80">{b.company_name || "—"}</td>
+                          <td className="py-3 px-3 text-white/70">
+                            {new Date(b.slot_start).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                b.status === "completed"
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : b.status === "cancelled"
+                                  ? "bg-rose-500/20 text-rose-300"
+                                  : "bg-purple/20 text-purple"
+                              }`}
+                            >
+                              {b.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                                b.meeting_bonus_payout_status === "paid"
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : "bg-amber-500/20 text-amber-300"
+                              }`}
+                            >
+                              {b.meeting_bonus_payout_status === "paid" ? "Paid" : "Pending Review"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                                b.deal_commission_payout_status === "paid"
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : "bg-slate-700 text-slate-300"
+                              }`}
+                            >
+                              {b.deal_commission_payout_status === "paid" ? "Paid" : "Pending Close"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* VIEW 3: LEADS CRM */}
+        {/* ===================================================================== */}
+        {activeTab === "leads" && (
+          <div className="space-y-6 animate-in fade-in duration-150">
+            {/* Header & Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-white">Leads Pipeline CRM</h1>
+                <p className="text-xs text-white/60">Organize prospective clients, track stage transitions, and trigger outreach.</p>
+              </div>
+
+              <button
+                onClick={() => {
+                  resetLeadForm();
+                  setShowAddLeadModal(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-lg shadow-purple/25 transition"
+              >
+                <Plus size={16} />
+                <span>Add New Lead</span>
+              </button>
+            </div>
+
+            {/* Search & Stage Filters */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Search input */}
+              <div className="relative flex-1 max-w-md">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                <input
+                  type="text"
+                  value={leadSearch}
+                  onChange={(e) => setLeadSearch(e.target.value)}
+                  placeholder="Search leads by name, email, company…"
+                  className="w-full rounded-xl bg-slate-900 border border-white/10 py-2 pl-9 pr-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-purple"
+                />
+              </div>
+
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+                {LEAD_STAGES.map((s) => (
                   <button
-                    key={idx}
-                    type="button"
-                    onClick={() => toggleOnboardingTask(idx, !task.done)}
-                    className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/5 transition text-left"
+                    key={s.id}
+                    onClick={() => setLeadStageFilter(s.id)}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition ${
+                      leadStageFilter === s.id
+                        ? "bg-purple text-white shadow-md shadow-purple/20"
+                        : "bg-slate-900 text-white/60 hover:text-white border border-white/5"
+                    }`}
                   >
-                    {task.done ? (
-                      <CheckCircle2 size={20} className="text-emerald-400 shrink-0" />
-                    ) : (
-                      <Circle size={20} className="text-white/30 shrink-0" />
-                    )}
-                    <span className={`text-xs ${task.done ? "text-white/40 line-through" : "text-white font-medium"}`}>
-                      {task.task}
-                    </span>
+                    {s.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Sales Playbook Quick Reference */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-6 sm:p-8 space-y-6">
-              <div className="border-b border-white/5 pb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <BookOpen size={18} className="text-purple" /> Sales Playbook &amp; Pitch Guidelines
-                </h3>
-                <p className="text-xs text-white/50 mt-0.5">
-                  Core value proposition and ideal client profiles.
-                </p>
-              </div>
-
-              <div className="space-y-4 text-xs text-white/70 leading-relaxed">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1.5">
-                  <h4 className="font-bold text-white text-sm">🎯 Ideal Customer Profile (ICP)</h4>
-                  <p>
-                    Mid-market businesses, logistics firms, recruitment agencies, and founders in the UK, Australia, and US currently suffering from spreadsheet or WhatsApp bottlenecks.
-                  </p>
+            {/* Leads Table */}
+            <div className="rounded-3xl bg-slate-900/80 border border-white/10 overflow-hidden shadow-xl">
+              {filteredLeads.length === 0 ? (
+                <div className="text-center py-16 space-y-3">
+                  <Users size={32} className="mx-auto text-white/20" />
+                  <p className="text-sm font-semibold text-white/60">No leads found in this filter.</p>
+                  <button
+                    onClick={() => {
+                      resetLeadForm();
+                      setShowAddLeadModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition"
+                  >
+                    <Plus size={13} />
+                    <span>Create Your First Lead</span>
+                  </button>
                 </div>
-
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1.5">
-                  <h4 className="font-bold text-white text-sm">💡 What We Deliver</h4>
-                  <p>
-                    Bespoke Next.js &amp; PostgreSQL platforms, custom CRM dispatch systems, 3-sided marketplaces, and SaaS MVPs with guaranteed delivery timelines and fixed pricing.
-                  </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 bg-white/[0.02] text-white/50 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-3.5 px-4">Lead Contact</th>
+                        <th className="py-3.5 px-4">Company &amp; Role</th>
+                        <th className="py-3.5 px-4">Stage</th>
+                        <th className="py-3.5 px-4">Est. Deal Value</th>
+                        <th className="py-3.5 px-4">Notes</th>
+                        <th className="py-3.5 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {filteredLeads.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-white/[0.02]">
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-white block">{lead.full_name}</span>
+                            <span className="text-[11px] text-white/50 font-mono">{lead.email}</span>
+                            {lead.phone && <span className="text-[10px] text-white/40 block">{lead.phone}</span>}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-white font-medium block">{lead.company_name || "—"}</span>
+                            <span className="text-[11px] text-white/50">{lead.job_title || "Decision Maker"}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <select
+                              value={lead.stage}
+                              onChange={(e) => handleUpdateLeadStage(lead.id, e.target.value as RepLead["stage"])}
+                              className="rounded-lg bg-slate-950 border border-white/10 px-2 py-1 text-xs font-semibold text-purple outline-none focus:border-purple"
+                            >
+                              <option value="new">New Lead</option>
+                              <option value="contacted">Contacted</option>
+                              <option value="meeting_booked">Meeting Booked</option>
+                              <option value="negotiation">In Negotiation</option>
+                              <option value="won">Closed Won</option>
+                              <option value="lost">Closed Lost</option>
+                            </select>
+                          </td>
+                          <td className="py-3 px-4 font-mono font-bold text-white">
+                            {currencySymbol}{lead.estimated_deal_value?.toLocaleString() || "0"}
+                          </td>
+                          <td className="py-3 px-4 text-white/60 text-[11px] max-w-xs truncate">
+                            {lead.notes || "—"}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleEmailLeadShortcut(lead)}
+                                title="Send Cold Email"
+                                className="p-1.5 rounded-lg bg-purple/10 hover:bg-purple/20 text-purple transition"
+                              >
+                                <Send size={14} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingLead(lead);
+                                  setNewLeadName(lead.full_name);
+                                  setNewLeadEmail(lead.email);
+                                  setNewLeadPhone(lead.phone || "");
+                                  setNewLeadCompany(lead.company_name || "");
+                                  setNewLeadJobTitle(lead.job_title || "");
+                                  setNewLeadStage(lead.stage);
+                                  setNewLeadValue(lead.estimated_deal_value || 0);
+                                  setNewLeadNotes(lead.notes || "");
+                                  setShowAddLeadModal(true);
+                                }}
+                                title="Edit Lead"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 transition"
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteLead(lead.id)}
+                                title="Delete Lead"
+                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1.5">
-                  <h4 className="font-bold text-white text-sm">🤝 Qualification Checklist</h4>
-                  <p>
-                    A qualified call has a real business stakeholder (Founder, CEO, COO, or Operations Director) looking to invest in bespoke software within 1–3 months.
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
+
+        {/* ===================================================================== */}
+        {/* VIEW 4: COLD OUTREACH */}
+        {/* ===================================================================== */}
+        {activeTab === "outreach" && (
+          <div className="space-y-6 animate-in fade-in duration-150">
+            {/* Outreach Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-white">Cold Outreach Engine</h1>
+                <p className="text-xs text-white/60">Dispatch high-deliverability cold emails through your verified corporate alias.</p>
+              </div>
+
+              <button
+                onClick={() => setShowTemplateModal(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-3.5 py-2 text-xs font-bold text-white transition border border-white/10"
+              >
+                <Plus size={14} />
+                <span>Create Custom Template</span>
+              </button>
+            </div>
+
+            {/* Alias Configuration Notice */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl bg-slate-900/80 border border-white/10 p-4 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center font-bold">
+                  @
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-white/40 block">Sender Corporate Alias</span>
+                  <span className="font-mono text-purple font-bold">{repAlias}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                  ↩
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-white/40 block">Replies Routed To</span>
+                  <span className="font-mono text-blue-300 font-bold">{corporateReplyTo}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Duplicate Warning Override */}
+            {duplicateWarning && (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-400 shrink-0" />
+                  <span>{duplicateWarning}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => handleSendOutreach(e, true)}
+                  disabled={sendingOutreach}
+                  className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition"
+                >
+                  Send Anyway
+                </button>
+              </div>
+            )}
+
+            {/* Outreach Status Feedback */}
+            {outreachStatus && (
+              <div
+                className={`rounded-2xl border p-4 text-xs font-medium flex items-center gap-2.5 ${
+                  outreachStatus.type === "success"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                    : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                }`}
+              >
+                {outreachStatus.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                <span>{outreachStatus.message}</span>
+              </div>
+            )}
+
+            {/* Email Composer Form */}
+            <form onSubmit={(e) => handleSendOutreach(e, false)} className="rounded-3xl bg-slate-900/90 border border-white/10 p-6 space-y-5 shadow-2xl">
+              {/* Template Picker */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                  Select Email Template
+                </label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs font-bold text-white outline-none focus:border-purple"
+                >
+                  <optgroup label="System Presets">
+                    {BUILTIN_TEMPLATES.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {customTemplates.length > 0 && (
+                    <optgroup label="My Custom Templates">
+                      {customTemplates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.template_name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
+
+              {/* Recipient Contact Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                    Recipient Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="prospect@company.com"
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                    Prospect Name
+                  </label>
+                  <input
+                    type="text"
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Acme Corp"
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+              </div>
+
+              {/* Subject Line */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  Subject Line *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs font-bold text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              {/* Email Body */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  Message Content *
+                </label>
+                <textarea
+                  required
+                  rows={8}
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-slate-200 outline-none focus:border-purple leading-relaxed font-sans"
+                />
+              </div>
+
+              {/* Action */}
+              <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                <p className="text-[11px] text-white/40">
+                  Includes your branded email signature &amp; technical discovery booking button automatically.
+                </p>
+                <button
+                  type="submit"
+                  disabled={sendingOutreach}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-6 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-lg shadow-purple/25 transition disabled:opacity-50"
+                >
+                  {sendingOutreach ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Sending Email…
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} />
+                      Send Cold Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Sent Outreach History */}
+            <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-white">Outreach History</h3>
+                  <p className="text-xs text-white/50">Recent cold emails dispatched from this portal</p>
+                </div>
+                <span className="text-xs font-bold text-purple">{outreachLogs.length} Total</span>
+              </div>
+
+              {outreachLogs.length === 0 ? (
+                <p className="text-xs text-white/40 text-center py-6">No emails sent yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-2.5 px-3">Recipient</th>
+                        <th className="py-2.5 px-3">Subject</th>
+                        <th className="py-2.5 px-3">Sent Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {outreachLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-white/[0.02]">
+                          <td className="py-3 px-3 font-mono text-white">
+                            {log.recipient_name ? `${log.recipient_name} (${log.recipient_email})` : log.recipient_email}
+                          </td>
+                          <td className="py-3 px-3 text-slate-300">{log.subject}</td>
+                          <td className="py-3 px-3 text-white/50 text-[11px]">
+                            {new Date(log.sent_at).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* VIEW 5: EARNINGS & PAYOUTS */}
+        {/* ===================================================================== */}
+        {activeTab === "payouts" && (
+          <div className="max-w-3xl space-y-6 animate-in fade-in duration-150">
+            <div className="border-b border-white/10 pb-5">
+              <h1 className="text-xl sm:text-2xl font-black text-white">Earnings &amp; Payout Settings</h1>
+              <p className="text-xs text-white/60">Configure your banking / MFS withdrawal details for milestone disbursements.</p>
+            </div>
+
+            {payoutSuccess && (
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-300 flex items-center gap-2">
+                <CheckCircle2 size={16} />
+                <span>Payout details updated successfully!</span>
+              </div>
+            )}
+
+            {/* Payout Form */}
+            <form onSubmit={handleSavePayoutDetails} className="rounded-3xl bg-slate-900/90 border border-white/10 p-6 space-y-5 shadow-2xl">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                  Preferred Payout Method
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {["bkash", "nagad", "bank", "paypal"].map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setPayoutMethod(method)}
+                      className={`p-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition ${
+                        payoutMethod === method
+                          ? "bg-purple text-white border-purple shadow-lg shadow-purple/20"
+                          : "bg-slate-950 border-white/10 text-white/60 hover:text-white"
+                      }`}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  Account / Mobile Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  placeholder={payoutMethod === "bkash" || payoutMethod === "nagad" ? "017XXXXXXXX" : "Account number or PayPal email"}
+                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white font-mono outline-none focus:border-purple"
+                />
+              </div>
+
+              {payoutMethod === "bank" && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">Bank Name</label>
+                    <input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="e.g. City Bank / BRAC Bank"
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">Branch Name</label>
+                    <input
+                      type="text"
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      placeholder="e.g. Gulshan Branch"
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">Routing Number</label>
+                    <input
+                      type="text"
+                      value={routingNumber}
+                      onChange={(e) => setRoutingNumber(e.target.value)}
+                      placeholder="e.g. 225272..."
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white font-mono outline-none focus:border-purple"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  Additional Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={payoutNotes}
+                  onChange={(e) => setPayoutNotes(e.target.value)}
+                  placeholder="Special instructions or account holder name..."
+                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-white/10 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={savingPayout}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-6 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                >
+                  {savingPayout ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                  <span>Save Payout Details</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </main>
+
+      {/* ========================================================================= */}
+      {/* MODAL: ADD / EDIT LEAD */}
+      {/* ========================================================================= */}
+      {showAddLeadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 shrink-0 bg-slate-900">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
+                  <User size={16} />
+                </div>
+                <h3 className="text-base font-bold text-white">
+                  {editingLead ? "Edit Lead" : "Add New Lead"}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddLeadModal(false);
+                  resetLeadForm();
+                }}
+                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSaveLead} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                      Lead Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newLeadName}
+                      onChange={(e) => setNewLeadName(e.target.value)}
+                      placeholder="e.g. Sarah Jenkins"
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                      Lead Email *
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={newLeadEmail}
+                      onChange={(e) => setNewLeadEmail(e.target.value)}
+                      placeholder="sarah@company.com"
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newLeadCompany}
+                      onChange={(e) => setNewLeadCompany(e.target.value)}
+                      placeholder="Acme Logistics"
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="text"
+                      value={newLeadPhone}
+                      onChange={(e) => setNewLeadPhone(e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                      Lead Stage
+                    </label>
+                    <select
+                      value={newLeadStage}
+                      onChange={(e) => setNewLeadStage(e.target.value as RepLead["stage"])}
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs font-bold text-white outline-none focus:border-purple"
+                    >
+                      <option value="new">New Lead</option>
+                      <option value="contacted">Contacted</option>
+                      <option value="meeting_booked">Meeting Booked</option>
+                      <option value="negotiation">In Negotiation</option>
+                      <option value="won">Closed Won</option>
+                      <option value="lost">Closed Lost</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                      Est. Deal Value ({currencySymbol})
+                    </label>
+                    <input
+                      type="number"
+                      value={newLeadValue}
+                      onChange={(e) => setNewLeadValue(Number(e.target.value))}
+                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                    Notes &amp; Prospect Context
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={newLeadNotes}
+                    onChange={(e) => setNewLeadNotes(e.target.value)}
+                    placeholder="Key pain points, current software stack, budget notes..."
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 bg-slate-950/80 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddLeadModal(false);
+                    resetLeadForm();
+                  }}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingLead}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                >
+                  {savingLead ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  <span>{editingLead ? "Save Changes" : "Create Lead"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CREATE CUSTOM TEMPLATE */}
+      {/* ========================================================================= */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 shrink-0 bg-slate-900">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
+                  <Sparkles size={16} />
+                </div>
+                <h3 className="text-base font-bold text-white">Create Custom Email Template</h3>
+              </div>
+              <button
+                onClick={() => setShowTemplateModal(false)}
+                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomTemplate} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                    Template Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="e.g. E-Commerce Automation Outreach"
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                    Subject Line *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newTemplateSubject}
+                    onChange={(e) => setNewTemplateSubject(e.target.value)}
+                    placeholder="e.g. Accelerating engineering for {{company}}"
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                    Body Content *
+                  </label>
+                  <p className="text-[11px] text-white/40 mb-1">
+                    Available dynamic tags: <code className="text-purple">{"{{name}}"}</code>,{" "}
+                    <code className="text-purple">{"{{company}}"}</code>,{" "}
+                    <code className="text-purple">{"{{referral_link}}"}</code>
+                  </p>
+                  <textarea
+                    required
+                    rows={6}
+                    value={newTemplateBody}
+                    onChange={(e) => setNewTemplateBody(e.target.value)}
+                    placeholder="Hi {{name}},\n\nI noticed {{company}} is..."
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-slate-200 outline-none focus:border-purple leading-relaxed"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 bg-slate-950/80 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateModal(false)}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingTemplate}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                >
+                  {savingTemplate ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  <span>Save Template</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

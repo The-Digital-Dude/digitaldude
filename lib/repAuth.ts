@@ -15,6 +15,7 @@ export interface RepSessionPayload {
   currency: string;
   role_title: string;
   status: string;
+  onboarding_completed?: boolean;
 }
 
 export function signRepToken(employeeId: string, email: string): string {
@@ -56,7 +57,7 @@ export async function getAuthenticatedRep(request: Request): Promise<RepSessionP
 
   const { data: employee, error } = await supabase
     .from("employees")
-    .select("id, email, full_name, referral_code, assigned_outreach_email, currency, role_title, status")
+    .select("*")
     .eq("id", verified.employeeId)
     .single();
 

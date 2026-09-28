@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { getAuthenticatedRep } from "@/lib/repAuth";
 import { log } from "@/lib/logger";
+import { recordRepAuditLog } from "@/lib/repAudit";
 
 export async function PUT(request: Request) {
   const repSession = await getAuthenticatedRep(request);
@@ -36,6 +37,14 @@ export async function PUT(request: Request) {
       log("error", { message: "Failed to update rep payout details", error });
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
+
+    await recordRepAuditLog({
+      employeeId: repSession.id,
+      actionType: "payout_updated",
+      description: `Updated banking/payout details (${payout_details.method || "custom"}).`,
+      targetIdentifier: repSession.email,
+      metadata: { method: payout_details.method },
+    });
 
     return NextResponse.json({ ok: true, payout_details: updated.payout_details });
   } catch (error) {

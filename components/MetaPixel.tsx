@@ -10,8 +10,11 @@ function MetaPixelTracker() {
   const searchParams = useSearchParams();
   const isFirstRender = useRef(true);
 
+  const isInternalRoute = pathname?.startsWith("/admin") || pathname?.startsWith("/rep");
+
   // Track PageView on initial mount and whenever client-side route changes
   useEffect(() => {
+    if (isInternalRoute) return;
     const searchString = searchParams ? searchParams.toString() : "";
     const fullPath = searchString ? `${pathname}?${searchString}` : pathname;
 
@@ -42,10 +45,11 @@ function MetaPixelTracker() {
     }
 
     isFirstRender.current = false;
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, isInternalRoute]);
 
   // Global intelligent click event tracker for CTAs, navigation links, and contact actions
   useEffect(() => {
+    if (isInternalRoute) return;
     function handleGlobalClick(e: MouseEvent) {
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -111,7 +115,7 @@ function MetaPixelTracker() {
     return () => {
       document.removeEventListener("click", handleGlobalClick, { capture: true });
     };
-  }, [pathname]);
+  }, [pathname, isInternalRoute]);
 
   return null;
 }

@@ -5,6 +5,7 @@ import { sendBrevoEmail, wrapInEmailTemplate } from "@/lib/emailBrevo";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { SITE_URL } from "@/lib/utils";
 import { log } from "@/lib/logger";
+import { recordRepAuditLog } from "@/lib/repAudit";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -132,10 +133,11 @@ export async function POST(request: Request) {
     const repRefCode = employee.referral_code || employee.id;
     const repOutreachLink = `${SITE_URL}/contact?ref=${repRefCode}`;
 
-    // Sender is assigned outreach alias or default fallback
+    // Sender alias & corporate reply-to (info@digitaldude.co.uk or assigned alias)
+    const senderAlias = employee.assigned_outreach_email || `${employee.full_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "")}@digitaldude.co.uk`;
     const senderEmail = employee.assigned_outreach_email || "info@digitaldude.co.uk";
     const senderName = `${employee.full_name} | The Digital Dude`;
-    const replyToEmail = employee.email;
+    const replyToEmail = employee.assigned_outreach_email || "info@digitaldude.co.uk";
 
     const formattedBody = message
       .split("\n\n")
@@ -179,7 +181,7 @@ export async function POST(request: Request) {
     const emailResult = await sendBrevoEmail({
       to: [{ email: cleanRecipientEmail, name: recipientName || cleanRecipientEmail }],
       sender: { email: senderEmail, name: senderName },
-      replyTo: { email: replyToEmail, name: employee.full_name },
+      replyTo: { email: replyToEmail, name: senderName },
       subject,
       htmlContent: wrapInEmailTemplate(subject, emailHtml),
     });
@@ -207,6 +209,22 @@ export async function POST(request: Request) {
     if (logError) {
       log("warn", { message: "Could not save rep outreach log", error: logError });
     }
+
+    // Record in global Rep Audit Logs
+    await recordRepAuditLog({
+      employeeId: employee.id,
+      actionType: "outreach_sent",
+      description: `Sent cold outreach email to ${recipientName ? `${recipientName} (${cleanRecipientEmail})` : cleanRecipientEmail} via alias ${senderAlias}.`,
+      targetIdentifier: cleanRecipientEmail,
+      metadata: {
+        subject,
+        templateUsed: templateUsed || "custom",
+        companyName: companyName || null,
+        senderAlias,
+        replyTo: replyToEmail,
+      },
+      ipAddress: ip,
+    });
 
     log("info", {
       message: "Rep outreach email dispatched",

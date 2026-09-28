@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { signRepToken } from "@/lib/repAuth";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { log } from "@/lib/logger";
+import { recordRepAuditLog } from "@/lib/repAudit";
 
 const COOKIE_NAME = "tdd_rep_session";
 
@@ -64,6 +65,15 @@ export async function POST(request: Request) {
     const token = signRepToken(employee.id, employee.email);
 
     log("info", { message: "Rep logged in successfully", context: { email: cleanEmail, employeeId: employee.id } });
+
+    // Record login in Rep Audit Logs
+    await recordRepAuditLog({
+      employeeId: employee.id,
+      actionType: "login",
+      description: `Sales Rep ${employee.full_name} logged in successfully via email OTP.`,
+      targetIdentifier: employee.email,
+      ipAddress: ip,
+    });
 
     const response = NextResponse.json({
       ok: true,

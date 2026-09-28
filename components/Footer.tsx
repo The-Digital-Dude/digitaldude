@@ -8,7 +8,7 @@ import { caseStudies } from "@/lib/content/caseStudies";
 export function Footer() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/proposals/")) {
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/proposals/") || pathname?.startsWith("/rep")) {
     return null;
   }
   return (
