@@ -97,7 +97,7 @@ export function HireCandidateModal({ application, onClose, onSuccess }: HireCand
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto animate-in fade-in duration-150">
       <div className="relative w-full max-w-2xl rounded-3xl bg-white p-6 md:p-8 shadow-2xl space-y-6 my-8">
         {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-4">

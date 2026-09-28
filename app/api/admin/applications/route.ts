@@ -238,22 +238,41 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: application, error: insertError } = await supabase
+    let insertPayload: Record<string, unknown> = {
+      job_posting_id: targetJobId || null,
+      applicant_name: applicantName,
+      applicant_email: applicantEmail,
+      applicant_phone: applicantPhone || null,
+      cv_path: cvPath,
+      proof_of_results_path: proofPath,
+      written_test_response: writtenTestResponse,
+      status,
+      internal_notes: internalNotes,
+      scorecard,
+    };
+
+    let { data: application, error: insertError } = await supabase
       .from("job_applications")
-      .insert({
-        job_posting_id: targetJobId || null,
-        applicant_name: applicantName,
-        applicant_email: applicantEmail,
-        applicant_phone: applicantPhone || null,
-        cv_path: cvPath,
-        proof_of_results_path: proofPath,
-        written_test_response: writtenTestResponse,
-        status,
-        internal_notes: internalNotes,
-        scorecard,
-      })
+      .insert(insertPayload)
       .select("*, job_postings(title, slug)")
       .single();
+
+    if (insertError && insertError.message?.includes("column")) {
+      const sanitized = { ...insertPayload };
+      if (insertError.message.includes("scorecard")) delete sanitized.scorecard;
+      if (insertError.message.includes("internal_notes")) delete sanitized.internal_notes;
+
+      const retryRes = await supabase
+        .from("job_applications")
+        .insert(sanitized)
+        .select("*, job_postings(title, slug)")
+        .single();
+
+      if (!retryRes.error) {
+        application = retryRes.data;
+        insertError = null;
+      }
+    }
 
     if (insertError) {
       log("error", { message: "Failed to save manual candidate application", error: insertError });

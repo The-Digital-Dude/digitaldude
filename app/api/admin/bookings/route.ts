@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     try {
       let query = supabase
         .from("bookings")
-        .select("*, employees(id, full_name, email, referral_code)")
+        .select("*")
         .order("slot_start", { ascending: false });
 
       if (stage !== "all") {
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       }
 
       if (employeeId) {
-        query = query.eq("sourced_by_employee_id", employeeId);
+        query = query.or(`sourced_by_employee_id.eq.${employeeId},employee_id.eq.${employeeId}`);
       }
 
       if (search) {
@@ -53,37 +53,53 @@ export async function GET(request: Request) {
         return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
       }
 
-      const formatted = (data || []).map((b) => ({
-        id: b.id,
-        name: b.name,
-        work_email: b.work_email,
-        company_name: b.company_name,
-        country: b.country,
-        team_size: b.team_size,
-        message: b.message,
-        slot_start: b.slot_start,
-        slot_end: b.slot_end,
-        meet_url: b.meet_url,
-        status: b.status || "confirmed",
-        stage: b.stage || "new_booking",
-        deal_value: Number(b.deal_value) || 8500,
-        lead_score: b.lead_score || "warm",
-        lead_notes: b.lead_notes || "",
-        admin_notes: b.admin_notes || b.lead_notes || "",
-        assigned_to: b.assigned_to || "The Digital Dude Team",
-        sourced_by_employee_id: b.sourced_by_employee_id || null,
-        sourced_by_employee: b.employees ? {
-          id: b.employees.id,
-          full_name: b.employees.full_name,
-          email: b.employees.email,
-          referral_code: b.employees.referral_code,
-        } : null,
-        meeting_bonus_payout_status: b.meeting_bonus_payout_status || "pending",
-        deal_commission_payout_status: b.deal_commission_payout_status || "pending",
-        payout_notes: b.payout_notes || "",
-        created_at: b.created_at || new Date().toISOString(),
-        updated_at: b.updated_at || b.created_at || new Date().toISOString(),
-      }));
+      // Safe lookup for employee profiles without requiring PostgREST schema cache relationship
+      let employeeMap: Record<string, { id: string; full_name: string; email: string; referral_code?: string }> = {};
+      try {
+        const { data: emps } = await supabase
+          .from("employees")
+          .select("id, full_name, email, referral_code");
+        if (emps) {
+          employeeMap = emps.reduce((acc, emp) => {
+            acc[emp.id] = emp;
+            return acc;
+          }, {} as Record<string, typeof emps[0]>);
+        }
+      } catch {
+        // ignore employee lookup failure
+      }
+
+      const formatted = (data || []).map((b) => {
+        const repId = b.sourced_by_employee_id || b.employee_id || null;
+        const rep = repId ? employeeMap[repId] || null : null;
+
+        return {
+          id: b.id,
+          name: b.name,
+          work_email: b.work_email,
+          company_name: b.company_name,
+          country: b.country,
+          team_size: b.team_size,
+          message: b.message,
+          slot_start: b.slot_start,
+          slot_end: b.slot_end,
+          meet_url: b.meet_url,
+          status: b.status || "confirmed",
+          stage: b.stage || "new_booking",
+          deal_value: Number(b.deal_value) || 8500,
+          lead_score: b.lead_score || "warm",
+          lead_notes: b.lead_notes || "",
+          admin_notes: b.admin_notes || b.lead_notes || "",
+          assigned_to: b.assigned_to || "The Digital Dude Team",
+          sourced_by_employee_id: repId,
+          sourced_by_employee: rep,
+          meeting_bonus_payout_status: b.meeting_bonus_payout_status || "pending",
+          deal_commission_payout_status: b.deal_commission_payout_status || "pending",
+          payout_notes: b.payout_notes || "",
+          created_at: b.created_at || new Date().toISOString(),
+          updated_at: b.updated_at || b.created_at || new Date().toISOString(),
+        };
+      });
 
       return NextResponse.json({ ok: true, bookings: formatted });
     } catch (error) {
@@ -232,7 +248,7 @@ export async function POST(request: Request) {
           assigned_to: newLead.assigned_to,
           sourced_by_employee_id: newLead.sourced_by_employee_id,
         })
-        .select("*, employees(id, full_name, email, referral_code)")
+        .select("*")
         .single();
 
       if (error) {

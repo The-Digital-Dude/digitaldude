@@ -63,12 +63,31 @@ export async function PUT(
     if (internal_notes !== undefined) updateData.internal_notes = internal_notes;
     if (scorecard !== undefined) updateData.scorecard = scorecard;
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("job_applications")
       .update(updateData)
       .eq("id", id)
       .select("*, job_postings(title, slug)")
       .single();
+
+    // Fallback if scorecard or internal_notes columns haven't been migrated yet in user's Supabase instance
+    if (error && error.message?.includes("column")) {
+      const sanitizedUpdate = { ...updateData };
+      if (error.message.includes("scorecard")) delete sanitizedUpdate.scorecard;
+      if (error.message.includes("internal_notes")) delete sanitizedUpdate.internal_notes;
+
+      const retryRes = await supabase
+        .from("job_applications")
+        .update(sanitizedUpdate)
+        .eq("id", id)
+        .select("*, job_postings(title, slug)")
+        .single();
+
+      if (!retryRes.error) {
+        data = retryRes.data;
+        error = null;
+      }
+    }
 
     if (error) {
       log("error", { message: "Failed to update application", error, context: { id } });

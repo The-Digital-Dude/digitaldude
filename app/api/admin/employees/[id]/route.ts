@@ -109,6 +109,7 @@ export async function PUT(
       meeting_bonus_max,
       deal_commission_percent_min,
       deal_commission_percent_max,
+      assigned_outreach_email,
       onboarding_checklist,
       status,
     } = body;
@@ -120,6 +121,7 @@ export async function PUT(
     if (employment_type !== undefined) updateData.employment_type = employment_type;
     if (currency !== undefined) updateData.currency = currency;
     if (referral_code !== undefined) updateData.referral_code = referral_code;
+    if (assigned_outreach_email !== undefined) updateData.assigned_outreach_email = assigned_outreach_email;
     if (meeting_bonus_min !== undefined) updateData.meeting_bonus_min = meeting_bonus_min;
     if (meeting_bonus_max !== undefined) updateData.meeting_bonus_max = meeting_bonus_max;
     if (deal_commission_percent_min !== undefined) updateData.deal_commission_percent_min = deal_commission_percent_min;

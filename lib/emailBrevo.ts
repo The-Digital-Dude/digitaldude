@@ -12,6 +12,8 @@ export interface SendBrevoEmailParams {
   htmlContent: string;
   senderName?: string;
   senderEmail?: string;
+  sender?: EmailRecipient;
+  replyTo?: EmailRecipient;
 }
 
 const DEFAULT_SENDER_NAME = "The Digital Dude";
@@ -28,13 +30,24 @@ export async function sendBrevoEmail(params: SendBrevoEmailParams): Promise<{
 }> {
   const apiKey = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY;
 
-  const sender = {
+  const sender = params.sender || {
     name: params.senderName || DEFAULT_SENDER_NAME,
     email: params.senderEmail || DEFAULT_SENDER_EMAIL,
   };
 
   if (apiKey) {
     try {
+      const payload: Record<string, unknown> = {
+        sender,
+        to: params.to,
+        subject: params.subject,
+        htmlContent: params.htmlContent,
+      };
+
+      if (params.replyTo) {
+        payload.replyTo = params.replyTo;
+      }
+
       const res = await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {
@@ -42,12 +55,7 @@ export async function sendBrevoEmail(params: SendBrevoEmailParams): Promise<{
           "Content-Type": "application/json",
           "api-key": apiKey,
         },
-        body: JSON.stringify({
-          sender,
-          to: params.to,
-          subject: params.subject,
-          htmlContent: params.htmlContent,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();

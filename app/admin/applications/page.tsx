@@ -157,7 +157,7 @@ export default function AdminApplicationsPage() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
 
-  // Status Change & Email Modal State
+  // Status Change & Email Modal State (for list view)
   const [pendingStatusModal, setPendingStatusModal] = useState<{
     application: Application;
     newStatus: string;
@@ -171,10 +171,35 @@ export default function AdminApplicationsPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [generatingMeet, setGeneratingMeet] = useState(false);
 
+  // Inline Stage Transition State (for Candidate Detail Modal)
+  const [inlineStage, setInlineStage] = useState<{
+    targetStatus: string;
+    sendEmail: boolean;
+    subject: string;
+    message: string;
+    bookingUrl: string;
+    interviewDate: string;
+    meetingLink: string;
+  } | null>(null);
+  const [inlineStageUpdating, setInlineStageUpdating] = useState(false);
+  const [inlineMeetGenerating, setInlineMeetGenerating] = useState(false);
+
   // Scorecard & Notes State inside detail modal
   const [draftScorecard, setDraftScorecard] = useState<Scorecard>({});
   const [draftNotes, setDraftNotes] = useState("");
   const [notesSaveSuccess, setNotesSaveSuccess] = useState(false);
+
+  // Lock background scroll when any modal is active
+  useEffect(() => {
+    if (selected || pendingStatusModal || isAddCandidateOpen || candidateToHire) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [selected, pendingStatusModal, isAddCandidateOpen, candidateToHire]);
 
   async function fetchApplications() {
     setLoading(true);
@@ -200,10 +225,15 @@ export default function AdminApplicationsPage() {
       setDraftScorecard(selected.scorecard || {});
       setDraftNotes(selected.internal_notes || "");
       setNotesSaveSuccess(false);
+      setInlineStage(null);
     }
   }, [selected]);
 
   function handleOpenStatusChange(app: Application, targetStatus: string) {
+    if (targetStatus === app.status) {
+      return; // Already in this stage
+    }
+
     if (targetStatus === "hired") {
       setCandidateToHire(app);
       return;
@@ -225,6 +255,118 @@ export default function AdminApplicationsPage() {
       interviewDate: tomorrow.toISOString().slice(0, 16),
       meetingLink: defaults.meetingLink,
     });
+  }
+
+  function handleSelectInlineStage(targetStatus: string) {
+    if (!selected) return;
+    if (targetStatus === selected.status) {
+      setInlineStage(null);
+      return;
+    }
+
+    if (targetStatus === "hired") {
+      const app = selected;
+      setSelected(null);
+      setInlineStage(null);
+      setCandidateToHire(app);
+      return;
+    }
+
+    const jobTitle = selected.job_postings?.title || "the role";
+    const defaults = getStatusEmailDefaults(targetStatus, selected.applicant_name, jobTitle);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(14, 0, 0, 0);
+
+    setInlineStage({
+      targetStatus,
+      sendEmail: ["interview", "offered", "rejected", "reviewing"].includes(targetStatus),
+      subject: defaults.subject,
+      message: defaults.message,
+      bookingUrl: defaults.bookingUrl,
+      interviewDate: tomorrow.toISOString().slice(0, 16),
+      meetingLink: defaults.meetingLink,
+    });
+  }
+
+  async function handleGenerateMeetForInlineStage() {
+    if (!selected || !inlineStage) return;
+    const { interviewDate } = inlineStage;
+    const jobTitle = selected.job_postings?.title || "Software Role";
+
+    setInlineMeetGenerating(true);
+    try {
+      const res = await fetch("/api/admin/interviews/meet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateName: selected.applicant_name,
+          candidateEmail: selected.applicant_email,
+          jobTitle,
+          slotStart: new Date(interviewDate).toISOString(),
+          notes: selected.internal_notes || selected.written_test_response,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok && data.meetUrl) {
+        setInlineStage((prev) => {
+          if (!prev) return null;
+          const updatedMsg = prev.message.includes(data.meetUrl)
+            ? prev.message
+            : `${prev.message}\n\nGoogle Meet Room: ${data.meetUrl}\nScheduled Time: ${new Date(
+                interviewDate
+              ).toLocaleString()}`;
+          return {
+            ...prev,
+            meetingLink: data.meetUrl,
+            message: updatedMsg,
+          };
+        });
+      } else {
+        alert(data.error || "Could not generate Google Meet room. Make sure Google OAuth is connected.");
+      }
+    } catch {
+      alert("Network error generating Google Meet link.");
+    } finally {
+      setInlineMeetGenerating(false);
+    }
+  }
+
+  async function handleConfirmInlineStageChange() {
+    if (!selected || !inlineStage) return;
+    setInlineStageUpdating(true);
+    const { targetStatus, sendEmail, subject, message, bookingUrl, meetingLink } = inlineStage;
+
+    try {
+      const res = await fetch(`/api/admin/applications/${selected.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: targetStatus,
+          send_email: sendEmail,
+          email_subject: subject,
+          email_message: message,
+          interview_booking_url: bookingUrl || undefined,
+          meeting_link: meetingLink || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        setApplications((prev) =>
+          prev.map((a) => (a.id === selected.id ? data.application : a))
+        );
+        setSelected(data.application);
+        setInlineStage(null);
+      } else {
+        alert(data.error || "Failed to update status.");
+      }
+    } catch {
+      alert("Network error updating status.");
+    } finally {
+      setInlineStageUpdating(false);
+    }
   }
 
   async function handleGenerateMeetForStatusModal() {
@@ -632,26 +774,208 @@ export default function AdminApplicationsPage() {
             </div>
 
             {/* Quick Actions & Stage Transition Bar */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-navy/60">
-                Change Pipeline Stage &amp; Notify
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                {STATUS_OPTIONS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => handleOpenStatusChange(selected, s)}
-                    className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition shadow-2xs ${
-                      selected.status === s
-                        ? `${statusBadgeClass(s)} ring-2 ring-purple/20`
-                        : "border-slate-200 bg-white text-navy/60 hover:bg-slate-50 hover:text-navy"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-navy/60">
+                  Change Pipeline Stage
+                </label>
+                {inlineStage && (
+                  <span className="text-[11px] font-semibold text-purple animate-pulse">
+                    Stage transition in progress ↓
+                  </span>
+                )}
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {STATUS_OPTIONS.map((s) => {
+                  const isCurrent = selected.status === s;
+                  const isPendingSelected = inlineStage?.targetStatus === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => handleSelectInlineStage(s)}
+                      className={`rounded-xl border px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider transition shadow-2xs ${
+                        isCurrent
+                          ? `${statusBadgeClass(s)} ring-2 ring-purple/30 font-extrabold cursor-default`
+                          : isPendingSelected
+                          ? "border-purple bg-purple text-white shadow-sm ring-2 ring-purple/20 cursor-pointer"
+                          : "border-slate-200 bg-white text-navy/60 hover:bg-purple/5 hover:border-purple/30 hover:text-purple cursor-pointer active:scale-95"
+                      }`}
+                    >
+                      {isCurrent ? `✓ ${s}` : isPendingSelected ? `● ${s}` : s}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Inline Interactive Stage Transition Box */}
+              {inlineStage && (
+                <div className="rounded-2xl border border-purple/30 bg-purple/[0.03] p-4 sm:p-5 space-y-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex items-start justify-between border-b border-purple/10 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-navy">
+                        Transitioning to:
+                      </span>
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusBadgeClass(
+                          inlineStage.targetStatus
+                        )}`}
+                      >
+                        {inlineStage.targetStatus}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setInlineStage(null)}
+                      className="rounded-lg p-1 text-navy/40 hover:bg-slate-100 hover:text-navy"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+
+                  {/* Send Email Notification Toggle */}
+                  <div className="rounded-xl border border-purple/20 bg-white p-3.5 flex items-start gap-3">
+                    <Mail size={16} className="text-purple mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <label className="flex items-center gap-2 text-xs font-bold text-navy cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={inlineStage.sendEmail}
+                          onChange={(e) =>
+                            setInlineStage((prev) =>
+                              prev ? { ...prev, sendEmail: e.target.checked } : null
+                            )
+                          }
+                          className="h-4 w-4 rounded border-slate-300 text-purple focus:ring-purple cursor-pointer"
+                        />
+                        Send notification email to {selected.applicant_email}
+                      </label>
+                      <p className="text-[11px] text-navy/60 mt-0.5">
+                        Candidate will receive a branded status update via email.
+                      </p>
+                    </div>
+                  </div>
+
+                  {inlineStage.sendEmail && (
+                    <div className="space-y-3 pt-1">
+                      <div>
+                        <label className="block text-xs font-bold text-navy/80 mb-1">
+                          Email Subject
+                        </label>
+                        <input
+                          type="text"
+                          value={inlineStage.subject}
+                          onChange={(e) =>
+                            setInlineStage((prev) =>
+                              prev ? { ...prev, subject: e.target.value } : null
+                            )
+                          }
+                          className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-navy outline-none focus:border-purple"
+                        />
+                      </div>
+
+                      {inlineStage.targetStatus === "interview" && (
+                        <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-3.5 space-y-3">
+                          <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                            <Video size={13} className="text-blue-600" /> Google Meet Interview Setup
+                          </span>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/70 mb-1 flex items-center gap-1">
+                                <Calendar size={12} /> Interview Date &amp; Time
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={inlineStage.interviewDate}
+                                onChange={(e) =>
+                                  setInlineStage((prev) =>
+                                    prev ? { ...prev, interviewDate: e.target.value } : null
+                                  )
+                                }
+                                className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-navy outline-none focus:border-purple"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/70 mb-1 flex items-center gap-1">
+                                <Video size={12} /> Google Meet Room Link
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="meet.google.com/xxx-yyyy-zzz"
+                                  value={inlineStage.meetingLink}
+                                  onChange={(e) =>
+                                    setInlineStage((prev) =>
+                                      prev ? { ...prev, meetingLink: e.target.value } : null
+                                    )
+                                  }
+                                  className="flex-1 rounded-xl border border-slate-200 bg-white p-2 text-xs font-mono text-navy outline-none focus:border-purple"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleGenerateMeetForInlineStage}
+                                  disabled={inlineMeetGenerating}
+                                  className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50 transition shadow-2xs shrink-0 cursor-pointer"
+                                >
+                                  {inlineMeetGenerating ? (
+                                    <Loader2 size={13} className="animate-spin" />
+                                  ) : (
+                                    <Video size={13} />
+                                  )}
+                                  {inlineMeetGenerating ? "Creating…" : "Generate Meet"}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-xs font-bold text-navy/80 mb-1">
+                          Email Body Message
+                        </label>
+                        <textarea
+                          rows={6}
+                          value={inlineStage.message}
+                          onChange={(e) =>
+                            setInlineStage((prev) =>
+                              prev ? { ...prev, message: e.target.value } : null
+                            )
+                          }
+                          className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-navy outline-none focus:border-purple leading-relaxed"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-purple/10">
+                    <button
+                      type="button"
+                      onClick={() => setInlineStage(null)}
+                      className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-navy/70 hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={inlineStageUpdating}
+                      onClick={handleConfirmInlineStageChange}
+                      className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-purple/90 disabled:opacity-50 transition cursor-pointer"
+                    >
+                      {inlineStageUpdating ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Send size={14} />
+                      )}
+                      {inlineStageUpdating
+                        ? "Updating…"
+                        : inlineStage.sendEmail
+                        ? `Confirm & Send Email`
+                        : `Confirm Status Change`}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Document Attachments & Employee Conversion */}
@@ -681,8 +1005,12 @@ export default function AdminApplicationsPage() {
                 </button>
               )}
               <button
-                onClick={() => setCandidateToHire(selected)}
-                className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-purple/90 transition"
+                onClick={() => {
+                  const app = selected;
+                  setSelected(null);
+                  setCandidateToHire(app);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-purple/90 transition cursor-pointer active:scale-95"
               >
                 <UserCheck size={15} /> Convert to Employee / Hire
               </button>
@@ -798,8 +1126,8 @@ export default function AdminApplicationsPage() {
 
       {/* Status Change & Candidate Email Notification Modal */}
       {pendingStatusModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl space-y-5 border border-slate-100">
             <div className="flex items-start justify-between border-b border-slate-100 pb-3">
               <div>
                 <h2 className="text-lg font-bold text-navy">

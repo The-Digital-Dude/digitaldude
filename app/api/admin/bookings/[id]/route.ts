@@ -52,7 +52,10 @@ async function handleUpdate(
   if (lead_score !== undefined) updateData.lead_score = lead_score;
   if (lead_notes !== undefined) updateData.lead_notes = lead_notes;
   if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
-  if (sourced_by_employee_id !== undefined) updateData.sourced_by_employee_id = sourced_by_employee_id;
+  if (sourced_by_employee_id !== undefined) {
+    updateData.sourced_by_employee_id = sourced_by_employee_id;
+    updateData.employee_id = sourced_by_employee_id;
+  }
   if (meeting_bonus_payout_status !== undefined) updateData.meeting_bonus_payout_status = meeting_bonus_payout_status;
   if (deal_commission_payout_status !== undefined) updateData.deal_commission_payout_status = deal_commission_payout_status;
   if (payout_notes !== undefined) updateData.payout_notes = payout_notes;
@@ -67,7 +70,7 @@ async function handleUpdate(
         .from("bookings")
         .update(updateData)
         .eq("id", id)
-        .select("*, employees(id, full_name, email, referral_code)")
+        .select("*")
         .single();
 
       if (error) {
