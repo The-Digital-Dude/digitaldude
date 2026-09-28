@@ -10,7 +10,10 @@ function MetaPixelTracker() {
   const searchParams = useSearchParams();
   const isFirstRender = useRef(true);
 
-  const isInternalRoute = pathname?.startsWith("/admin") || pathname?.startsWith("/rep");
+  const isInternalRoute =
+    pathname?.startsWith("/admin") ||
+    pathname?.startsWith("/rep") ||
+    pathname?.startsWith("/portal");
 
   // Track PageView on initial mount and whenever client-side route changes
   useEffect(() => {

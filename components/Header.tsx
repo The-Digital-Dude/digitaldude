@@ -20,7 +20,7 @@ export function Header() {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/proposals/") || pathname?.startsWith("/rep")) {
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/proposals/") || pathname?.startsWith("/rep") || pathname?.startsWith("/portal")) {
     return null;
   }
 
