@@ -31,6 +31,15 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Generic response used whether or not this email matches a real client
+    // project — returning a distinct 404 for "not found" lets an attacker
+    // enumerate which companies are real clients of this business, so every
+    // code path below this point returns the same shape regardless.
+    const genericResponse = NextResponse.json({
+      ok: true,
+      message: `If an account exists for ${cleanEmail}, a verification code has been sent.`,
+    });
+
     // Check if client project workspace exists
     const { data: project, error } = await supabase
       .from("client_projects")
@@ -40,13 +49,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (error || !project) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "No active client project found with this email. Please contact your project lead.",
-        },
-        { status: 404 }
-      );
+      return genericResponse;
     }
 
     const otpCode = generate6DigitOtp();
@@ -62,7 +65,8 @@ export async function POST(request: Request) {
       .eq("id", project.id);
 
     if (updateError) {
-      return NextResponse.json({ ok: false, error: "Failed to generate login code." }, { status: 500 });
+      log("error", { message: "Failed to persist client OTP code", error: updateError });
+      return genericResponse;
     }
 
     // Send email OTP via Brevo
@@ -75,13 +79,9 @@ export async function POST(request: Request) {
 
     if (!emailRes.ok) {
       log("error", { message: "Failed to send client OTP email", error: emailRes.error });
-      return NextResponse.json({ ok: false, error: "Failed to send verification email." }, { status: 500 });
     }
 
-    return NextResponse.json({
-      ok: true,
-      message: `A 6-digit verification code was sent to ${cleanEmail}`,
-    });
+    return genericResponse;
   } catch (error) {
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }

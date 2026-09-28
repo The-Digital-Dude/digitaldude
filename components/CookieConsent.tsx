@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { MetaPixel } from "@/components/MetaPixel";
 
 type Consent = "accepted" | "declined" | null;
 
@@ -45,13 +46,14 @@ export function CookieConsent() {
   return (
     <>
       {consent === "accepted" && <GoogleAnalytics />}
+      {consent === "accepted" && <MetaPixel />}
 
       {ready && consent === null && (
         <div className="fixed inset-x-0 bottom-16 z-50 border-t border-black/10 bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:bottom-0 print:hidden">
           <div className="mx-auto flex max-w-content flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-navy/70">
-              We use cookies to see how visitors use this site (Google Analytics). No marketing or
-              advertising cookies. See our{" "}
+              We use cookies to see how visitors use this site (Google Analytics) and, for job ads,
+              Meta&rsquo;s pixel to measure ad performance. Nothing loads until you accept. See our{" "}
               <Link href="/privacy" className="font-semibold text-purple underline">
                 privacy policy
               </Link>

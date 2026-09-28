@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import {
   ShieldCheck,
   Link as LinkIcon,
@@ -41,6 +42,13 @@ import {
   Phone,
   Briefcase,
   ArrowUpRight,
+  Flame,
+  CheckSquare,
+  Square,
+  RefreshCw,
+  FolderGit2,
+  Inbox,
+  LayoutDashboard,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/utils";
 
@@ -195,39 +203,39 @@ export interface CampaignQueueItem {
 const BUILTIN_TEMPLATES = [
   {
     id: "custom_crm",
-    name: "Custom CRM & Systems Modernization",
-    subject: "Modernizing operational workflows for {{company}}",
-    body: "Hi {{name}},\n\nI noticed {{company}} is rapidly expanding and likely managing complex workflows across multiple tools.\n\nAt The Digital Dude, we engineer bespoke CRMs, custom internal operations platforms, and automated workflow pipelines tailored specifically to your business model.\n\nWould you be open to a brief 20-minute discussion this week to explore how a tailored system can eliminate operational bottlenecks?",
+    name: "Custom CRM & Systems Architecture",
+    subject: "Modernizing digital platforms & internal workflows for {{company}}",
+    body: "Hi {{name}},\n\nI noticed {{company}} is rapidly scaling and likely managing complex operations across disparate software tools.\n\nAt The Digital Dude, we engineer bespoke web systems, internal operations platforms, and automated pipelines tailored specifically to your exact business model.\n\nWould you be open to a brief 15-minute technical discovery call this week to explore how a tailored platform can eliminate bottlenecks?\n\nBest,\n{{rep_name}}",
   },
   {
     id: "mvp_saas",
-    name: "MVP & SaaS Web App Development",
-    subject: "Engineering your SaaS platform / product roadmap",
-    body: "Hi {{name}},\n\nReaching out from The Digital Dude. We specialize in rapid end-to-end architecture and full-stack development of high-performance web applications, MVP platforms, and SaaS products.\n\nIf you're currently planning or scoping technical development, we'd love to share some recent architecture case studies and discuss how we can accelerate your launch.\n\nLet me know if you have 15 minutes this Thursday or Friday.",
+    name: "MVP & SaaS Full-Stack Development",
+    subject: "Engineering {{company}}'s high-performance SaaS roadmap",
+    body: "Hi {{name}},\n\nReaching out from The Digital Dude. We specialize in rapid end-to-end architecture and full-stack development of high-performance web applications, MVP platforms, and SaaS products.\n\nIf you're currently scoping or accelerating technical development, we'd love to share some recent architecture case studies and discuss how we can expedite your launch.\n\nLet me know if you have 15 minutes this Thursday or Friday.",
   },
   {
     id: "follow_up",
-    name: "Gentle Follow-Up & Case Study",
-    subject: "Re: Technical architecture for {{company}}",
-    body: "Hi {{name}},\n\nFollowing up on my previous message regarding custom software development and CRM systems for {{company}}.\n\nYou can review some of our live client transformations and technical architectures here: {{referral_link}}\n\nHappy to align on a quick discovery call at your convenience.",
+    name: "Value Follow-Up & Case Study",
+    subject: "Quick follow-up regarding {{company}} digital platform",
+    body: "Hi {{name}},\n\nFollowing up on my previous note regarding custom software systems for {{company}}.\n\nYou can review some of our live client transformations and technical architectures here: {{referral_link}}\n\nHappy to align on a quick discovery call at your convenience.",
   },
 ];
 
 const LEAD_STAGES = [
-  { id: "all", label: "All Leads", color: "bg-slate-100 text-navy" },
-  { id: "new", label: "New Lead", color: "bg-blue-50 text-blue-700 border-blue-200" },
-  { id: "contacted", label: "Contacted", color: "bg-amber-50 text-amber-700 border-amber-200" },
-  { id: "meeting_booked", label: "Meeting Booked", color: "bg-purple/10 text-purple border-purple/30" },
-  { id: "negotiation", label: "In Negotiation", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-  { id: "won", label: "Won / Closed", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { id: "lost", label: "Lost / Closed", color: "bg-rose-50 text-rose-700 border-rose-200" },
+  { id: "all", label: "All Leads", color: "bg-white/5 text-slate-300 border-white/10" },
+  { id: "new", label: "New Lead", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  { id: "contacted", label: "Contacted", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  { id: "meeting_booked", label: "Meeting Booked", color: "bg-purple/20 text-purple-300 border-purple/40" },
+  { id: "negotiation", label: "Negotiation", color: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30" },
+  { id: "won", label: "Closed Won", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  { id: "lost", label: "Closed Lost", color: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
 ];
 
 export default function RepDashboardPage() {
   const router = useRouter();
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<"onboarding" | "overview" | "leads" | "outreach" | "campaigns" | "payouts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "leads" | "campaigns" | "outreach" | "onboarding" | "payouts">("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Core Data
@@ -338,7 +346,6 @@ export default function RepDashboardPage() {
             setPayoutNotes(repData.payout_details.notes || "");
           }
 
-          // If onboarding is incomplete, land on Onboarding tab first
           if (!repData.onboarding_completed) {
             setActiveTab("onboarding");
           }
@@ -492,7 +499,7 @@ export default function RepDashboardPage() {
     } catch {}
   }
 
-  // Handle template selection & variable replacement
+  // Template selection & variable replacement
   useEffect(() => {
     const allTemplates = [
       ...BUILTIN_TEMPLATES,
@@ -517,14 +524,14 @@ export default function RepDashboardPage() {
       const replacedBody = found.body
         .replace(/\{\{name\}\}/gi, nameVal)
         .replace(/\{\{company\}\}/gi, compVal)
+        .replace(/\{\{rep_name\}\}/gi, profile?.full_name || "The Digital Dude Team")
         .replace(/\{\{referral_link\}\}/gi, refLink);
 
       setEmailSubject(replacedSubject);
       setEmailMessage(replacedBody);
     }
-  }, [selectedTemplateId, recipientName, companyName, profile?.referral_code, customTemplates]);
+  }, [selectedTemplateId, recipientName, companyName, profile?.referral_code, profile?.full_name, customTemplates]);
 
-  // Copy Referral Link
   function handleCopyReferralLink() {
     const link = `${SITE_URL}/contact?ref=${profile?.referral_code || ""}`;
     navigator.clipboard.writeText(link);
@@ -532,7 +539,6 @@ export default function RepDashboardPage() {
     setTimeout(() => setCopiedLink(false), 2500);
   }
 
-  // Handle Logout
   async function handleLogout() {
     try {
       await fetch("/api/rep/auth/logout", { method: "POST" });
@@ -542,20 +548,16 @@ export default function RepDashboardPage() {
     }
   }
 
-  // Save New Lead
   async function handleSaveLead(e: React.FormEvent) {
     e.preventDefault();
-    if (!newLeadName.trim() || !newLeadEmail.trim()) {
-      alert("Lead Name and Email are required.");
-      return;
-    }
+    if (!newLeadName || !newLeadEmail) return;
 
     setSavingLead(true);
     try {
-      const endpoint = editingLead ? `/api/rep/leads/${editingLead.id}` : "/api/rep/leads";
-      const method = editingLead ? "PATCH" : "POST";
+      const url = editingLead ? `/api/rep/leads/${editingLead.id}` : "/api/rep/leads";
+      const method = editingLead ? "PUT" : "POST";
 
-      const res = await fetch(endpoint, {
+      const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -572,10 +574,13 @@ export default function RepDashboardPage() {
 
       const data = await res.json();
       if (data.ok) {
+        if (editingLead) {
+          setLeads((prev) => prev.map((l) => (l.id === editingLead.id ? data.lead : l)));
+        } else {
+          setLeads((prev) => [data.lead, ...prev]);
+        }
         setShowAddLeadModal(false);
-        setEditingLead(null);
         resetLeadForm();
-        fetchLeads();
       } else {
         alert(data.error || "Failed to save lead.");
       }
@@ -587,6 +592,7 @@ export default function RepDashboardPage() {
   }
 
   function resetLeadForm() {
+    setEditingLead(null);
     setNewLeadName("");
     setNewLeadEmail("");
     setNewLeadPhone("");
@@ -595,34 +601,31 @@ export default function RepDashboardPage() {
     setNewLeadStage("new");
     setNewLeadValue(0);
     setNewLeadNotes("");
-    setEditingLead(null);
   }
 
-  // Delete Lead
   async function handleDeleteLead(leadId: string) {
-    if (!confirm("Are you sure you want to delete this lead?")) return;
+    if (!confirm("Are you sure you want to delete this prospect?")) return;
     try {
       const res = await fetch(`/api/rep/leads/${leadId}`, { method: "DELETE" });
       const data = await res.json();
       if (data.ok) {
         setLeads((prev) => prev.filter((l) => l.id !== leadId));
+        setSelectedLeadIds((prev) => prev.filter((id) => id !== leadId));
       }
     } catch {}
   }
 
-  // Shortcut to Email Lead from CRM
   function handleEmailLeadShortcut(lead: RepLead) {
-    setRecipientEmail(lead.email);
     setRecipientName(lead.full_name);
+    setRecipientEmail(lead.email);
     setCompanyName(lead.company_name || "");
     setActiveTab("outreach");
   }
 
-  // Update Lead Stage
   async function handleUpdateLeadStage(leadId: string, nextStage: RepLead["stage"]) {
     try {
       const res = await fetch(`/api/rep/leads/${leadId}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stage: nextStage }),
       });
@@ -635,7 +638,6 @@ export default function RepDashboardPage() {
     } catch {}
   }
 
-  // Create Custom Template
   async function handleSaveCustomTemplate(e: React.FormEvent) {
     e.preventDefault();
     if (!newTemplateName || !newTemplateSubject || !newTemplateBody) return;
@@ -670,12 +672,11 @@ export default function RepDashboardPage() {
     }
   }
 
-  // Send Cold Outreach Email
   async function handleSendOutreach(e: React.FormEvent, forceSend = false) {
     if (e) e.preventDefault();
     setSendingOutreach(true);
     setOutreachStatus(null);
-    if (!forceSend) setDuplicateWarning(null);
+    setDuplicateWarning(null);
 
     try {
       const res = await fetch("/api/rep/outreach", {
@@ -693,6 +694,7 @@ export default function RepDashboardPage() {
       });
 
       const data = await res.json();
+
       if (res.status === 409 && data.isDuplicate) {
         setDuplicateWarning(data.error);
         setSendingOutreach(false);
@@ -719,7 +721,6 @@ export default function RepDashboardPage() {
     }
   }
 
-  // Save Payout Details
   async function handleSavePayoutDetails(e: React.FormEvent) {
     e.preventDefault();
     setSavingPayout(true);
@@ -751,7 +752,6 @@ export default function RepDashboardPage() {
     }
   }
 
-  // Toggle Onboarding Complete
   async function handleCompleteOnboarding() {
     setTogglingOnboarding(true);
     try {
@@ -770,10 +770,10 @@ export default function RepDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-navy flex items-center justify-center p-6">
-        <div className="flex flex-col items-center gap-3 text-white">
-          <Loader2 size={32} className="animate-spin text-purple" />
-          <p className="text-sm font-medium text-white/70">Loading Sales Rep Portal…</p>
+      <div className="min-h-screen bg-[#090D16] flex items-center justify-center p-6 text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-purple border-t-transparent" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Loading Sales CRM Workspace…</p>
         </div>
       </div>
     );
@@ -781,18 +781,18 @@ export default function RepDashboardPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white text-center">
-        <div className="max-w-md w-full rounded-3xl bg-slate-900 border border-white/10 p-8 space-y-4 shadow-2xl">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple/20 text-purple">
+      <div className="min-h-screen bg-[#090D16] flex flex-col items-center justify-center p-6 text-white text-center">
+        <div className="max-w-md w-full rounded-3xl bg-[#131B2E] border border-white/10 p-8 space-y-4 shadow-2xl">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple/20 text-purple-400">
             <ShieldCheck size={28} />
           </div>
           <h2 className="text-lg font-bold text-white">Sales Rep Session Required</h2>
-          <p className="text-xs text-white/60">
-            Please log in with your authorized employee email to access the Sales CRM.
+          <p className="text-xs text-slate-400">
+            Please log in with your authorized corporate email to access your personal CRM dashboard.
           </p>
           <button
             onClick={() => router.push("/rep/login")}
-            className="w-full rounded-xl bg-purple py-2.5 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/20 transition"
+            className="w-full rounded-xl bg-gradient-to-r from-purple to-[#7C3AED] py-3 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/20 transition"
           >
             Go to Sales Rep Login &rarr;
           </button>
@@ -803,10 +803,8 @@ export default function RepDashboardPage() {
 
   const currencySymbol = profile.currency === "BDT" ? "৳" : profile.currency === "GBP" ? "£" : "$";
   const repAlias = profile.assigned_outreach_email || `${profile.full_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "")}@digitaldude.co.uk`;
-  const corporateReplyTo = profile.assigned_outreach_email || "info@digitaldude.co.uk";
   const referralLink = `${SITE_URL}/contact?ref=${profile.referral_code || "rep"}`;
 
-  // Filtered Leads
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       lead.full_name.toLowerCase().includes(leadSearch.toLowerCase()) ||
@@ -818,19 +816,27 @@ export default function RepDashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row antialiased">
+    <div className="min-h-screen bg-[#080C14] text-slate-100 flex flex-col md:flex-row antialiased selection:bg-purple selection:text-white">
+      {/* Background Ambient Glow */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/4 h-[500px] w-[600px] rounded-full bg-purple/10 blur-[140px]" />
+      </div>
+
       {/* ========================================================================= */}
       {/* MOBILE TOP BAR */}
       {/* ========================================================================= */}
-      <div className="md:hidden flex items-center justify-between bg-navy/95 border-b border-white/10 px-5 py-3.5 sticky top-0 z-50 backdrop-blur-md">
+      <div className="md:hidden flex items-center justify-between bg-[#0D1322]/95 border-b border-white/[0.08] px-5 py-3.5 sticky top-0 z-50 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-xl bg-purple flex items-center justify-center text-white font-bold text-sm shadow-md">
-            DD
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-white leading-tight">Sales Rep CRM</h1>
-            <p className="text-[10px] text-white/50">{profile.full_name}</p>
-          </div>
+          <Image
+            src="/logo-full-color.png"
+            alt="The Digital Dude"
+            width={120}
+            height={24}
+            className="h-6 w-auto brightness-0 invert"
+          />
+          <span className="rounded bg-purple/20 border border-purple/30 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-purple-300">
+            Sales
+          </span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -841,416 +847,239 @@ export default function RepDashboardPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* DEDICATED DARK / NAVY CRM SIDEBAR */}
+      {/* DEDICATED SLEEK CRM SIDEBAR */}
       {/* ========================================================================= */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-navy border-r border-white/10 flex flex-col justify-between p-4 transition-transform duration-200 ${
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-[#0D1322] border-r border-white/[0.08] flex flex-col justify-between p-4 transition-transform duration-200 ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         <div className="space-y-6">
           {/* Brand Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-white/10 px-2">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple shadow-lg text-white font-bold text-sm">
-                DD
-              </div>
-              <div>
-                <h2 className="text-sm font-extrabold text-white tracking-wide">THE DIGITAL DUDE</h2>
-                <span className="text-[10px] font-semibold text-purple tracking-widest uppercase block">
-                  Rep Portal CRM
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] px-2">
+            <Link href="/" className="flex items-center gap-2.5">
+              <Image
+                src="/logo-full-color.png"
+                alt="The Digital Dude"
+                width={130}
+                height={26}
+                className="h-6 w-auto brightness-0 invert"
+              />
+              <span className="rounded bg-purple/20 border border-purple/40 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-purple-300">
+                CRM
+              </span>
+            </Link>
           </div>
 
-          {/* Rep Profile Mini Card */}
-          <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-3.5 space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-purple/20 border border-purple/40 text-purple flex items-center justify-center font-bold text-sm">
+          {/* Navigation Links */}
+          <nav className="space-y-1">
+            {[
+              { id: "overview", label: "Overview & Metrics", icon: LayoutDashboard },
+              { id: "leads", label: "Leads CRM", icon: Users, badge: leads.length },
+              { id: "campaigns", label: "Campaigns & Drips", icon: Layers, badge: campaigns.length },
+              { id: "outreach", label: "Cold Outreach", icon: Send, badge: outreachLogs.length },
+              { id: "onboarding", label: "Pitch Deck & Guide", icon: BookOpen, tag: !profile.onboarding_completed ? "START" : undefined },
+              { id: "payouts", label: "Earnings & Payouts", icon: CreditCard },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition ${
+                    isActive
+                      ? "bg-gradient-to-r from-purple/30 to-purple/10 border border-purple/40 text-white shadow-sm"
+                      : "text-slate-400 hover:bg-white/[0.04] hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon size={16} className={isActive ? "text-purple-400" : "text-slate-400"} />
+                    <span>{tab.label}</span>
+                  </div>
+                  {tab.tag && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/40">
+                      {tab.tag}
+                    </span>
+                  )}
+                  {typeof tab.badge === "number" && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? "bg-purple text-white" : "bg-white/10 text-slate-400"}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Rep Profile Mini Card & Logout */}
+        <div className="space-y-3 pt-4 border-t border-white/[0.08]">
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.08] p-3 space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-purple/20 border border-purple/30 text-purple-300 flex items-center justify-center font-bold text-xs">
                 {profile.full_name.charAt(0)}
               </div>
               <div className="overflow-hidden">
                 <p className="text-xs font-bold text-white truncate">{profile.full_name}</p>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Active Rep
-                </span>
+                <p className="text-[10px] font-mono text-purple-400 truncate">{repAlias}</p>
               </div>
             </div>
-            <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px] text-white/60">
-              <span>Alias:</span>
-              <span className="font-mono text-purple truncate max-w-[130px]">{repAlias}</span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="space-y-1.5">
-            <button
-              onClick={() => {
-                setActiveTab("onboarding");
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === "onboarding"
-                  ? "bg-purple text-white shadow-lg shadow-purple/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <BookOpen size={16} />
-                <span>Onboarding &amp; Pitch Deck</span>
-              </div>
-              {!profile.onboarding_completed && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-400/20 text-amber-300 font-extrabold border border-amber-400/40">
-                  START
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("overview");
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === "overview"
-                  ? "bg-purple text-white shadow-lg shadow-purple/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <TrendingUp size={16} />
-              <span>Overview &amp; Analytics</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("leads");
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === "leads"
-                  ? "bg-purple text-white shadow-lg shadow-purple/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Users size={16} />
-                <span>Leads CRM</span>
-              </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/10 text-white/80">
-                {leads.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("outreach");
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === "outreach"
-                  ? "bg-purple text-white shadow-lg shadow-purple/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Send size={16} />
-                <span>Cold Outreach</span>
-              </div>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple/20 text-purple font-mono">
-                {outreachLogs.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("campaigns");
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === "campaigns"
-                  ? "bg-purple text-white shadow-lg shadow-purple/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Layers size={16} />
-                <span>Campaigns &amp; Drips</span>
-              </div>
-              <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple/20 text-purple font-mono uppercase">
-                {campaigns.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab("payouts");
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === "payouts"
-                  ? "bg-purple text-white shadow-lg shadow-purple/20"
-                  : "text-white/70 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <CreditCard size={16} />
-              <span>Earnings &amp; Payouts</span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Sidebar Footer */}
-        <div className="space-y-3 pt-4 border-t border-white/10">
-          {/* Quick Copy Outreach Link */}
-          <div className="rounded-xl bg-white/[0.04] border border-white/10 p-2.5 space-y-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 block">
-              Your Referral Link
-            </span>
-            <button
-              onClick={handleCopyReferralLink}
-              className="w-full flex items-center justify-between rounded-lg bg-purple/10 hover:bg-purple/20 border border-purple/30 p-1.5 text-xs text-purple transition font-medium"
-            >
-              <span className="font-mono text-[11px] truncate mr-1">?ref={profile.referral_code}</span>
-              {copiedLink ? <Check size={14} className="text-emerald-400 shrink-0" /> : <Copy size={14} className="shrink-0" />}
-            </button>
           </div>
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.02] py-2 text-xs font-semibold text-slate-400 hover:bg-rose-500/10 hover:border-rose-500/30 hover:text-rose-300 transition"
           >
-            <LogOut size={15} />
+            <LogOut size={14} />
             <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* ========================================================================= */}
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN VIEWPORT */}
       {/* ========================================================================= */}
-      <main className="flex-1 min-h-screen p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto">
-        {/* ===================================================================== */}
-        {/* VIEW 1: ONBOARDING & TRAINING */}
-        {/* ===================================================================== */}
-        {activeTab === "onboarding" && (
-          <div className="max-w-4xl space-y-6 animate-in fade-in duration-150">
-            {/* Onboarding Header Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-navy via-slate-900 to-purple/30 border border-purple/30 p-6 sm:p-8 shadow-2xl">
-              <div className="relative z-10 space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full bg-purple/20 px-3 py-1 text-xs font-bold text-purple border border-purple/40">
-                  <Sparkles size={13} />
-                  <span>Representative Kickoff Guide</span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Welcome to The Digital Dude Sales Team
-                </h1>
-                <p className="text-xs sm:text-sm text-white/70 max-w-2xl leading-relaxed">
-                  Everything you need to source discovery calls, qualify high-ticket clients, and earn competitive milestone bonuses &amp; deal commissions.
-                </p>
-
-                <div className="pt-2 flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={handleCompleteOnboarding}
-                    disabled={togglingOnboarding}
-                    className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
-                  >
-                    {togglingOnboarding ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : profile.onboarding_completed ? (
-                      <CheckCircle2 size={14} />
-                    ) : (
-                      <Check size={14} />
-                    )}
-                    {profile.onboarding_completed ? "Onboarding Marked Complete" : "Mark Onboarding as Complete"}
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab("leads")}
-                    className="rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/10 transition"
-                  >
-                    Go to Leads CRM →
-                  </button>
-                </div>
-              </div>
+      <main className="flex-1 flex flex-col min-w-0 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
+        {/* TOP BAR / QUICK STATS HEADER */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-purple-400 uppercase tracking-widest">
+              <span>Sales Partner Engine</span>
+              <span>&bull;</span>
+              <span className="text-slate-400 font-mono">{profile.role_title}</span>
             </div>
-
-            {/* Core Modules Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Module 1: Value Prop */}
-              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
-                <div className="flex items-center gap-2 text-purple font-bold text-sm">
-                  <Layers size={18} />
-                  <h3>1. Our Core Value Proposition</h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  We build high-performance <strong>Custom CRMs, SaaS Platforms, Operations Systems, and AI-Driven Workflows</strong> for rapidly scaling businesses in the UK, Australia, US, and Bangladesh.
-                </p>
-                <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-slate-400 space-y-1">
-                  <p>• <strong>Deal Size:</strong> $3,000 to $50,000+ USD (or 300,000৳ to 5,000,000৳ BDT)</p>
-                  <p>• <strong>Ideal Client:</strong> CEOs, CTOs, Founders, Operations Directors, Agency Owners.</p>
-                </div>
-              </div>
-
-              {/* Module 2: Commission Structure */}
-              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-                  <Award size={18} />
-                  <h3>2. Your Compensation Structure</h3>
-                </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  You earn across two lucrative milestones on every opportunity you bring:
-                </p>
-                <div className="rounded-xl bg-white/[0.04] p-3 text-xs text-slate-400 space-y-1">
-                  <p>• <strong>Qualified Meeting Bonus:</strong> {currencySymbol}{profile.meeting_bonus_min || 1000} – {currencySymbol}{profile.meeting_bonus_max || 2000} per held call.</p>
-                  <p>• <strong>Closed Deal Commission:</strong> {profile.deal_commission_percent_min || 10}% – {profile.deal_commission_percent_max || 15}% of total contract revenue.</p>
-                </div>
-              </div>
-
-              {/* Module 3: Objection Handling */}
-              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
-                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
-                  <HelpCircle size={18} />
-                  <h3>3. Cold Outreach &amp; Objections</h3>
-                </div>
-                <div className="space-y-2 text-xs text-slate-300">
-                  <p><strong>&ldquo;We already use off-the-shelf software:&rdquo;</strong></p>
-                  <p className="text-slate-400 italic pl-2 border-l border-amber-400/40">
-                    &ldquo;Most off-the-shelf tools don&apos;t talk to each other, forcing duplicate manual entry. We custom-build unified systems where data flows seamlessly.&rdquo;
-                  </p>
-                </div>
-              </div>
-
-              {/* Module 4: Step-by-Step Workflow */}
-              <div className="rounded-2xl bg-slate-900/70 border border-white/10 p-5 space-y-3">
-                <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
-                  <TrendingUp size={18} />
-                  <h3>4. Daily Execution Cadence</h3>
-                </div>
-                <ul className="text-xs text-slate-300 space-y-1.5">
-                  <li>1. Find prospects on LinkedIn / Apollo and add to <strong>Leads CRM</strong>.</li>
-                  <li>2. Dispatch personalized outreach via the <strong>Cold Outreach</strong> tab.</li>
-                  <li>3. Send them your unique booking link: <span className="font-mono text-purple">{referralLink}</span></li>
-                  <li>4. Our technical leadership conducts the call — you earn meeting bonus + deal commission!</li>
-                </ul>
-              </div>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white mt-0.5">
+              Welcome back, {profile.full_name.split(" ")[0]}
+            </h1>
           </div>
-        )}
+
+          {/* Quick Referral Tag Copy */}
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <div className="flex-1 sm:flex-initial flex items-center justify-between gap-2 rounded-xl bg-[#131B2E] border border-white/[0.08] px-3 py-2 text-xs">
+              <span className="text-slate-400 text-[11px]">Referral Tag:</span>
+              <span className="font-mono text-purple-300 font-semibold">{profile.referral_code || "rep"}</span>
+              <button
+                onClick={handleCopyReferralLink}
+                className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition"
+                title="Copy booking link"
+              >
+                {copiedLink ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                resetLeadForm();
+                setShowAddLeadModal(true);
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple to-[#7C3AED] px-3.5 py-2 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/20 transition active:scale-95 whitespace-nowrap"
+            >
+              <Plus size={14} /> New Lead
+            </button>
+          </div>
+        </div>
 
         {/* ===================================================================== */}
-        {/* VIEW 2: OVERVIEW & ANALYTICS */}
+        {/* VIEW 1: OVERVIEW & METRICS */}
         {/* ===================================================================== */}
         {activeTab === "overview" && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            {/* Top Bar Banner */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white">Representative Performance</h1>
-                <p className="text-xs text-white/60">Live metrics tracked to your unique referral tag: <strong>{profile.referral_code}</strong></p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleCopyReferralLink}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple/20 border border-purple/40 px-3.5 py-2 text-xs font-bold text-purple hover:bg-purple/30 transition"
-                >
-                  {copiedLink ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                  <span>Copy Outreach Link</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Performance Stats Cards */}
+          <div className="space-y-6">
+            {/* 4 Clean Metric Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
-                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
+              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
                   <span>Discovery Calls</span>
-                  <Calendar size={16} className="text-purple" />
+                  <Calendar size={16} className="text-purple-400" />
                 </div>
-                <div className="text-2xl font-black text-white">{commissionSummary?.totalBookingsCount || 0}</div>
+                <div className="text-2xl font-bold text-white">{commissionSummary?.totalBookingsCount || 0}</div>
                 <p className="text-[11px] text-emerald-400 font-medium">
                   {commissionSummary?.qualifiedMeetings || 0} Qualified &amp; Held
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
-                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
+              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
                   <span>Meeting Bonus Range</span>
                   <DollarSign size={16} className="text-emerald-400" />
                 </div>
-                <div className="text-2xl font-black text-white">
+                <div className="text-2xl font-bold text-white font-mono">
                   {currencySymbol}{commissionSummary?.meetingBonusRangeTotal[0] || 0} – {currencySymbol}{commissionSummary?.meetingBonusRangeTotal[1] || 0}
                 </div>
-                <p className="text-[11px] text-white/50">
+                <p className="text-[11px] text-slate-400">
                   {commissionSummary?.meetingBonusPaidCount || 0} bonuses paid out
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
-                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
-                  <span>Deals Won</span>
+              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <span>Deals Closed</span>
                   <Award size={16} className="text-blue-400" />
                 </div>
-                <div className="text-2xl font-black text-white">{commissionSummary?.wonDealsCount || 0}</div>
-                <p className="text-[11px] text-white/50">
-                  {currencySymbol}{commissionSummary?.wonDealValue?.toLocaleString() || 0} total deal volume
+                <div className="text-2xl font-bold text-white">{commissionSummary?.wonDealsCount || 0}</div>
+                <p className="text-[11px] text-slate-400">
+                  {currencySymbol}{(commissionSummary?.wonDealValue || 0).toLocaleString()} volume
                 </p>
               </div>
 
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-2">
-                <div className="flex items-center justify-between text-white/50 text-xs font-bold uppercase">
-                  <span>Deal Commissions</span>
-                  <Sparkles size={16} className="text-purple" />
+              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <span>Commission Range</span>
+                  <Sparkles size={16} className="text-purple-400" />
                 </div>
-                <div className="text-2xl font-black text-white">
+                <div className="text-2xl font-bold text-white font-mono">
                   {currencySymbol}{commissionSummary?.dealCommissionRangeTotal[0] || 0} – {currencySymbol}{commissionSummary?.dealCommissionRangeTotal[1] || 0}
                 </div>
-                <p className="text-[11px] text-white/50">
+                <p className="text-[11px] text-purple-400">
                   {commissionSummary?.dealCommissionPaidCount || 0} commissions finalized
                 </p>
               </div>
             </div>
 
-            {/* Discovery Calls Table */}
-            <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
-              <div className="flex items-center justify-between">
+            {/* Sourced Discovery Calls Table */}
+            <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
                 <div>
                   <h3 className="text-base font-bold text-white">Discovery Calls &amp; Deals Sourced</h3>
-                  <p className="text-xs text-white/50">Clients who booked through your referral tag</p>
+                  <p className="text-xs text-slate-400">Prospects who booked discovery calls through your link</p>
                 </div>
-                <span className="text-xs font-bold text-purple">{bookings.length} Tracked</span>
+                <span className="text-xs font-bold text-purple-400">{bookings.length} Tracked</span>
               </div>
 
               {bookings.length === 0 ? (
-                <div className="text-center py-10 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
-                  <Calendar size={28} className="mx-auto text-white/20" />
-                  <p className="text-xs text-white/50">No discovery calls tracked yet.</p>
-                  <p className="text-[11px] text-white/40">Use the Leads CRM or Cold Outreach tab to start sending your link!</p>
+                <div className="text-center py-10 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-2">
+                  <Calendar size={28} className="mx-auto text-slate-500" />
+                  <p className="text-xs text-slate-400">No discovery calls tracked yet.</p>
+                  <p className="text-[11px] text-slate-500">
+                    Use the <button onClick={() => setActiveTab("leads")} className="text-purple-400 hover:underline">Leads CRM</button> or <button onClick={() => setActiveTab("campaigns")} className="text-purple-400 hover:underline">Automated Campaigns</button> to start generating inbound interest!
+                  </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
+                      <tr className="border-b border-white/[0.08] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                         <th className="py-3 px-3">Client</th>
                         <th className="py-3 px-3">Company</th>
                         <th className="py-3 px-3">Scheduled Date</th>
-                        <th className="py-3 px-3">Call Status</th>
+                        <th className="py-3 px-3">Status</th>
                         <th className="py-3 px-3">Meeting Bonus</th>
                         <th className="py-3 px-3">Deal Comm</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-white/[0.04]">
                       {bookings.map((b) => (
                         <tr key={b.id} className="hover:bg-white/[0.02]">
                           <td className="py-3 px-3">
                             <span className="font-bold text-white block">{b.name}</span>
-                            <span className="text-[11px] text-white/50 font-mono">{b.work_email}</span>
+                            <span className="text-[11px] text-slate-400 font-mono">{b.work_email}</span>
                           </td>
-                          <td className="py-3 px-3 text-white/80">{b.company_name || "—"}</td>
-                          <td className="py-3 px-3 text-white/70">
-                            {new Date(b.slot_start).toLocaleDateString(undefined, {
+                          <td className="py-3 px-3 text-slate-300">{b.company_name || "—"}</td>
+                          <td className="py-3 px-3 text-slate-400">
+                            {new Date(b.slot_start).toLocaleDateString("en-GB", {
                               month: "short",
                               day: "numeric",
                               hour: "2-digit",
@@ -1258,15 +1087,7 @@ export default function RepDashboardPage() {
                             })}
                           </td>
                           <td className="py-3 px-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                b.status === "completed"
-                                  ? "bg-emerald-500/20 text-emerald-300"
-                                  : b.status === "cancelled"
-                                  ? "bg-rose-500/20 text-rose-300"
-                                  : "bg-purple/20 text-purple"
-                              }`}
-                            >
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple/20 text-purple-300 border border-purple/30">
                               {b.status}
                             </span>
                           </td>
@@ -1274,8 +1095,8 @@ export default function RepDashboardPage() {
                             <span
                               className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                                 b.meeting_bonus_payout_status === "paid"
-                                  ? "bg-emerald-500/20 text-emerald-300"
-                                  : "bg-amber-500/20 text-amber-300"
+                                  ? "bg-emerald-500/20 text-emerald-400"
+                                  : "bg-amber-500/20 text-amber-400"
                               }`}
                             >
                               {b.meeting_bonus_payout_status === "paid" ? "Paid" : "Pending Review"}
@@ -1285,7 +1106,7 @@ export default function RepDashboardPage() {
                             <span
                               className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
                                 b.deal_commission_payout_status === "paid"
-                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  ? "bg-emerald-500/20 text-emerald-400"
                                   : "bg-slate-700 text-slate-300"
                               }`}
                             >
@@ -1303,45 +1124,25 @@ export default function RepDashboardPage() {
         )}
 
         {/* ===================================================================== */}
-        {/* VIEW 3: LEADS CRM */}
+        {/* VIEW 2: LEADS PIPELINE CRM */}
         {/* ===================================================================== */}
         {activeTab === "leads" && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            {/* Header & Actions */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white">Leads Pipeline CRM</h1>
-                <p className="text-xs text-white/60">Organize prospective clients, track stage transitions, and trigger outreach.</p>
-              </div>
-
-              <button
-                onClick={() => {
-                  resetLeadForm();
-                  setShowAddLeadModal(true);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-lg shadow-purple/25 transition"
-              >
-                <Plus size={16} />
-                <span>Add New Lead</span>
-              </button>
-            </div>
-
-            {/* Search & Stage Filters */}
+          <div className="space-y-6">
+            {/* Search & Filter Pills */}
             <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-              {/* Search input */}
               <div className="relative flex-1 max-w-md">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
                   value={leadSearch}
                   onChange={(e) => setLeadSearch(e.target.value)}
                   placeholder="Search leads by name, email, company…"
-                  className="w-full rounded-xl bg-slate-900 border border-white/10 py-2 pl-9 pr-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-purple"
+                  className="w-full rounded-xl bg-[#131B2E] border border-white/[0.08] py-2.5 pl-9 pr-3 text-xs text-white placeholder:text-slate-500 outline-none focus:border-purple focus:ring-2 focus:ring-purple/20 transition"
                 />
               </div>
 
-              {/* Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+              {/* Stage Filters */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
                 {LEAD_STAGES.map((s) => (
                   <button
                     key={s.id}
@@ -1349,7 +1150,7 @@ export default function RepDashboardPage() {
                     className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition ${
                       leadStageFilter === s.id
                         ? "bg-purple text-white shadow-md shadow-purple/20"
-                        : "bg-slate-900 text-white/60 hover:text-white border border-white/5"
+                        : "bg-[#131B2E] text-slate-400 hover:text-white border border-white/[0.05]"
                     }`}
                   >
                     {s.label}
@@ -1358,29 +1159,28 @@ export default function RepDashboardPage() {
               </div>
             </div>
 
-            {/* Leads Table */}
-            <div className="rounded-3xl bg-slate-900/80 border border-white/10 overflow-hidden shadow-xl">
+            {/* Leads Data Grid */}
+            <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md overflow-hidden shadow-xl">
               {filteredLeads.length === 0 ? (
                 <div className="text-center py-16 space-y-3">
-                  <Users size={32} className="mx-auto text-white/20" />
-                  <p className="text-sm font-semibold text-white/60">No leads found in this filter.</p>
+                  <Users size={32} className="mx-auto text-slate-500" />
+                  <p className="text-sm font-semibold text-slate-400">No leads found matching current filter.</p>
                   <button
                     onClick={() => {
                       resetLeadForm();
                       setShowAddLeadModal(true);
                     }}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/15 px-3 py-1.5 text-xs font-bold text-white transition"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:brightness-110 transition shadow-md"
                   >
-                    <Plus size={13} />
-                    <span>Create Your First Lead</span>
+                    <Plus size={14} /> Add First Lead
                   </button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-white/10 bg-white/[0.02] text-white/50 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="py-3.5 px-3 w-10 text-center">
+                      <tr className="border-b border-white/[0.08] bg-white/[0.02] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-3 px-3 w-10 text-center">
                           <input
                             type="checkbox"
                             checked={filteredLeads.length > 0 && selectedLeadIds.length === filteredLeads.length}
@@ -1394,20 +1194,20 @@ export default function RepDashboardPage() {
                             className="rounded border-white/20 bg-slate-950 accent-purple cursor-pointer"
                           />
                         </th>
-                        <th className="py-3.5 px-4">Lead Contact</th>
-                        <th className="py-3.5 px-4">Company &amp; Role</th>
-                        <th className="py-3.5 px-4">Stage</th>
-                        <th className="py-3.5 px-4">Est. Deal Value</th>
-                        <th className="py-3.5 px-4">Notes</th>
-                        <th className="py-3.5 px-4 text-right">Actions</th>
+                        <th className="py-3 px-4">Contact</th>
+                        <th className="py-3 px-4">Company &amp; Title</th>
+                        <th className="py-3 px-4">Pipeline Stage</th>
+                        <th className="py-3 px-4">Est. Deal Value</th>
+                        <th className="py-3 px-4">Notes</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-white/[0.04]">
                       {filteredLeads.map((lead) => (
                         <tr
                           key={lead.id}
                           className={`hover:bg-white/[0.02] transition ${
-                            selectedLeadIds.includes(lead.id) ? "bg-purple/[0.06]" : ""
+                            selectedLeadIds.includes(lead.id) ? "bg-purple/10" : ""
                           }`}
                         >
                           <td className="py-3 px-3 text-center">
@@ -1426,41 +1226,40 @@ export default function RepDashboardPage() {
                           </td>
                           <td className="py-3 px-4">
                             <span className="font-bold text-white block">{lead.full_name}</span>
-                            <span className="text-[11px] text-white/50 font-mono">{lead.email}</span>
-                            {lead.phone && <span className="text-[10px] text-white/40 block">{lead.phone}</span>}
+                            <span className="text-[11px] text-slate-400 font-mono">{lead.email}</span>
                           </td>
                           <td className="py-3 px-4">
                             <span className="text-white font-medium block">{lead.company_name || "—"}</span>
-                            <span className="text-[11px] text-white/50">{lead.job_title || "Decision Maker"}</span>
+                            <span className="text-[11px] text-slate-400">{lead.job_title || "Decision Maker"}</span>
                           </td>
                           <td className="py-3 px-4">
                             <select
                               value={lead.stage}
                               onChange={(e) => handleUpdateLeadStage(lead.id, e.target.value as RepLead["stage"])}
-                              className="rounded-lg bg-slate-950 border border-white/10 px-2 py-1 text-xs font-semibold text-purple outline-none focus:border-purple"
+                              className="rounded-lg bg-[#0D1322] border border-white/[0.08] px-2 py-1 text-xs font-semibold text-purple-300 outline-none focus:border-purple cursor-pointer"
                             >
                               <option value="new">New Lead</option>
                               <option value="contacted">Contacted</option>
                               <option value="meeting_booked">Meeting Booked</option>
-                              <option value="negotiation">In Negotiation</option>
+                              <option value="negotiation">Negotiation</option>
                               <option value="won">Closed Won</option>
                               <option value="lost">Closed Lost</option>
                             </select>
                           </td>
                           <td className="py-3 px-4 font-mono font-bold text-white">
-                            {currencySymbol}{lead.estimated_deal_value?.toLocaleString() || "0"}
+                            {currencySymbol}{(lead.estimated_deal_value || 0).toLocaleString()}
                           </td>
-                          <td className="py-3 px-4 text-white/60 text-[11px] max-w-xs truncate">
+                          <td className="py-3 px-4 text-slate-400 text-[11px] max-w-xs truncate">
                             {lead.notes || "—"}
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                            <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={() => handleEmailLeadShortcut(lead)}
-                                title="Send Cold Email"
-                                className="p-1.5 rounded-lg bg-purple/10 hover:bg-purple/20 text-purple transition"
+                                title="Send Direct Outreach"
+                                className="p-1.5 rounded-lg bg-purple/10 hover:bg-purple/20 text-purple-300 transition"
                               >
-                                <Send size={14} />
+                                <Send size={13} />
                               </button>
                               <button
                                 onClick={() => {
@@ -1475,17 +1274,17 @@ export default function RepDashboardPage() {
                                   setNewLeadNotes(lead.notes || "");
                                   setShowAddLeadModal(true);
                                 }}
-                                title="Edit Lead"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 transition"
+                                title="Edit Prospect"
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
                               >
-                                <Edit3 size={14} />
+                                <Edit3 size={13} />
                               </button>
                               <button
                                 onClick={() => handleDeleteLead(lead.id)}
-                                title="Delete Lead"
+                                title="Delete Prospect"
                                 className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={13} />
                               </button>
                             </div>
                           </td>
@@ -1499,19 +1298,19 @@ export default function RepDashboardPage() {
 
             {/* Floating Bulk Action Bar */}
             {selectedLeadIds.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-purple/20 border border-purple/40 p-4 shadow-xl backdrop-blur-md">
+              <div className="sticky bottom-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-[#131B2E] border border-purple/40 p-4 shadow-2xl backdrop-blur-xl">
                 <div className="flex items-center gap-3">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple text-xs font-bold text-white shadow-md">
                     {selectedLeadIds.length}
                   </span>
                   <span className="text-xs font-bold text-white">
-                    {selectedLeadIds.length} lead(s) selected for bulk outreach
+                    {selectedLeadIds.length} prospect(s) selected
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSelectedLeadIds([])}
-                    className="rounded-xl px-3 py-1.5 text-xs font-semibold text-white/60 hover:text-white"
+                    className="rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
                   >
                     Deselect All
                   </button>
@@ -1522,7 +1321,7 @@ export default function RepDashboardPage() {
                       }
                       setShowEnrollModal(true);
                     }}
-                    className="flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/30 transition active:scale-95"
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple to-[#7C3AED] px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/20 transition active:scale-95"
                   >
                     <Layers size={14} /> Enroll in Campaign Sequence...
                   </button>
@@ -1533,117 +1332,277 @@ export default function RepDashboardPage() {
         )}
 
         {/* ===================================================================== */}
-        {/* VIEW 4: COLD OUTREACH */}
+        {/* VIEW 3: CAMPAIGNS & DRIP SEQUENCES */}
+        {/* ===================================================================== */}
+        {activeTab === "campaigns" && (
+          <div className="space-y-6">
+            {/* Header & Quick Dispatch */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
+              <div>
+                <h2 className="text-base font-bold text-white">Automated Outreach Cadences</h2>
+                <p className="text-xs text-slate-400">
+                  Multi-touch email campaigns sent from your verified corporate alias.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleTriggerDispatch}
+                  disabled={dispatchingQueue}
+                  className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-[#131B2E] px-3.5 py-2 text-xs font-bold text-slate-300 hover:bg-white/10 hover:text-white transition disabled:opacity-50"
+                  title="Check and dispatch any due queue emails"
+                >
+                  {dispatchingQueue ? <Loader2 size={13} className="animate-spin" /> : <Clock size={13} />}
+                  <span>{dispatchingQueue ? "Dispatching..." : "Process Queue Now"}</span>
+                </button>
+
+                <button
+                  onClick={() => setShowCreateCampaignModal(true)}
+                  className="flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition"
+                >
+                  <Plus size={14} /> New Sequence
+                </button>
+              </div>
+            </div>
+
+            {dispatchResult && (
+              <div className="rounded-xl border border-purple/30 bg-purple/10 p-3 text-xs text-purple-200 flex items-center gap-2">
+                <Sparkles size={15} className="text-purple-400 shrink-0" />
+                <span>{dispatchResult}</span>
+              </div>
+            )}
+
+            {/* Campaign Selector Tabs */}
+            {campaigns.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-white/[0.08] scrollbar-none">
+                {campaigns.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedCampaignId(c.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                      selectedCampaignId === c.id
+                        ? "bg-purple text-white shadow-md shadow-purple/20"
+                        : "bg-[#131B2E] text-slate-400 hover:text-white border border-white/[0.05]"
+                    }`}
+                  >
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Active Sequence Visualizer */}
+            {(() => {
+              const currentCamp = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
+              if (!currentCamp) {
+                return (
+                  <div className="text-center py-12 rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-8 space-y-3">
+                    <Layers size={32} className="mx-auto text-slate-500" />
+                    <h3 className="text-sm font-bold text-white">No Sequences Created Yet</h3>
+                    <p className="text-xs text-slate-400">Click &ldquo;New Sequence&rdquo; above to generate your first automated cadence.</p>
+                  </div>
+                );
+              }
+
+              const steps = currentCamp.rep_campaign_steps || [];
+              const enrollments = currentCamp.rep_campaign_enrollments || [];
+
+              return (
+                <div className="space-y-6">
+                  {/* Visual Steps Grid */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <span>Cadence Touchpoints</span>
+                        <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
+                          {steps.length} Steps
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">{currentCamp.description || "Automated drip sequence"}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {steps.map((step) => (
+                        <div
+                          key={step.id}
+                          className="flex flex-col justify-between rounded-xl border border-white/[0.08] bg-[#0D1322] p-4 space-y-3"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+                              <span className="flex items-center gap-1.5 text-xs font-bold text-purple-400 uppercase">
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple text-white text-[10px]">
+                                  {step.step_number}
+                                </span>
+                                Step {step.step_number}
+                              </span>
+                              <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-mono text-slate-300">
+                                {step.delay_days === 0 ? "Day 0 (Immediate)" : `+${step.delay_days}d Delay`}
+                              </span>
+                            </div>
+
+                            <p className="text-xs font-bold text-white truncate" title={step.subject}>
+                              {step.subject}
+                            </p>
+                            <p className="text-[11px] text-slate-400 line-clamp-4 leading-relaxed font-sans whitespace-pre-line">
+                              {step.body}
+                            </p>
+                          </div>
+
+                          <div className="pt-2 border-t border-white/[0.05] text-[10px] text-slate-500 flex items-center justify-between">
+                            <span>From: {repAlias}</span>
+                            <span className="text-emerald-400 font-semibold">Active</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Enrolled Leads in Sequence */}
+                  <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Prospects in this Sequence</h3>
+                        <p className="text-xs text-slate-400">Automated progression through touchpoint steps</p>
+                      </div>
+                      <span className="text-xs font-bold text-purple-400">{enrollments.length} Enrolled</span>
+                    </div>
+
+                    {enrollments.length === 0 ? (
+                      <p className="text-xs text-slate-500 text-center py-6">
+                        No prospects currently enrolled in this cadence. Use the Leads CRM table to select and enroll leads.
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-white/[0.08] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
+                              <th className="py-2.5 px-3">Prospect</th>
+                              <th className="py-2.5 px-3">Progress</th>
+                              <th className="py-2.5 px-3">Status</th>
+                              <th className="py-2.5 px-3">Enrolled Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/[0.04]">
+                            {enrollments.map((e) => (
+                              <tr key={e.id} className="hover:bg-white/[0.02]">
+                                <td className="py-3 px-3">
+                                  <span className="font-bold text-white block">{e.rep_leads?.full_name || "Prospect"}</span>
+                                  <span className="text-[11px] text-slate-400 font-mono">{e.rep_leads?.email}</span>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <span className="inline-flex items-center gap-1 rounded bg-purple/20 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+                                    Step {e.current_step} of {steps.length}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400">
+                                    {e.status.replace(/_/g, " ")}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3 text-slate-400 font-mono text-[11px]">
+                                  {new Date(e.enrolled_at).toLocaleDateString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* VIEW 4: DIRECT COLD OUTREACH */}
         {/* ===================================================================== */}
         {activeTab === "outreach" && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            {/* Outreach Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="space-y-6">
+            {/* Outreach Sender Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white">Cold Outreach Engine</h1>
-                <p className="text-xs text-white/60">Dispatch high-deliverability cold emails through your verified corporate alias.</p>
+                <h2 className="text-base font-bold text-white">Direct Cold Email Composer</h2>
+                <p className="text-xs text-slate-400">Send personalized single emails via your corporate alias.</p>
               </div>
 
               <button
                 onClick={() => setShowTemplateModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-3.5 py-2 text-xs font-bold text-white transition border border-white/10"
+                className="flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-[#131B2E] px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white transition"
               >
-                <Plus size={14} />
-                <span>Create Custom Template</span>
+                <Plus size={14} /> Create Custom Template
               </button>
             </div>
 
-            {/* Alias Configuration Notice */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-2xl bg-slate-900/80 border border-white/10 p-4 text-xs">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center font-bold">
-                  @
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-white/40 block">Sender Corporate Alias</span>
-                  <span className="font-mono text-purple font-bold">{repAlias}</span>
-                </div>
+            {/* Alias notice */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-[#131B2E]/60 border border-white/[0.08] p-4 text-xs">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Sender Alias</span>
+                <span className="font-mono text-purple-300 font-semibold">{repAlias}</span>
               </div>
-
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                  ↩
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-white/40 block">Replies Routed To</span>
-                  <span className="font-mono text-blue-300 font-bold">{corporateReplyTo}</span>
-                </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Reply-To Routing</span>
+                <span className="font-mono text-emerald-400 font-semibold">{profile.assigned_outreach_email || "info@digitaldude.co.uk"}</span>
               </div>
             </div>
 
-            {/* Duplicate Warning Override */}
+            {/* Feedback Alerts */}
+            {outreachStatus && (
+              <div
+                className={`p-3.5 rounded-xl text-xs flex items-center gap-2 ${
+                  outreachStatus.type === "success"
+                    ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
+                    : "bg-rose-500/10 border border-rose-500/30 text-rose-300"
+                }`}
+              >
+                {outreachStatus.type === "success" ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
+                <span>{outreachStatus.message}</span>
+              </div>
+            )}
+
             {duplicateWarning && (
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={16} className="text-amber-400 shrink-0" />
-                  <span>{duplicateWarning}</span>
-                </div>
+              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-200 space-y-2">
+                <p>{duplicateWarning}</p>
                 <button
                   type="button"
                   onClick={(e) => handleSendOutreach(e, true)}
-                  disabled={sendingOutreach}
-                  className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition"
+                  className="rounded-lg bg-amber-500 px-3 py-1 font-bold text-black hover:bg-amber-400"
                 >
                   Send Anyway
                 </button>
               </div>
             )}
 
-            {/* Outreach Status Feedback */}
-            {outreachStatus && (
-              <div
-                className={`rounded-2xl border p-4 text-xs font-medium flex items-center gap-2.5 ${
-                  outreachStatus.type === "success"
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                    : "bg-rose-500/10 border-rose-500/30 text-rose-300"
-                }`}
-              >
-                {outreachStatus.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                <span>{outreachStatus.message}</span>
-              </div>
-            )}
-
-            {/* Email Composer Form */}
-            <form onSubmit={(e) => handleSendOutreach(e, false)} className="rounded-3xl bg-slate-900/90 border border-white/10 p-6 space-y-5 shadow-2xl">
-              {/* Template Picker */}
+            {/* Composer Form */}
+            <form onSubmit={(e) => handleSendOutreach(e, false)} className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-6 space-y-4">
+              {/* Template Selector */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                   Select Email Template
                 </label>
                 <select
                   value={selectedTemplateId}
                   onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs font-bold text-white outline-none focus:border-purple"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                 >
-                  <optgroup label="System Presets">
-                    {BUILTIN_TEMPLATES.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  {customTemplates.length > 0 && (
-                    <optgroup label="My Custom Templates">
-                      {customTemplates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.template_name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
+                  {BUILTIN_TEMPLATES.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} (Built-in)
+                    </option>
+                  ))}
+                  {customTemplates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.template_name} (Custom)
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Recipient Contact Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                    Recipient Email *
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Prospect Email *
                   </label>
                   <input
                     type="email"
@@ -1651,25 +1610,23 @@ export default function RepDashboardPage() {
                     value={recipientEmail}
                     onChange={(e) => setRecipientEmail(e.target.value)}
                     placeholder="prospect@company.com"
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple font-mono"
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
                     Prospect Name
                   </label>
                   <input
                     type="text"
                     value={recipientName}
                     onChange={(e) => setRecipientName(e.target.value)}
-                    placeholder="John Doe"
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    placeholder="Alex Morgan"
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
                     Company Name
                   </label>
                   <input
@@ -1677,14 +1634,13 @@ export default function RepDashboardPage() {
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="Acme Corp"
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                   />
                 </div>
               </div>
 
-              {/* Subject Line */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
                   Subject Line *
                 </label>
                 <input
@@ -1692,526 +1648,206 @@ export default function RepDashboardPage() {
                   required
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs font-bold text-white outline-none focus:border-purple"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple font-semibold"
                 />
               </div>
 
-              {/* Email Body */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
                   Message Content *
                 </label>
                 <textarea
                   required
-                  rows={8}
+                  rows={6}
                   value={emailMessage}
                   onChange={(e) => setEmailMessage(e.target.value)}
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-slate-200 outline-none focus:border-purple leading-relaxed font-sans"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-3 text-xs text-slate-200 outline-none focus:border-purple leading-relaxed"
                 />
               </div>
 
-              {/* Action */}
-              <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                <p className="text-[11px] text-white/40">
-                  Includes your branded email signature &amp; technical discovery booking button automatically.
-                </p>
+              <div className="flex items-center justify-between pt-2 border-t border-white/[0.08]">
+                <span className="text-[11px] text-slate-500">
+                  Automatically appends your signature and technical discovery booking link.
+                </span>
                 <button
                   type="submit"
                   disabled={sendingOutreach}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-6 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-lg shadow-purple/25 transition disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/20 transition disabled:opacity-50"
                 >
-                  {sendingOutreach ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" />
-                      Sending Email…
-                    </>
-                  ) : (
-                    <>
-                      <Send size={14} />
-                      Send Cold Email
-                    </>
-                  )}
+                  {sendingOutreach ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  <span>Send Cold Email</span>
                 </button>
               </div>
             </form>
+          </div>
+        )}
 
-            {/* Sent Outreach History */}
-            <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
+        {/* ===================================================================== */}
+        {/* VIEW 5: PITCH DECK & ONBOARDING GUIDE */}
+        {/* ===================================================================== */}
+        {activeTab === "onboarding" && (
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-purple/30 bg-gradient-to-r from-purple/20 via-[#131B2E] to-[#131B2E] p-6 space-y-4 shadow-xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-white">Outreach History</h3>
-                  <p className="text-xs text-white/50">Recent cold emails dispatched from this portal</p>
+                  <span className="rounded-full bg-purple/30 text-purple-300 px-2.5 py-0.5 text-[10px] font-bold uppercase">
+                    Partner Success Onboarding
+                  </span>
+                  <h2 className="text-lg font-bold text-white mt-1">Sales Rep Master Guide &amp; Pitch Deck</h2>
+                  <p className="text-xs text-slate-400">
+                    Review our service architecture, commission milestones, and high-converting objection handlers.
+                  </p>
                 </div>
-                <span className="text-xs font-bold text-purple">{outreachLogs.length} Total</span>
+                {!profile.onboarding_completed && (
+                  <button
+                    onClick={handleCompleteOnboarding}
+                    disabled={togglingOnboarding}
+                    className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={14} /> Mark Onboarding Complete
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 3 Core Guides Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-5 space-y-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple/20 text-purple-400 font-bold text-sm">
+                  1
+                </div>
+                <h3 className="text-sm font-bold text-white">Ideal Customer Profile (ICP)</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Target SaaS founders, e-commerce brands, real estate firms, and growing agencies looking for custom software systems, Next.js web applications, or CRM automations.
+                </p>
               </div>
 
-              {outreachLogs.length === 0 ? (
-                <p className="text-xs text-white/40 text-center py-6">No emails sent yet.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="py-2.5 px-3">Recipient</th>
-                        <th className="py-2.5 px-3">Subject</th>
-                        <th className="py-2.5 px-3">Sent Timestamp</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {outreachLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-white/[0.02]">
-                          <td className="py-3 px-3 font-mono text-white">
-                            {log.recipient_name ? `${log.recipient_name} (${log.recipient_email})` : log.recipient_email}
-                          </td>
-                          <td className="py-3 px-3 text-slate-300">{log.subject}</td>
-                          <td className="py-3 px-3 text-white/50 text-[11px]">
-                            {new Date(log.sent_at).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-5 space-y-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 font-bold text-sm">
+                  2
                 </div>
-              )}
+                <h3 className="text-sm font-bold text-white">Discovery Call Goal</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Do not sell code on the email. Sell the <strong>15-minute technical roadmap call</strong> with our lead solutions architect. When they book through your link, it is credited to you.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-5 space-y-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400 font-bold text-sm">
+                  3
+                </div>
+                <h3 className="text-sm font-bold text-white">Commission Milestones</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Earn qualified meeting bonuses for each held call, plus 10%–20% deal closing commissions on executed software contracts.
+                </p>
+              </div>
             </div>
           </div>
         )}
 
         {/* ===================================================================== */}
-        {/* VIEW: CAMPAIGNS & DRIP SEQUENCES */}
-        {/* ===================================================================== */}
-        {activeTab === "campaigns" && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            {/* Header & Actions */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-white">Automated Campaigns &amp; Drip Sequences</h1>
-                <p className="text-xs text-white/60">
-                  Multi-touch email cadences dispatched via your corporate alias with automatic cancellation on prospect reply.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={handleTriggerDispatch}
-                  disabled={dispatchingQueue}
-                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-3.5 py-2 text-xs font-bold text-white transition border border-white/10 disabled:opacity-50"
-                  title="Process any emails currently due in the queue"
-                >
-                  {dispatchingQueue ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
-                  <span>{dispatchingQueue ? "Dispatching..." : "Run Dispatch Now"}</span>
-                </button>
-
-                <button
-                  onClick={() => setShowCreateCampaignModal(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-lg shadow-purple/25 transition"
-                >
-                  <Plus size={15} />
-                  <span>New Sequence</span>
-                </button>
-              </div>
-            </div>
-
-            {dispatchResult && (
-              <div className="rounded-2xl border border-purple/30 bg-purple/10 p-3.5 text-xs text-purple-200 flex items-center gap-2">
-                <Sparkles size={16} className="text-purple-400 shrink-0" />
-                <span>{dispatchResult}</span>
-              </div>
-            )}
-
-            {/* Campaign Metrics Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Active Campaigns</span>
-                <div className="text-2xl font-black text-white">{campaigns.length}</div>
-                <p className="text-[11px] text-purple font-medium">Multi-step drip engines</p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Enrolled Prospects</span>
-                <div className="text-2xl font-black text-emerald-400">
-                  {campaigns.reduce((acc, c) => acc + (c.rep_campaign_enrollments?.length || 0), 0)}
-                </div>
-                <p className="text-[11px] text-emerald-400/80 font-medium">In active nurturing pipelines</p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Scheduled Queue</span>
-                <div className="text-2xl font-black text-blue-400">
-                  {campaignQueue.filter((q) => q.status === "pending").length}
-                </div>
-                <p className="text-[11px] text-blue-400/80 font-medium">Future touches waiting</p>
-              </div>
-
-              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Emails Dispatched</span>
-                <div className="text-2xl font-black text-white">
-                  {campaignQueue.filter((q) => q.status === "sent").length}
-                </div>
-                <p className="text-[11px] text-white/50 font-medium">Delivered via Brevo</p>
-              </div>
-            </div>
-
-            {/* Campaign Selection & Steps Visualizer */}
-            {campaigns.length === 0 ? (
-              <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-12 text-center space-y-3">
-                <Layers size={36} className="mx-auto text-white/20" />
-                <h3 className="text-base font-bold text-white">No Drip Sequences Configured</h3>
-                <p className="text-xs text-white/50 max-w-md mx-auto">
-                  Create your first multi-step automated campaign to nurture leads on autopilot.
-                </p>
-                <button
-                  onClick={() => setShowCreateCampaignModal(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md"
-                >
-                  <Plus size={14} /> Create First Sequence
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Campaign Selector Tabs */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-white/10">
-                  {campaigns.map((c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedCampaignId(c.id)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                        selectedCampaignId === c.id
-                          ? "bg-purple text-white shadow-md shadow-purple/20"
-                          : "bg-slate-900 text-white/60 hover:text-white border border-white/5"
-                      }`}
-                    >
-                      {c.title}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Selected Campaign Details */}
-                {(() => {
-                  const currentCamp = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
-                  if (!currentCamp) return null;
-                  const steps = currentCamp.rep_campaign_steps || [];
-                  const enrollments = currentCamp.rep_campaign_enrollments || [];
-
-                  return (
-                    <div className="space-y-6">
-                      {/* Sequence Cadence Visualizer */}
-                      <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-base font-bold text-white flex items-center gap-2">
-                              <span>Sequence Cadence Flow</span>
-                              <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
-                                {steps.length} Touchpoints
-                              </span>
-                            </h3>
-                            <p className="text-xs text-white/50">{currentCamp.description || "Automated multi-step outreach sequence."}</p>
-                          </div>
-                        </div>
-
-                        {/* Steps Timeline Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {steps.map((step) => (
-                            <div
-                              key={step.id}
-                              className="flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-950 p-4 space-y-3"
-                            >
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-purple uppercase tracking-wider">
-                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple text-white text-[10px]">
-                                      {step.step_number}
-                                    </span>
-                                    Step {step.step_number}
-                                  </span>
-                                  <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-mono text-white/70">
-                                    {step.delay_days === 0 ? "Day 0 (Immediate)" : `+${step.delay_days} Days Delay`}
-                                  </span>
-                                </div>
-
-                                <p className="text-xs font-bold text-white truncate" title={step.subject}>
-                                  {step.subject}
-                                </p>
-                                <p className="text-[11px] text-white/60 line-clamp-4 leading-relaxed font-sans whitespace-pre-line">
-                                  {step.body}
-                                </p>
-                              </div>
-
-                              <div className="pt-2 border-t border-white/5 text-[10px] text-white/40 flex items-center justify-between">
-                                <span>Sender: {repAlias}</span>
-                                <span className="text-emerald-400">Brevo Active</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Enrolled Prospects in this Sequence */}
-                      <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-base font-bold text-white">Enrolled Prospects in this Sequence</h3>
-                            <p className="text-xs text-white/50">Tracking pipeline status and step progress</p>
-                          </div>
-                          <span className="text-xs font-bold text-purple">{enrollments.length} Enrolled</span>
-                        </div>
-
-                        {enrollments.length === 0 ? (
-                          <div className="text-center py-8 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
-                            <Users size={24} className="mx-auto text-white/20" />
-                            <p className="text-xs text-white/50">No leads currently enrolled in this sequence.</p>
-                            <p className="text-[11px] text-white/40">
-                              Go to the <span className="text-purple font-bold">Leads CRM</span> tab, select leads with checkboxes, and click &ldquo;Enroll in Campaign Sequence&rdquo;!
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs">
-                              <thead>
-                                <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
-                                  <th className="py-2.5 px-3">Lead Contact</th>
-                                  <th className="py-2.5 px-3">Current Step</th>
-                                  <th className="py-2.5 px-3">Status</th>
-                                  <th className="py-2.5 px-3">Enrolled At</th>
-                                  <th className="py-2.5 px-3">Last Dispatched</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-white/5">
-                                {enrollments.map((e) => {
-                                  const lead = e.rep_leads;
-                                  return (
-                                    <tr key={e.id} className="hover:bg-white/[0.02]">
-                                      <td className="py-3 px-3">
-                                        <span className="font-bold text-white block">{lead?.full_name || "Lead"}</span>
-                                        <span className="text-[11px] text-white/50 font-mono">{lead?.email}</span>
-                                      </td>
-                                      <td className="py-3 px-3">
-                                        <span className="inline-flex items-center gap-1 rounded bg-purple/20 px-2 py-0.5 text-[10px] font-bold text-purple">
-                                          Step {e.current_step} of {steps.length}
-                                        </span>
-                                      </td>
-                                      <td className="py-3 px-3">
-                                        <span
-                                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                            e.status === "active"
-                                              ? "bg-emerald-500/20 text-emerald-400"
-                                              : e.status === "completed"
-                                              ? "bg-purple/20 text-purple"
-                                              : e.status === "cancelled_replied"
-                                              ? "bg-blue-500/20 text-blue-400"
-                                              : "bg-slate-700 text-slate-300"
-                                          }`}
-                                        >
-                                          {e.status.replace(/_/g, " ")}
-                                        </span>
-                                      </td>
-                                      <td className="py-3 px-3 text-white/60">
-                                        {new Date(e.enrolled_at).toLocaleDateString()}
-                                      </td>
-                                      <td className="py-3 px-3 text-white/50 text-[11px]">
-                                        {e.last_dispatched_at ? new Date(e.last_dispatched_at).toLocaleString() : "Pending"}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Scheduled Queue Inspector */}
-                      <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-base font-bold text-white">Scheduled Dispatch Queue</h3>
-                            <p className="text-xs text-white/50">Upcoming touchpoints scheduled for automated delivery</p>
-                          </div>
-                          <span className="text-xs font-bold text-blue-400">
-                            {campaignQueue.filter((q) => q.status === "pending").length} Pending
-                          </span>
-                        </div>
-
-                        {campaignQueue.length === 0 ? (
-                          <p className="text-xs text-white/40 text-center py-6">No scheduled emails in queue.</p>
-                        ) : (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left text-xs">
-                              <thead>
-                                <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
-                                  <th className="py-2.5 px-3">Lead Email</th>
-                                  <th className="py-2.5 px-3">Campaign Step</th>
-                                  <th className="py-2.5 px-3">Scheduled Delivery</th>
-                                  <th className="py-2.5 px-3">Status</th>
-                                  <th className="py-2.5 px-3 text-right">Action</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-white/5">
-                                {campaignQueue.map((q) => {
-                                  const lead = q.rep_leads;
-                                  const isPending = q.status === "pending";
-                                  return (
-                                    <tr key={q.id} className="hover:bg-white/[0.02]">
-                                      <td className="py-3 px-3">
-                                        <span className="font-bold text-white block">{lead?.full_name || "Lead"}</span>
-                                        <span className="text-[11px] text-white/50 font-mono">{lead?.email}</span>
-                                      </td>
-                                      <td className="py-3 px-3">
-                                        <span className="text-white font-medium">Step {q.step_number}</span>
-                                      </td>
-                                      <td className="py-3 px-3 text-white/70">
-                                        {new Date(q.scheduled_for).toLocaleString()}
-                                      </td>
-                                      <td className="py-3 px-3">
-                                        <span
-                                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                            q.status === "sent"
-                                              ? "bg-emerald-500/20 text-emerald-400"
-                                              : q.status === "pending"
-                                              ? "bg-amber-500/20 text-amber-400"
-                                              : "bg-slate-700 text-slate-300"
-                                          }`}
-                                        >
-                                          {q.status}
-                                        </span>
-                                      </td>
-                                      <td className="py-3 px-3 text-right">
-                                        {isPending && (
-                                          <button
-                                            onClick={() => handleCancelQueueItem(q.id)}
-                                            className="text-xs text-rose-400 hover:underline font-semibold"
-                                          >
-                                            Cancel
-                                          </button>
-                                        )}
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ===================================================================== */}
-        {/* VIEW 5: EARNINGS & PAYOUTS */}
+        {/* VIEW 6: EARNINGS & PAYOUT SETTINGS */}
         {/* ===================================================================== */}
         {activeTab === "payouts" && (
-          <div className="max-w-3xl space-y-6 animate-in fade-in duration-150">
-            <div className="border-b border-white/10 pb-5">
-              <h1 className="text-xl sm:text-2xl font-black text-white">Earnings &amp; Payout Settings</h1>
-              <p className="text-xs text-white/60">Configure your banking / MFS withdrawal details for milestone disbursements.</p>
+          <div className="max-w-2xl space-y-6">
+            <div className="border-b border-white/[0.08] pb-4">
+              <h2 className="text-base font-bold text-white">Earnings &amp; Payout Settings</h2>
+              <p className="text-xs text-slate-400">Configure your withdrawal details for milestone disbursements.</p>
             </div>
 
             {payoutSuccess && (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-300 flex items-center gap-2">
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
                 <CheckCircle2 size={16} />
                 <span>Payout details updated successfully!</span>
               </div>
             )}
 
-            {/* Payout Form */}
-            <form onSubmit={handleSavePayoutDetails} className="rounded-3xl bg-slate-900/90 border border-white/10 p-6 space-y-5 shadow-2xl">
+            <form onSubmit={handleSavePayoutDetails} className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
-                  Preferred Payout Method
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Payout Method
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {["bkash", "nagad", "bank", "paypal"].map((method) => (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {["bkash", "nagad", "bank", "paypal"].map((m) => (
                     <button
-                      key={method}
+                      key={m}
                       type="button"
-                      onClick={() => setPayoutMethod(method)}
-                      className={`p-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition ${
-                        payoutMethod === method
-                          ? "bg-purple text-white border-purple shadow-lg shadow-purple/20"
-                          : "bg-slate-950 border-white/10 text-white/60 hover:text-white"
+                      onClick={() => setPayoutMethod(m)}
+                      className={`py-2 px-3 rounded-xl border text-xs font-bold uppercase transition ${
+                        payoutMethod === m
+                          ? "bg-purple border-purple text-white shadow-md shadow-purple/20"
+                          : "bg-[#0D1322] border-white/[0.08] text-slate-400 hover:text-white"
                       }`}
                     >
-                      {method}
+                      {m}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                  Account / Mobile Number *
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Account / Phone / IBAN Number *
                 </label>
                 <input
                   type="text"
                   required
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder={payoutMethod === "bkash" || payoutMethod === "nagad" ? "017XXXXXXXX" : "Account number or PayPal email"}
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white font-mono outline-none focus:border-purple"
+                  placeholder="e.g. 01700000000 or Account No"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                 />
               </div>
 
               {payoutMethod === "bank" && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">Bank Name</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                      Bank Name
+                    </label>
                     <input
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      placeholder="e.g. City Bank / BRAC Bank"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                      placeholder="e.g. City Bank, HSBC"
+                      className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">Branch Name</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                      Branch Name
+                    </label>
                     <input
                       type="text"
                       value={branchName}
                       onChange={(e) => setBranchName(e.target.value)}
-                      placeholder="e.g. Gulshan Branch"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">Routing Number</label>
-                    <input
-                      type="text"
-                      value={routingNumber}
-                      onChange={(e) => setRoutingNumber(e.target.value)}
-                      placeholder="e.g. 225272..."
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white font-mono outline-none focus:border-purple"
+                      placeholder="Branch name"
+                      className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                  Additional Notes
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Withdrawal Notes (Optional)
                 </label>
                 <textarea
                   rows={2}
                   value={payoutNotes}
                   onChange={(e) => setPayoutNotes(e.target.value)}
-                  placeholder="Special instructions or account holder name..."
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                  placeholder="Any special instructions..."
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                 />
               </div>
 
-              <div className="pt-2 border-t border-white/10 flex justify-end">
+              <div className="flex justify-end pt-2 border-t border-white/[0.08]">
                 <button
                   type="submit"
                   disabled={savingPayout}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-6 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                  className="rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition disabled:opacity-50"
                 >
-                  {savingPayout ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                  <span>Save Payout Details</span>
+                  {savingPayout ? "Saving Details..." : "Save Payout Settings"}
                 </button>
               </div>
             </form>
@@ -2223,155 +1859,280 @@ export default function RepDashboardPage() {
       {/* MODAL: ADD / EDIT LEAD */}
       {/* ========================================================================= */}
       {showAddLeadModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 shrink-0 bg-slate-900">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
-                  <User size={16} />
-                </div>
-                <h3 className="text-base font-bold text-white">
-                  {editingLead ? "Edit Lead" : "Add New Lead"}
-                </h3>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg rounded-2xl bg-[#131B2E] border border-white/[0.08] shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+              <h3 className="text-base font-bold text-white">
+                {editingLead ? "Edit Prospect Details" : "Add New Prospect"}
+              </h3>
               <button
                 onClick={() => {
                   setShowAddLeadModal(false);
                   resetLeadForm();
                 }}
-                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+                className="text-slate-400 hover:text-white"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            {/* Scrollable Form Body */}
-            <form onSubmit={handleSaveLead} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                      Lead Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newLeadName}
-                      onChange={(e) => setNewLeadName(e.target.value)}
-                      placeholder="e.g. Sarah Jenkins"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                      Lead Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={newLeadEmail}
-                      onChange={(e) => setNewLeadEmail(e.target.value)}
-                      placeholder="sarah@company.com"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                      Company Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newLeadCompany}
-                      onChange={(e) => setNewLeadCompany(e.target.value)}
-                      placeholder="Acme Logistics"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                      Phone Number
-                    </label>
-                    <input
-                      type="text"
-                      value={newLeadPhone}
-                      onChange={(e) => setNewLeadPhone(e.target.value)}
-                      placeholder="+1 (555) 000-0000"
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                      Lead Stage
-                    </label>
-                    <select
-                      value={newLeadStage}
-                      onChange={(e) => setNewLeadStage(e.target.value as RepLead["stage"])}
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs font-bold text-white outline-none focus:border-purple"
-                    >
-                      <option value="new">New Lead</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="meeting_booked">Meeting Booked</option>
-                      <option value="negotiation">In Negotiation</option>
-                      <option value="won">Closed Won</option>
-                      <option value="lost">Closed Lost</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                      Est. Deal Value ({currencySymbol})
-                    </label>
-                    <input
-                      type="number"
-                      value={newLeadValue}
-                      onChange={(e) => setNewLeadValue(Number(e.target.value))}
-                      className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                    />
-                  </div>
-                </div>
-
+            <form onSubmit={handleSaveLead} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                    Notes &amp; Prospect Context
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Contact Name *
                   </label>
-                  <textarea
-                    rows={3}
-                    value={newLeadNotes}
-                    onChange={(e) => setNewLeadNotes(e.target.value)}
-                    placeholder="Key pain points, current software stack, budget notes..."
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                  <input
+                    type="text"
+                    required
+                    value={newLeadName}
+                    onChange={(e) => setNewLeadName(e.target.value)}
+                    placeholder="e.g. Sarah Jenkins"
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Work Email *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={newLeadEmail}
+                    onChange={(e) => setNewLeadEmail(e.target.value)}
+                    placeholder="sarah@brand.com"
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                   />
                 </div>
               </div>
 
-              {/* Sticky Footer */}
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 bg-slate-950/80 shrink-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newLeadCompany}
+                    onChange={(e) => setNewLeadCompany(e.target.value)}
+                    placeholder="Acme Corp"
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Job Title / Role
+                  </label>
+                  <input
+                    type="text"
+                    value={newLeadJobTitle}
+                    onChange={(e) => setNewLeadJobTitle(e.target.value)}
+                    placeholder="Founder / CTO"
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Pipeline Stage
+                  </label>
+                  <select
+                    value={newLeadStage}
+                    onChange={(e) => setNewLeadStage(e.target.value as any)}
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                  >
+                    <option value="new">New Lead</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="meeting_booked">Meeting Booked</option>
+                    <option value="negotiation">Negotiation</option>
+                    <option value="won">Closed Won</option>
+                    <option value="lost">Closed Lost</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                    Est. Deal Value ({currencySymbol})
+                  </label>
+                  <input
+                    type="number"
+                    value={newLeadValue}
+                    onChange={(e) => setNewLeadValue(Number(e.target.value))}
+                    className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Notes / Pain Points
+                </label>
+                <textarea
+                  rows={2}
+                  value={newLeadNotes}
+                  onChange={(e) => setNewLeadNotes(e.target.value)}
+                  placeholder="Context on current tech stack or budget..."
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddLeadModal(false);
                     resetLeadForm();
                   }}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
+                  className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingLead}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                  className="rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition disabled:opacity-50"
                 >
-                  {savingLead ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  <span>{editingLead ? "Save Changes" : "Create Lead"}</span>
+                  {savingLead ? "Saving..." : editingLead ? "Save Changes" : "Add Lead"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: BULK ENROLL IN DRIP CAMPAIGN */}
+      {/* ========================================================================= */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-2xl bg-[#131B2E] border border-white/[0.08] shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white">Enroll in Drip Sequence</h3>
+                <p className="text-[11px] text-slate-400">{selectedLeadIds.length} lead(s) selected</p>
+              </div>
+              <button onClick={() => setShowEnrollModal(false)} className="text-slate-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            {enrollResult && (
+              <div className="p-3 rounded-xl bg-purple/10 border border-purple/30 text-xs text-purple-200">
+                {enrollResult}
+              </div>
+            )}
+
+            {campaigns.length === 0 ? (
+              <p className="text-xs text-amber-400">
+                No active campaign sequences found. Please create a sequence first.
+              </p>
+            ) : (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Target Sequence
+                </label>
+                <select
+                  value={enrollTargetCampaignId}
+                  onChange={(e) => setEnrollTargetCampaignId(e.target.value)}
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                >
+                  {campaigns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title} ({c.rep_campaign_steps?.length || 0} Steps)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="rounded-xl bg-[#0D1322] border border-white/[0.05] p-3 text-[11px] text-slate-400 space-y-1">
+              <p className="font-bold text-white">Automation rules:</p>
+              <p>&bull; Step 1 is scheduled immediately for dispatch.</p>
+              <p>&bull; Automated follow-ups advance based on cadence delays.</p>
+              <p>&bull; If a prospect replies or books a call, all remaining steps auto-cancel.</p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => setShowEnrollModal(false)}
+                className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={enrollingLeads || campaigns.length === 0}
+                onClick={handleBulkEnroll}
+                className="rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition disabled:opacity-50"
+              >
+                {enrollingLeads ? "Enrolling..." : "Start Cadence"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CREATE CAMPAIGN */}
+      {/* ========================================================================= */}
+      {showCreateCampaignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-2xl bg-[#131B2E] border border-white/[0.08] shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+              <h3 className="text-base font-bold text-white">Create New Outreach Sequence</h3>
+              <button onClick={() => setShowCreateCampaignModal(false)} className="text-slate-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCampaign} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Campaign Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newCampaignTitle}
+                  onChange={(e) => setNewCampaignTitle(e.target.value)}
+                  placeholder="e.g. SaaS Founders 3-Step Tech Pitch"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Strategy / Target Segment
+                </label>
+                <textarea
+                  rows={2}
+                  value={newCampaignDesc}
+                  onChange={(e) => setNewCampaignDesc(e.target.value)}
+                  placeholder="Target criteria, proposition..."
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div className="rounded-xl bg-purple/10 border border-purple/30 p-3 text-[11px] text-purple-200">
+                ✨ Auto-provisions the standard 3-step cadence (Day 0 Pitch, Day 3 Value Bump, Day 7 Breakup).
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.08]">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCampaignModal(false)}
+                  className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingCampaign}
+                  className="rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition disabled:opacity-50"
+                >
+                  {creatingCampaign ? "Creating..." : "Create Sequence"}
                 </button>
               </div>
             </form>
@@ -2383,247 +2144,74 @@ export default function RepDashboardPage() {
       {/* MODAL: CREATE CUSTOM TEMPLATE */}
       {/* ========================================================================= */}
       {showTemplateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 shrink-0 bg-slate-900">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
-                  <Sparkles size={16} />
-                </div>
-                <h3 className="text-base font-bold text-white">Create Custom Email Template</h3>
-              </div>
-              <button
-                onClick={() => setShowTemplateModal(false)}
-                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
-              >
-                <X size={16} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-lg rounded-2xl bg-[#131B2E] border border-white/[0.08] shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+              <h3 className="text-base font-bold text-white">Create Custom Email Template</h3>
+              <button onClick={() => setShowTemplateModal(false)} className="text-slate-400 hover:text-white">
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCustomTemplate} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                    Template Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    placeholder="e.g. E-Commerce Automation Outreach"
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                    Subject Line *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newTemplateSubject}
-                    onChange={(e) => setNewTemplateSubject(e.target.value)}
-                    placeholder="e.g. Accelerating engineering for {{company}}"
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                    Body Content *
-                  </label>
-                  <p className="text-[11px] text-white/40 mb-1">
-                    Available dynamic tags: <code className="text-purple">{"{{name}}"}</code>,{" "}
-                    <code className="text-purple">{"{{company}}"}</code>,{" "}
-                    <code className="text-purple">{"{{referral_link}}"}</code>
-                  </p>
-                  <textarea
-                    required
-                    rows={6}
-                    value={newTemplateBody}
-                    onChange={(e) => setNewTemplateBody(e.target.value)}
-                    placeholder="Hi {{name}},\n\nI noticed {{company}} is..."
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-slate-200 outline-none focus:border-purple leading-relaxed"
-                  />
-                </div>
+            <form onSubmit={handleSaveCustomTemplate} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  placeholder="e.g. E-Commerce Automation Pitch"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
               </div>
 
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/10 bg-slate-950/80 shrink-0">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Subject Line *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newTemplateSubject}
+                  onChange={(e) => setNewTemplateSubject(e.target.value)}
+                  placeholder="Accelerating digital growth for {{company}}"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Body Content *
+                </label>
+                <p className="text-[10px] text-slate-500 mb-1">
+                  Merge tags: <code className="text-purple-300">{"{{name}}"}</code>, <code className="text-purple-300">{"{{company}}"}</code>, <code className="text-purple-300">{"{{rep_name}}"}</code>, <code className="text-purple-300">{"{{referral_link}}"}</code>
+                </p>
+                <textarea
+                  required
+                  rows={5}
+                  value={newTemplateBody}
+                  onChange={(e) => setNewTemplateBody(e.target.value)}
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-slate-200 outline-none focus:border-purple leading-relaxed"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setShowTemplateModal(false)}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
+                  className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingTemplate}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                  className="rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition disabled:opacity-50"
                 >
-                  {savingTemplate ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  <span>Save Template</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: BULK ENROLL LEADS IN CAMPAIGN */}
-      {/* ========================================================================= */}
-      {showEnrollModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-md flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-slate-900">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
-                  <Layers size={16} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Enroll Leads in Drip Sequence</h3>
-                  <p className="text-[11px] text-white/50">{selectedLeadIds.length} lead(s) selected</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowEnrollModal(false)}
-                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {enrollResult && (
-                <div className="rounded-xl border border-purple/30 bg-purple/10 p-3 text-xs text-purple-200">
-                  {enrollResult}
-                </div>
-              )}
-
-              {campaigns.length === 0 ? (
-                <p className="text-xs text-amber-400">
-                  You do not have any campaigns created yet. Please create a campaign sequence first.
-                </p>
-              ) : (
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
-                    Select Target Campaign Sequence *
-                  </label>
-                  <select
-                    value={enrollTargetCampaignId}
-                    onChange={(e) => setEnrollTargetCampaignId(e.target.value)}
-                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-white outline-none focus:border-purple"
-                  >
-                    {campaigns.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title} ({c.rep_campaign_steps?.length || 0} Steps)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="rounded-xl bg-slate-950 border border-white/5 p-3 text-[11px] text-white/60 space-y-1">
-                <p className="font-bold text-white">Automation rules:</p>
-                <p>&bull; Step 1 will be scheduled immediately for dispatch.</p>
-                <p>&bull; Follow-ups will be queued automatically based on cadence delays.</p>
-                <p>&bull; If a prospect replies or books a call, all remaining steps auto-cancel.</p>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setShowEnrollModal(false)}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={enrollingLeads || campaigns.length === 0}
-                  onClick={handleBulkEnroll}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
-                >
-                  {enrollingLeads ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  <span>Start Automated Sequence</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL: CREATE NEW CAMPAIGN */}
-      {/* ========================================================================= */}
-      {showCreateCampaignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-lg flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-slate-900">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
-                  <Plus size={16} />
-                </div>
-                <h3 className="text-base font-bold text-white">Create New Outreach Sequence</h3>
-              </div>
-              <button
-                onClick={() => setShowCreateCampaignModal(false)}
-                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateCampaign} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                  Campaign Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newCampaignTitle}
-                  onChange={(e) => setNewCampaignTitle(e.target.value)}
-                  placeholder="e.g. SaaS Founders 3-Step Tech Architecture Pitch"
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
-                  Description / Strategy Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={newCampaignDesc}
-                  onChange={(e) => setNewCampaignDesc(e.target.value)}
-                  placeholder="Target audience, value propositions, key metrics..."
-                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
-                />
-              </div>
-
-              <div className="rounded-xl bg-purple/10 border border-purple/30 p-3 text-[11px] text-purple-200">
-                ✨ Automatically creates the standard 3-step high-converting sequence (Day 0 Pitch, Day 3 Value Bump, Day 7 Breakup).
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateCampaignModal(false)}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingCampaign}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
-                >
-                  {creatingCampaign ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  <span>Create Sequence</span>
+                  {savingTemplate ? "Saving..." : "Save Template"}
                 </button>
               </div>
             </form>

@@ -5,7 +5,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CookieConsent } from "@/components/CookieConsent";
 import { ReferralTracker } from "@/components/ReferralTracker";
-import { MetaPixel } from "@/components/MetaPixel";
 import { seo } from "@/lib/content/seo";
 import { SITE_URL } from "@/lib/utils";
 
@@ -94,7 +93,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <CookieConsent />
         <ReferralTracker />
-        <MetaPixel />
         <Header />
         <main id="main" className="pb-20 md:pb-0">
           {children}

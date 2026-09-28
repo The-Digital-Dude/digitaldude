@@ -30,6 +30,17 @@ export async function POST(request: Request) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = code.trim();
 
+    // Rate limit per account too, not just per IP — a 6-digit code (1M
+    // possibilities) is only safe against brute force if attempts are capped
+    // no matter how many IPs the attacker spreads them across.
+    const accountRl = rateLimit(`client_verify_email:${cleanEmail}`, 8, 15 * 60 * 1000);
+    if (!accountRl.ok) {
+      return NextResponse.json(
+        { ok: false, error: "Too many verification attempts for this account. Please request a new code shortly." },
+        { status: 429 }
+      );
+    }
+
     const { data: project, error } = await supabase
       .from("client_projects")
       .select("id, client_name, client_email, company_name, project_title, auth_otp_code, auth_otp_expires_at")

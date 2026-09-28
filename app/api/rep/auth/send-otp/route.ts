@@ -27,6 +27,15 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Generic response used regardless of whether this email matches a real
+    // employee, is offboarded, or isn't an eligible role — any distinct
+    // response for those cases lets an attacker enumerate real employee
+    // accounts and their status/role, so every path below returns this.
+    const genericResponse = NextResponse.json({
+      ok: true,
+      message: `If an eligible account exists for ${cleanEmail}, a verification code has been sent.`,
+    });
+
     // Check if employee exists and is active
     const { data: employee, error } = await supabase
       .from("employees")
@@ -34,18 +43,8 @@ export async function POST(request: Request) {
       .ilike("email", cleanEmail)
       .maybeSingle();
 
-    if (error || !employee) {
-      return NextResponse.json(
-        { ok: false, error: "No active employee account found for this email address." },
-        { status: 404 }
-      );
-    }
-
-    if (employee.status === "offboarded") {
-      return NextResponse.json(
-        { ok: false, error: "This employee account is no longer active." },
-        { status: 403 }
-      );
+    if (error || !employee || employee.status === "offboarded") {
+      return genericResponse;
     }
 
     // Role & Referral Code Authorization Gate
@@ -62,14 +61,7 @@ export async function POST(request: Request) {
       Boolean(employee.referral_code);
 
     if (!isAllowedRole) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Rep Portal access is reserved for Sales, Business Development, and Marketing representatives. Please contact your administrator.",
-        },
-        { status: 403 }
-      );
+      return genericResponse;
     }
 
     const otpCode = generate6DigitOtp();
@@ -86,7 +78,7 @@ export async function POST(request: Request) {
 
     if (updateError) {
       log("error", { message: "Failed to persist OTP code", error: updateError });
-      return NextResponse.json({ ok: false, error: "Could not generate login code." }, { status: 500 });
+      return genericResponse;
     }
 
     await sendRepOtpEmail({
@@ -97,11 +89,7 @@ export async function POST(request: Request) {
 
     log("info", { message: "Rep OTP code dispatched", context: { email: cleanEmail, employeeId: employee.id } });
 
-    return NextResponse.json({
-      ok: true,
-      message: `A 6-digit verification code was sent to ${cleanEmail}`,
-      email: cleanEmail,
-    });
+    return genericResponse;
   } catch (error) {
     log("error", { message: "Rep OTP request failed", error });
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
