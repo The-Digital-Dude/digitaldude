@@ -135,6 +135,63 @@ interface CustomTemplate {
   is_default?: boolean;
 }
 
+export interface CampaignStep {
+  id: string;
+  step_number: number;
+  delay_days: number;
+  subject: string;
+  body: string;
+}
+
+export interface CampaignEnrollment {
+  id: string;
+  lead_id: string;
+  current_step: number;
+  status: string;
+  enrolled_at: string;
+  last_dispatched_at: string | null;
+  rep_leads?: {
+    id: string;
+    full_name: string;
+    email: string;
+    company_name: string;
+    status: string;
+  };
+}
+
+export interface CampaignItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+  rep_campaign_steps?: CampaignStep[];
+  rep_campaign_enrollments?: CampaignEnrollment[];
+}
+
+export interface CampaignQueueItem {
+  id: string;
+  scheduled_for: string;
+  status: string;
+  step_number: number;
+  dispatched_at: string | null;
+  error_message: string | null;
+  rep_leads?: {
+    id: string;
+    full_name: string;
+    email: string;
+    company_name: string;
+  };
+  rep_campaigns?: {
+    id: string;
+    title: string;
+  };
+  rep_campaign_steps?: {
+    id: string;
+    subject: string;
+  };
+}
+
 const BUILTIN_TEMPLATES = [
   {
     id: "custom_crm",
@@ -170,7 +227,7 @@ export default function RepDashboardPage() {
   const router = useRouter();
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<"onboarding" | "overview" | "leads" | "outreach" | "payouts">("overview");
+  const [activeTab, setActiveTab] = useState<"onboarding" | "overview" | "leads" | "outreach" | "campaigns" | "payouts">("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Core Data
@@ -217,6 +274,27 @@ export default function RepDashboardPage() {
   const [newTemplateSubject, setNewTemplateSubject] = useState("");
   const [newTemplateBody, setNewTemplateBody] = useState("");
   const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Campaigns & Drips State
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [campaignQueue, setCampaignQueue] = useState<CampaignQueueItem[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [dispatchingQueue, setDispatchingQueue] = useState(false);
+  const [dispatchResult, setDispatchResult] = useState<string | null>(null);
+
+  // Bulk Lead Selection for Campaigns
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollTargetCampaignId, setEnrollTargetCampaignId] = useState<string>("");
+  const [enrollingLeads, setEnrollingLeads] = useState(false);
+  const [enrollResult, setEnrollResult] = useState<string | null>(null);
+
+  // Create Campaign Modal
+  const [showCreateCampaignModal, setShowCreateCampaignModal] = useState(false);
+  const [newCampaignTitle, setNewCampaignTitle] = useState("");
+  const [newCampaignDesc, setNewCampaignDesc] = useState("");
+  const [creatingCampaign, setCreatingCampaign] = useState(false);
 
   // Payout Details Form
   const [payoutMethod, setPayoutMethod] = useState("bkash");
@@ -274,7 +352,122 @@ export default function RepDashboardPage() {
     fetchDashboard();
     fetchLeads();
     fetchCustomTemplates();
+    fetchCampaigns();
+    fetchCampaignQueue();
   }, [router]);
+
+  async function fetchCampaigns() {
+    setLoadingCampaigns(true);
+    try {
+      const res = await fetch("/api/rep/campaigns");
+      const data = await res.json();
+      if (data.ok) {
+        setCampaigns(data.campaigns || []);
+        if (data.campaigns?.length > 0 && !selectedCampaignId) {
+          setSelectedCampaignId(data.campaigns[0].id);
+        }
+      }
+    } catch {} finally {
+      setLoadingCampaigns(false);
+    }
+  }
+
+  async function fetchCampaignQueue() {
+    try {
+      const res = await fetch("/api/rep/campaigns/queue");
+      const data = await res.json();
+      if (data.ok) {
+        setCampaignQueue(data.queue || []);
+      }
+    } catch {}
+  }
+
+  async function handleCreateCampaign(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newCampaignTitle.trim()) return;
+    setCreatingCampaign(true);
+    try {
+      const res = await fetch("/api/rep/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newCampaignTitle.trim(),
+          description: newCampaignDesc.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setShowCreateCampaignModal(false);
+        setNewCampaignTitle("");
+        setNewCampaignDesc("");
+        fetchCampaigns();
+      }
+    } catch {} finally {
+      setCreatingCampaign(false);
+    }
+  }
+
+  async function handleBulkEnroll() {
+    if (!enrollTargetCampaignId || selectedLeadIds.length === 0) return;
+    setEnrollingLeads(true);
+    setEnrollResult(null);
+    try {
+      const res = await fetch(`/api/rep/campaigns/${enrollTargetCampaignId}/enroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_ids: selectedLeadIds }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setEnrollResult(`Successfully enrolled ${data.enrolled} lead(s) into campaign!`);
+        setTimeout(() => {
+          setShowEnrollModal(false);
+          setSelectedLeadIds([]);
+          setEnrollResult(null);
+          fetchCampaigns();
+          fetchCampaignQueue();
+        }, 1500);
+      } else {
+        setEnrollResult(data.error || "Failed to enroll leads");
+      }
+    } catch (err) {
+      setEnrollResult((err as Error).message);
+    } finally {
+      setEnrollingLeads(false);
+    }
+  }
+
+  async function handleTriggerDispatch() {
+    setDispatchingQueue(true);
+    setDispatchResult(null);
+    try {
+      const res = await fetch("/api/cron/process-outreach", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        setDispatchResult(`Processed ${data.processed} due email(s) successfully!`);
+        fetchCampaignQueue();
+        fetchCampaigns();
+      } else {
+        setDispatchResult(data.error || "Dispatch execution failed");
+      }
+    } catch (err) {
+      setDispatchResult((err as Error).message);
+    } finally {
+      setDispatchingQueue(false);
+      setTimeout(() => setDispatchResult(null), 4000);
+    }
+  }
+
+  async function handleCancelQueueItem(queueId: string) {
+    try {
+      await fetch("/api/rep/campaigns/queue", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ queue_id: queueId, action: "cancel" }),
+      });
+      fetchCampaignQueue();
+    } catch {}
+  }
 
   async function fetchLeads() {
     try {
@@ -751,6 +944,26 @@ export default function RepDashboardPage() {
 
             <button
               onClick={() => {
+                setActiveTab("campaigns");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+                activeTab === "campaigns"
+                  ? "bg-purple text-white shadow-lg shadow-purple/20"
+                  : "text-white/70 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Layers size={16} />
+                <span>Campaigns &amp; Drips</span>
+              </div>
+              <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple/20 text-purple font-mono uppercase">
+                {campaigns.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
                 setActiveTab("payouts");
                 setMobileMenuOpen(false);
               }}
@@ -1146,6 +1359,20 @@ export default function RepDashboardPage() {
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-white/10 bg-white/[0.02] text-white/50 font-bold uppercase tracking-wider text-[10px]">
+                        <th className="py-3.5 px-3 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            checked={filteredLeads.length > 0 && selectedLeadIds.length === filteredLeads.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedLeadIds(filteredLeads.map((l) => l.id));
+                              } else {
+                                setSelectedLeadIds([]);
+                              }
+                            }}
+                            className="rounded border-white/20 bg-slate-950 accent-purple cursor-pointer"
+                          />
+                        </th>
                         <th className="py-3.5 px-4">Lead Contact</th>
                         <th className="py-3.5 px-4">Company &amp; Role</th>
                         <th className="py-3.5 px-4">Stage</th>
@@ -1156,7 +1383,26 @@ export default function RepDashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {filteredLeads.map((lead) => (
-                        <tr key={lead.id} className="hover:bg-white/[0.02]">
+                        <tr
+                          key={lead.id}
+                          className={`hover:bg-white/[0.02] transition ${
+                            selectedLeadIds.includes(lead.id) ? "bg-purple/[0.06]" : ""
+                          }`}
+                        >
+                          <td className="py-3 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedLeadIds.includes(lead.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedLeadIds((prev) => [...prev, lead.id]);
+                                } else {
+                                  setSelectedLeadIds((prev) => prev.filter((id) => id !== lead.id));
+                                }
+                              }}
+                              className="rounded border-white/20 bg-slate-950 accent-purple cursor-pointer"
+                            />
+                          </td>
                           <td className="py-3 px-4">
                             <span className="font-bold text-white block">{lead.full_name}</span>
                             <span className="text-[11px] text-white/50 font-mono">{lead.email}</span>
@@ -1229,6 +1475,39 @@ export default function RepDashboardPage() {
                 </div>
               )}
             </div>
+
+            {/* Floating Bulk Action Bar */}
+            {selectedLeadIds.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-purple/20 border border-purple/40 p-4 shadow-xl backdrop-blur-md">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple text-xs font-bold text-white shadow-md">
+                    {selectedLeadIds.length}
+                  </span>
+                  <span className="text-xs font-bold text-white">
+                    {selectedLeadIds.length} lead(s) selected for bulk outreach
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedLeadIds([])}
+                    className="rounded-xl px-3 py-1.5 text-xs font-semibold text-white/60 hover:text-white"
+                  >
+                    Deselect All
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (campaigns.length > 0) {
+                        setEnrollTargetCampaignId(campaigns[0].id);
+                      }
+                      setShowEnrollModal(true);
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/30 transition active:scale-95"
+                  >
+                    <Layers size={14} /> Enroll in Campaign Sequence...
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1474,6 +1753,330 @@ export default function RepDashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ===================================================================== */}
+        {/* VIEW: CAMPAIGNS & DRIP SEQUENCES */}
+        {/* ===================================================================== */}
+        {activeTab === "campaigns" && (
+          <div className="space-y-6 animate-in fade-in duration-150">
+            {/* Header & Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-white">Automated Campaigns &amp; Drip Sequences</h1>
+                <p className="text-xs text-white/60">
+                  Multi-touch email cadences dispatched via your corporate alias with automatic cancellation on prospect reply.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={handleTriggerDispatch}
+                  disabled={dispatchingQueue}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-3.5 py-2 text-xs font-bold text-white transition border border-white/10 disabled:opacity-50"
+                  title="Process any emails currently due in the queue"
+                >
+                  {dispatchingQueue ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+                  <span>{dispatchingQueue ? "Dispatching..." : "Run Dispatch Now"}</span>
+                </button>
+
+                <button
+                  onClick={() => setShowCreateCampaignModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-lg shadow-purple/25 transition"
+                >
+                  <Plus size={15} />
+                  <span>New Sequence</span>
+                </button>
+              </div>
+            </div>
+
+            {dispatchResult && (
+              <div className="rounded-2xl border border-purple/30 bg-purple/10 p-3.5 text-xs text-purple-200 flex items-center gap-2">
+                <Sparkles size={16} className="text-purple-400 shrink-0" />
+                <span>{dispatchResult}</span>
+              </div>
+            )}
+
+            {/* Campaign Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Active Campaigns</span>
+                <div className="text-2xl font-black text-white">{campaigns.length}</div>
+                <p className="text-[11px] text-purple font-medium">Multi-step drip engines</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Enrolled Prospects</span>
+                <div className="text-2xl font-black text-emerald-400">
+                  {campaigns.reduce((acc, c) => acc + (c.rep_campaign_enrollments?.length || 0), 0)}
+                </div>
+                <p className="text-[11px] text-emerald-400/80 font-medium">In active nurturing pipelines</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Scheduled Queue</span>
+                <div className="text-2xl font-black text-blue-400">
+                  {campaignQueue.filter((q) => q.status === "pending").length}
+                </div>
+                <p className="text-[11px] text-blue-400/80 font-medium">Future touches waiting</p>
+              </div>
+
+              <div className="rounded-2xl bg-slate-900/80 border border-white/10 p-5 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">Emails Dispatched</span>
+                <div className="text-2xl font-black text-white">
+                  {campaignQueue.filter((q) => q.status === "sent").length}
+                </div>
+                <p className="text-[11px] text-white/50 font-medium">Delivered via Brevo</p>
+              </div>
+            </div>
+
+            {/* Campaign Selection & Steps Visualizer */}
+            {campaigns.length === 0 ? (
+              <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-12 text-center space-y-3">
+                <Layers size={36} className="mx-auto text-white/20" />
+                <h3 className="text-base font-bold text-white">No Drip Sequences Configured</h3>
+                <p className="text-xs text-white/50 max-w-md mx-auto">
+                  Create your first multi-step automated campaign to nurture leads on autopilot.
+                </p>
+                <button
+                  onClick={() => setShowCreateCampaignModal(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md"
+                >
+                  <Plus size={14} /> Create First Sequence
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Campaign Selector Tabs */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-white/10">
+                  {campaigns.map((c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedCampaignId(c.id)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
+                        selectedCampaignId === c.id
+                          ? "bg-purple text-white shadow-md shadow-purple/20"
+                          : "bg-slate-900 text-white/60 hover:text-white border border-white/5"
+                      }`}
+                    >
+                      {c.title}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Selected Campaign Details */}
+                {(() => {
+                  const currentCamp = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
+                  if (!currentCamp) return null;
+                  const steps = currentCamp.rep_campaign_steps || [];
+                  const enrollments = currentCamp.rep_campaign_enrollments || [];
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Sequence Cadence Visualizer */}
+                      <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-base font-bold text-white flex items-center gap-2">
+                              <span>Sequence Cadence Flow</span>
+                              <span className="rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold">
+                                {steps.length} Touchpoints
+                              </span>
+                            </h3>
+                            <p className="text-xs text-white/50">{currentCamp.description || "Automated multi-step outreach sequence."}</p>
+                          </div>
+                        </div>
+
+                        {/* Steps Timeline Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {steps.map((step) => (
+                            <div
+                              key={step.id}
+                              className="flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-950 p-4 space-y-3"
+                            >
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                                  <span className="flex items-center gap-1.5 text-xs font-extrabold text-purple uppercase tracking-wider">
+                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple text-white text-[10px]">
+                                      {step.step_number}
+                                    </span>
+                                    Step {step.step_number}
+                                  </span>
+                                  <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-mono text-white/70">
+                                    {step.delay_days === 0 ? "Day 0 (Immediate)" : `+${step.delay_days} Days Delay`}
+                                  </span>
+                                </div>
+
+                                <p className="text-xs font-bold text-white truncate" title={step.subject}>
+                                  {step.subject}
+                                </p>
+                                <p className="text-[11px] text-white/60 line-clamp-4 leading-relaxed font-sans whitespace-pre-line">
+                                  {step.body}
+                                </p>
+                              </div>
+
+                              <div className="pt-2 border-t border-white/5 text-[10px] text-white/40 flex items-center justify-between">
+                                <span>Sender: {repAlias}</span>
+                                <span className="text-emerald-400">Brevo Active</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Enrolled Prospects in this Sequence */}
+                      <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-base font-bold text-white">Enrolled Prospects in this Sequence</h3>
+                            <p className="text-xs text-white/50">Tracking pipeline status and step progress</p>
+                          </div>
+                          <span className="text-xs font-bold text-purple">{enrollments.length} Enrolled</span>
+                        </div>
+
+                        {enrollments.length === 0 ? (
+                          <div className="text-center py-8 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
+                            <Users size={24} className="mx-auto text-white/20" />
+                            <p className="text-xs text-white/50">No leads currently enrolled in this sequence.</p>
+                            <p className="text-[11px] text-white/40">
+                              Go to the <span className="text-purple font-bold">Leads CRM</span> tab, select leads with checkboxes, and click &ldquo;Enroll in Campaign Sequence&rdquo;!
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
+                                  <th className="py-2.5 px-3">Lead Contact</th>
+                                  <th className="py-2.5 px-3">Current Step</th>
+                                  <th className="py-2.5 px-3">Status</th>
+                                  <th className="py-2.5 px-3">Enrolled At</th>
+                                  <th className="py-2.5 px-3">Last Dispatched</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-white/5">
+                                {enrollments.map((e) => {
+                                  const lead = e.rep_leads;
+                                  return (
+                                    <tr key={e.id} className="hover:bg-white/[0.02]">
+                                      <td className="py-3 px-3">
+                                        <span className="font-bold text-white block">{lead?.full_name || "Lead"}</span>
+                                        <span className="text-[11px] text-white/50 font-mono">{lead?.email}</span>
+                                      </td>
+                                      <td className="py-3 px-3">
+                                        <span className="inline-flex items-center gap-1 rounded bg-purple/20 px-2 py-0.5 text-[10px] font-bold text-purple">
+                                          Step {e.current_step} of {steps.length}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-3">
+                                        <span
+                                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                            e.status === "active"
+                                              ? "bg-emerald-500/20 text-emerald-400"
+                                              : e.status === "completed"
+                                              ? "bg-purple/20 text-purple"
+                                              : e.status === "cancelled_replied"
+                                              ? "bg-blue-500/20 text-blue-400"
+                                              : "bg-slate-700 text-slate-300"
+                                          }`}
+                                        >
+                                          {e.status.replace(/_/g, " ")}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-3 text-white/60">
+                                        {new Date(e.enrolled_at).toLocaleDateString()}
+                                      </td>
+                                      <td className="py-3 px-3 text-white/50 text-[11px]">
+                                        {e.last_dispatched_at ? new Date(e.last_dispatched_at).toLocaleString() : "Pending"}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Scheduled Queue Inspector */}
+                      <div className="rounded-3xl bg-slate-900/80 border border-white/10 p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-base font-bold text-white">Scheduled Dispatch Queue</h3>
+                            <p className="text-xs text-white/50">Upcoming touchpoints scheduled for automated delivery</p>
+                          </div>
+                          <span className="text-xs font-bold text-blue-400">
+                            {campaignQueue.filter((q) => q.status === "pending").length} Pending
+                          </span>
+                        </div>
+
+                        {campaignQueue.length === 0 ? (
+                          <p className="text-xs text-white/40 text-center py-6">No scheduled emails in queue.</p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead>
+                                <tr className="border-b border-white/10 text-white/50 font-bold uppercase tracking-wider text-[10px]">
+                                  <th className="py-2.5 px-3">Lead Email</th>
+                                  <th className="py-2.5 px-3">Campaign Step</th>
+                                  <th className="py-2.5 px-3">Scheduled Delivery</th>
+                                  <th className="py-2.5 px-3">Status</th>
+                                  <th className="py-2.5 px-3 text-right">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-white/5">
+                                {campaignQueue.map((q) => {
+                                  const lead = q.rep_leads;
+                                  const isPending = q.status === "pending";
+                                  return (
+                                    <tr key={q.id} className="hover:bg-white/[0.02]">
+                                      <td className="py-3 px-3">
+                                        <span className="font-bold text-white block">{lead?.full_name || "Lead"}</span>
+                                        <span className="text-[11px] text-white/50 font-mono">{lead?.email}</span>
+                                      </td>
+                                      <td className="py-3 px-3">
+                                        <span className="text-white font-medium">Step {q.step_number}</span>
+                                      </td>
+                                      <td className="py-3 px-3 text-white/70">
+                                        {new Date(q.scheduled_for).toLocaleString()}
+                                      </td>
+                                      <td className="py-3 px-3">
+                                        <span
+                                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                            q.status === "sent"
+                                              ? "bg-emerald-500/20 text-emerald-400"
+                                              : q.status === "pending"
+                                              ? "bg-amber-500/20 text-amber-400"
+                                              : "bg-slate-700 text-slate-300"
+                                          }`}
+                                        >
+                                          {q.status}
+                                        </span>
+                                      </td>
+                                      <td className="py-3 px-3 text-right">
+                                        {isPending && (
+                                          <button
+                                            onClick={() => handleCancelQueueItem(q.id)}
+                                            className="text-xs text-rose-400 hover:underline font-semibold"
+                                          >
+                                            Cancel
+                                          </button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         )}
 
@@ -1841,6 +2444,165 @@ export default function RepDashboardPage() {
                 >
                   {savingTemplate ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                   <span>Save Template</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: BULK ENROLL LEADS IN CAMPAIGN */}
+      {/* ========================================================================= */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="relative w-full max-w-md flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-slate-900">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
+                  <Layers size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Enroll Leads in Drip Sequence</h3>
+                  <p className="text-[11px] text-white/50">{selectedLeadIds.length} lead(s) selected</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowEnrollModal(false)}
+                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {enrollResult && (
+                <div className="rounded-xl border border-purple/30 bg-purple/10 p-3 text-xs text-purple-200">
+                  {enrollResult}
+                </div>
+              )}
+
+              {campaigns.length === 0 ? (
+                <p className="text-xs text-amber-400">
+                  You do not have any campaigns created yet. Please create a campaign sequence first.
+                </p>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1.5">
+                    Select Target Campaign Sequence *
+                  </label>
+                  <select
+                    value={enrollTargetCampaignId}
+                    onChange={(e) => setEnrollTargetCampaignId(e.target.value)}
+                    className="w-full rounded-xl bg-slate-950 border border-white/10 p-3 text-xs text-white outline-none focus:border-purple"
+                  >
+                    {campaigns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title} ({c.rep_campaign_steps?.length || 0} Steps)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="rounded-xl bg-slate-950 border border-white/5 p-3 text-[11px] text-white/60 space-y-1">
+                <p className="font-bold text-white">Automation rules:</p>
+                <p>&bull; Step 1 will be scheduled immediately for dispatch.</p>
+                <p>&bull; Follow-ups will be queued automatically based on cadence delays.</p>
+                <p>&bull; If a prospect replies or books a call, all remaining steps auto-cancel.</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowEnrollModal(false)}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={enrollingLeads || campaigns.length === 0}
+                  onClick={handleBulkEnroll}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                >
+                  {enrollingLeads ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  <span>Start Automated Sequence</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: CREATE NEW CAMPAIGN */}
+      {/* ========================================================================= */}
+      {showCreateCampaignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="relative w-full max-w-lg flex flex-col rounded-3xl bg-slate-900 border border-white/10 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-slate-900">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-purple/20 text-purple flex items-center justify-center">
+                  <Plus size={16} />
+                </div>
+                <h3 className="text-base font-bold text-white">Create New Outreach Sequence</h3>
+              </div>
+              <button
+                onClick={() => setShowCreateCampaignModal(false)}
+                className="p-1.5 rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCampaign} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  Campaign Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newCampaignTitle}
+                  onChange={(e) => setNewCampaignTitle(e.target.value)}
+                  placeholder="e.g. SaaS Founders 3-Step Tech Architecture Pitch"
+                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-white/70 mb-1">
+                  Description / Strategy Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={newCampaignDesc}
+                  onChange={(e) => setNewCampaignDesc(e.target.value)}
+                  placeholder="Target audience, value propositions, key metrics..."
+                  className="w-full rounded-xl bg-slate-950 border border-white/10 p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div className="rounded-xl bg-purple/10 border border-purple/30 p-3 text-[11px] text-purple-200">
+                ✨ Automatically creates the standard 3-step high-converting sequence (Day 0 Pitch, Day 3 Value Bump, Day 7 Breakup).
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCampaignModal(false)}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-xs font-bold text-white/70 hover:bg-white/5 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingCampaign}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-md transition disabled:opacity-50"
+                >
+                  {creatingCampaign ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  <span>Create Sequence</span>
                 </button>
               </div>
             </form>
