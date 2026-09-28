@@ -65,6 +65,8 @@ export async function sendMetaCapiEvent(params: MetaCapiEventParams) {
   if (user.fbp) userDataPayload.fbp = user.fbp;
   if (user.fbc) userDataPayload.fbc = user.fbc;
 
+  const testEventCode = process.env.META_TEST_EVENT_CODE || undefined;
+
   const eventPayload = {
     event_name: eventName,
     event_time: Math.floor(Date.now() / 1000),
@@ -75,15 +77,20 @@ export async function sendMetaCapiEvent(params: MetaCapiEventParams) {
     custom_data: customData || {},
   };
 
+  const requestBody: Record<string, unknown> = {
+    data: [eventPayload],
+  };
+  if (testEventCode) {
+    requestBody.test_event_code = testEventCode;
+  }
+
   const url = `https://graph.facebook.com/v19.0/${META_PIXEL_ID}/events?access_token=${META_CAPI_ACCESS_TOKEN}`;
 
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        data: [eventPayload],
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const result = await response.json();
