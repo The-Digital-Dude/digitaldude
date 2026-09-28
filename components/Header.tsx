@@ -26,7 +26,13 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur">
+      {/* transform-gpu forces this fixed+backdrop-blur header onto its own
+          compositing layer immediately. Without it, iOS Safari has a known
+          WebKit bug where taps on elements inside a fixed, backdrop-filter
+          container don't hit-test correctly until the page is scrolled once
+          — which made the mobile hamburger button unresponsive on first
+          load on iPhone. */}
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-black/5 bg-white/95 backdrop-blur transform-gpu">
         <div className="mx-auto flex max-w-content items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center" onClick={() => setMobileOpen(false)}>
             <Image
@@ -110,7 +116,7 @@ export function Header() {
           </div>
 
           <button
-            className="text-navy md:hidden"
+            className="touch-manipulation text-navy md:hidden"
             aria-label="Toggle menu"
             onClick={() => setMobileOpen((v) => !v)}
           >
