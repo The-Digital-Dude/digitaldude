@@ -4,12 +4,21 @@ import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
 
 const DEFAULT_ONBOARDING_CHECKLIST = [
-  { task: "Contract signed", done: false, done_at: null },
-  { task: "NDA signed", done: false, done_at: null },
-  { task: "Payment/bank details collected", done: false, done_at: null },
-  { task: "Email & tool access provisioned", done: false, done_at: null },
-  { task: "Intro call completed", done: false, done_at: null },
+  { task: "Contract & Commission Agreement signed", done: false, done_at: null },
+  { task: "NDA & Confidentiality agreement signed", done: false, done_at: null },
+  { task: "Payment/bank details (bKash/Nagad/Bank) collected", done: false, done_at: null },
+  { task: "Email & Outreach tools (Apollo/LinkedIn) provisioned", done: false, done_at: null },
+  { task: "Sales Playbook & Pitch Deck review completed", done: false, done_at: null },
+  { task: "Intro 1-on-1 Strategy Call completed with CEO", done: false, done_at: null },
 ];
+
+function slugifyName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 export async function GET(request: Request) {
   const isAuth = await isAdminAuthenticated(request);
@@ -59,16 +68,21 @@ export async function POST(request: Request) {
       email,
       role_title = "",
       employment_type = "commission",
-      meeting_bonus_min = null,
-      meeting_bonus_max = null,
-      deal_commission_percent_min = null,
-      deal_commission_percent_max = null,
+      currency = "BDT",
+      referral_code,
+      meeting_bonus_min = 1000,
+      meeting_bonus_max = 2000,
+      deal_commission_percent_min = 10,
+      deal_commission_percent_max = 15,
       source_application_id = null,
+      onboarding_checklist,
     } = body;
 
     if (!full_name || !email) {
       return NextResponse.json({ ok: false, error: "Full name and email are required." }, { status: 400 });
     }
+
+    const generatedRefCode = referral_code || slugifyName(full_name);
 
     const { data, error } = await supabase
       .from("employees")
@@ -77,12 +91,14 @@ export async function POST(request: Request) {
         email,
         role_title,
         employment_type,
+        currency,
+        referral_code: generatedRefCode,
         meeting_bonus_min,
         meeting_bonus_max,
         deal_commission_percent_min,
         deal_commission_percent_max,
         source_application_id,
-        onboarding_checklist: DEFAULT_ONBOARDING_CHECKLIST,
+        onboarding_checklist: onboarding_checklist || DEFAULT_ONBOARDING_CHECKLIST,
       })
       .select()
       .single();
@@ -92,8 +108,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    // If this employee was converted from a hired application, reflect that
-    // on the application record too, so the ATS list shows it's been acted on.
     if (source_application_id) {
       await supabase
         .from("job_applications")

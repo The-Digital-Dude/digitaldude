@@ -14,11 +14,19 @@ import {
   CheckCircle2,
   X,
   RefreshCw,
+  UserCheck,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateLeadModal } from "@/components/admin/CreateLeadModal";
-import Link from "next/link";
 import { Plus } from "lucide-react";
+
+interface EmployeeRef {
+  id: string;
+  full_name: string;
+  email: string;
+  referral_code?: string;
+}
 
 interface Booking {
   id: string;
@@ -32,8 +40,14 @@ interface Booking {
   slot_end: string;
   status: string;
   stage?: string;
+  deal_value?: number;
   admin_notes: string | null;
   meet_url: string | null;
+  sourced_by_employee_id: string | null;
+  sourced_by_employee?: EmployeeRef | null;
+  meeting_bonus_payout_status?: string;
+  deal_commission_payout_status?: string;
+  payout_notes?: string;
   created_at: string;
 }
 
@@ -46,8 +60,11 @@ const statusOptions = [
   "cancelled",
 ];
 
+const PAYOUT_STATUS_OPTIONS = ["pending", "approved", "paid"];
+
 export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [employees, setEmployees] = useState<EmployeeRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -57,7 +74,22 @@ export default function AdminBookingsPage() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [notes, setNotes] = useState("");
   const [currentStatus, setCurrentStatus] = useState("confirmed");
+  const [currentRepId, setCurrentRepId] = useState<string>("");
+  const [meetingBonusPayoutStatus, setMeetingBonusPayoutStatus] = useState("pending");
+  const [dealCommissionPayoutStatus, setDealCommissionPayoutStatus] = useState("pending");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  async function fetchEmployees() {
+    try {
+      const res = await fetch("/api/admin/employees");
+      const data = await res.json();
+      if (data.ok) {
+        setEmployees(data.employees || []);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   async function fetchBookings() {
     setLoading(true);
@@ -79,10 +111,11 @@ export default function AdminBookingsPage() {
   }
 
   useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  useEffect(() => {
     fetchBookings();
-    // fetchBookings intentionally excluded: it also reads `search`, but this
-    // effect should only auto-fire on statusFilter changes — search is
-    // applied explicitly via the refresh button or pressing Enter (see below).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
@@ -90,6 +123,9 @@ export default function AdminBookingsPage() {
     setSelectedBooking(b);
     setNotes(b.admin_notes || b.message || "");
     setCurrentStatus(b.status || "confirmed");
+    setCurrentRepId(b.sourced_by_employee_id || "");
+    setMeetingBonusPayoutStatus(b.meeting_bonus_payout_status || "pending");
+    setDealCommissionPayoutStatus(b.deal_commission_payout_status || "pending");
   }
 
   async function handleUpdateBooking() {
@@ -102,19 +138,41 @@ export default function AdminBookingsPage() {
         body: JSON.stringify({
           status: currentStatus,
           admin_notes: notes,
+          sourced_by_employee_id: currentRepId || null,
+          meeting_bonus_payout_status: meetingBonusPayoutStatus,
+          deal_commission_payout_status: dealCommissionPayoutStatus,
         }),
       });
       const data = await res.json();
       if (data.ok) {
+        const assignedEmp = employees.find((e) => e.id === currentRepId) || null;
         setBookings((prev) =>
           prev.map((item) =>
             item.id === selectedBooking.id
-              ? { ...item, status: currentStatus, admin_notes: notes }
+              ? {
+                  ...item,
+                  status: currentStatus,
+                  admin_notes: notes,
+                  sourced_by_employee_id: currentRepId || null,
+                  sourced_by_employee: assignedEmp,
+                  meeting_bonus_payout_status: meetingBonusPayoutStatus,
+                  deal_commission_payout_status: dealCommissionPayoutStatus,
+                }
               : item
           )
         );
         setSelectedBooking((prev) =>
-          prev ? { ...prev, status: currentStatus, admin_notes: notes } : null
+          prev
+            ? {
+                ...prev,
+                status: currentStatus,
+                admin_notes: notes,
+                sourced_by_employee_id: currentRepId || null,
+                sourced_by_employee: assignedEmp,
+                meeting_bonus_payout_status: meetingBonusPayoutStatus,
+                deal_commission_payout_status: dealCommissionPayoutStatus,
+              }
+            : null
         );
       }
     } catch {
@@ -142,7 +200,7 @@ export default function AdminBookingsPage() {
           <div>
             <h1 className="text-2xl font-bold text-navy">Meetings &amp; Bookings CRM</h1>
             <p className="mt-1 text-sm text-navy/60">
-              Manage client discovery calls, meeting links, and lead notes.
+              Manage client discovery calls, rep attribution, meeting links, and lead notes.
             </p>
           </div>
 
@@ -204,6 +262,7 @@ export default function AdminBookingsPage() {
                 <tr className="border-b border-slate-100 text-xs font-semibold uppercase text-navy/50">
                   <th className="pb-3">Client</th>
                   <th className="pb-3">Company</th>
+                  <th className="pb-3">Sourced By (Rep)</th>
                   <th className="pb-3">Call Time</th>
                   <th className="pb-3">Country</th>
                   <th className="pb-3">Status</th>
@@ -211,51 +270,63 @@ export default function AdminBookingsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {bookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/50">
-                    <td className="py-4">
-                      <p className="font-semibold text-navy">{b.name}</p>
-                      <p className="text-xs text-navy/50">{b.work_email}</p>
-                    </td>
-                    <td className="py-4 font-medium text-navy">
-                      {b.company_name}
-                      {b.team_size && <span className="block text-xs text-navy/40">Team: {b.team_size}</span>}
-                    </td>
-                    <td className="py-4 text-navy">
-                      <span className="font-semibold">{formatDateTime(b.slot_start)}</span>
-                    </td>
-                    <td className="py-4 text-navy/70">{b.country}</td>
-                    <td className="py-4">
-                      <span className="inline-block rounded-full bg-lavender px-2.5 py-0.5 text-xs font-semibold capitalize text-purple">
-                        {(b.status || b.stage || "confirmed").replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {b.meet_url && (
-                          <a
-                            href={b.meet_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-                          >
-                            <Video size={14} /> Meet
-                          </a>
+                {bookings.map((b) => {
+                  const rep = b.sourced_by_employee || employees.find((e) => e.id === b.sourced_by_employee_id);
+                  return (
+                    <tr key={b.id} className="hover:bg-slate-50/50">
+                      <td className="py-4">
+                        <p className="font-semibold text-navy">{b.name}</p>
+                        <p className="text-xs text-navy/50">{b.work_email}</p>
+                      </td>
+                      <td className="py-4 font-medium text-navy">
+                        {b.company_name}
+                        {b.team_size && <span className="block text-xs text-navy/40">Team: {b.team_size}</span>}
+                      </td>
+                      <td className="py-4">
+                        {rep ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                            <UserCheck size={12} /> {rep.full_name}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-navy/40 italic">Direct / Organic</span>
                         )}
-                        <button
-                          onClick={() => openDrawer(b)}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-navy/70 hover:bg-slate-50 hover:text-purple"
-                        >
-                          <Edit3 size={14} /> Details
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-4 text-navy">
+                        <span className="font-semibold">{formatDateTime(b.slot_start)}</span>
+                      </td>
+                      <td className="py-4 text-navy/70">{b.country}</td>
+                      <td className="py-4">
+                        <span className="inline-block rounded-full bg-lavender px-2.5 py-0.5 text-xs font-semibold capitalize text-purple">
+                          {(b.status || b.stage || "confirmed").replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {b.meet_url && (
+                            <a
+                              href={b.meet_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                            >
+                              <Video size={14} /> Meet
+                            </a>
+                          )}
+                          <button
+                            onClick={() => openDrawer(b)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-navy/70 hover:bg-slate-50 hover:text-purple"
+                          >
+                            <Edit3 size={14} /> Details
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {bookings.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-navy/50">
+                    <td colSpan={7} className="py-12 text-center text-navy/50">
                       No bookings match the selected filters.
                     </td>
                   </tr>
@@ -268,7 +339,7 @@ export default function AdminBookingsPage() {
         {/* Meeting Details Modal / Drawer */}
         {selectedBooking && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+            <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
                   <h2 className="text-xl font-bold text-navy">
@@ -344,11 +415,72 @@ export default function AdminBookingsPage() {
                   </div>
 
                   <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide text-navy/60 flex items-center gap-1.5">
+                      <UserCheck size={14} className="text-purple" /> Assigned Sourced Rep (BDE)
+                    </label>
+                    <select
+                      value={currentRepId}
+                      onChange={(e) => setCurrentRepId(e.target.value)}
+                      className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-purple focus:outline-none"
+                    >
+                      <option value="">— Direct / Unassigned —</option>
+                      {employees.map((emp) => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.full_name} ({emp.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Payout Status Controls if attributed to rep */}
+                  {currentRepId && (
+                    <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 space-y-2.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1">
+                        <Award size={13} /> Commission &amp; Bonus Status
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase text-navy/60 mb-0.5">
+                            Meeting Bonus
+                          </label>
+                          <select
+                            value={meetingBonusPayoutStatus}
+                            onChange={(e) => setMeetingBonusPayoutStatus(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 bg-white p-1.5 text-xs capitalize outline-none"
+                          >
+                            {PAYOUT_STATUS_OPTIONS.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase text-navy/60 mb-0.5">
+                            Deal Commission
+                          </label>
+                          <select
+                            value={dealCommissionPayoutStatus}
+                            onChange={(e) => setDealCommissionPayoutStatus(e.target.value)}
+                            className="w-full rounded-md border border-slate-200 bg-white p-1.5 text-xs capitalize outline-none"
+                          >
+                            {PAYOUT_STATUS_OPTIONS.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
                     <label className="block text-xs font-bold uppercase tracking-wide text-navy/60">
                       Internal Notes
                     </label>
                     <textarea
-                      rows={4}
+                      rows={3}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="Add follow-up notes, proposal details, or client discussion points…"

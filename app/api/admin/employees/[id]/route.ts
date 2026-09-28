@@ -23,33 +23,50 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Employee not found" }, { status: 404 });
   }
 
-  // Commission summary computed live from real bookings data, not stored —
-  // this is exactly the "connect to CRM" piece from the plan.
+  // Live query for all bookings attributed to this employee
   const { data: sourcedBookings } = await supabase
     .from("bookings")
-    .select("id, stage, deal_value")
-    .eq("sourced_by_employee_id", id);
+    .select("id, name, work_email, company_name, country, slot_start, status, stage, deal_value, meeting_bonus_payout_status, deal_commission_payout_status, payout_notes, created_at")
+    .eq("sourced_by_employee_id", id)
+    .order("slot_start", { ascending: false });
 
   const bookings = sourcedBookings || [];
   const qualifiedMeetings = bookings.filter((b) => b.stage !== "closed_lost").length;
-  const wonDealValue = bookings
-    .filter((b) => b.stage === "closed_won")
-    .reduce((sum, b) => sum + (Number(b.deal_value) || 0), 0);
+  const wonBookings = bookings.filter((b) => b.stage === "closed_won");
+  const wonDealValue = wonBookings.reduce((sum, b) => sum + (Number(b.deal_value) || 0), 0);
+
+  const bonusMin = Number(employee.meeting_bonus_min) || 0;
+  const bonusMax = Number(employee.meeting_bonus_max) || 0;
+  const commPctMin = Number(employee.deal_commission_percent_min) || 0;
+  const commPctMax = Number(employee.deal_commission_percent_max) || 0;
+
+  const meetingBonusPaidCount = bookings.filter((b) => b.meeting_bonus_payout_status === "paid").length;
+  const dealCommissionPaidCount = wonBookings.filter((b) => b.deal_commission_payout_status === "paid").length;
 
   const commissionSummary = {
+    currency: employee.currency || "BDT",
+    totalBookingsCount: bookings.length,
     qualifiedMeetings,
     meetingBonusRangeTotal: [
-      qualifiedMeetings * (Number(employee.meeting_bonus_min) || 0),
-      qualifiedMeetings * (Number(employee.meeting_bonus_max) || 0),
-    ],
+      qualifiedMeetings * bonusMin,
+      qualifiedMeetings * bonusMax,
+    ] as [number, number],
+    meetingBonusPaidCount,
+    wonDealsCount: wonBookings.length,
     wonDealValue,
     dealCommissionRangeTotal: [
-      wonDealValue * ((Number(employee.deal_commission_percent_min) || 0) / 100),
-      wonDealValue * ((Number(employee.deal_commission_percent_max) || 0) / 100),
-    ],
+      wonDealValue * (commPctMin / 100),
+      wonDealValue * (commPctMax / 100),
+    ] as [number, number],
+    dealCommissionPaidCount,
   };
 
-  return NextResponse.json({ ok: true, employee, commissionSummary });
+  return NextResponse.json({
+    ok: true,
+    employee,
+    sourcedBookings: bookings,
+    commissionSummary,
+  });
 }
 
 export async function PUT(
@@ -74,10 +91,13 @@ export async function PUT(
       email,
       role_title,
       employment_type,
+      currency,
+      referral_code,
       meeting_bonus_min,
       meeting_bonus_max,
       deal_commission_percent_min,
       deal_commission_percent_max,
+      onboarding_checklist,
       status,
     } = body;
 
@@ -86,10 +106,13 @@ export async function PUT(
     if (email !== undefined) updateData.email = email;
     if (role_title !== undefined) updateData.role_title = role_title;
     if (employment_type !== undefined) updateData.employment_type = employment_type;
+    if (currency !== undefined) updateData.currency = currency;
+    if (referral_code !== undefined) updateData.referral_code = referral_code;
     if (meeting_bonus_min !== undefined) updateData.meeting_bonus_min = meeting_bonus_min;
     if (meeting_bonus_max !== undefined) updateData.meeting_bonus_max = meeting_bonus_max;
     if (deal_commission_percent_min !== undefined) updateData.deal_commission_percent_min = deal_commission_percent_min;
     if (deal_commission_percent_max !== undefined) updateData.deal_commission_percent_max = deal_commission_percent_max;
+    if (onboarding_checklist !== undefined) updateData.onboarding_checklist = onboarding_checklist;
 
     const wasStatusChangeToActive = status !== undefined;
     if (status !== undefined) updateData.status = status;

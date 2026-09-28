@@ -87,6 +87,32 @@ export async function POST(request: Request) {
     );
   }
 
+  const cookieHeader = request.headers.get("cookie") || "";
+  let refCode = body?.ref ? String(body.ref).trim().toLowerCase() : "";
+  if (!refCode && cookieHeader) {
+    const match = cookieHeader.match(/tdd_rep_ref=([^;]+)/);
+    if (match) {
+      try {
+        refCode = decodeURIComponent(match[1]).trim().toLowerCase();
+      } catch {}
+    }
+  }
+
+  let sourcedByEmployeeId: string | null = null;
+  if (refCode && supabase) {
+    try {
+      const { data: matchedEmp } = await supabase
+        .from("employees")
+        .select("id")
+        .or(`referral_code.eq.${refCode},id.eq.${refCode}`)
+        .maybeSingle();
+      if (matchedEmp) {
+        sourcedByEmployeeId = matchedEmp.id;
+        log("info", { message: "Attributed booking to rep", context: { refCode, employeeId: matchedEmp.id } });
+      }
+    } catch {}
+  }
+
   const { error } = await supabase.from("bookings").insert({
     name,
     work_email: workEmail,
@@ -96,6 +122,7 @@ export async function POST(request: Request) {
     message: message || null,
     slot_start: start.toISOString(),
     slot_end: end.toISOString(),
+    sourced_by_employee_id: sourcedByEmployeeId,
   });
 
   if (error) {

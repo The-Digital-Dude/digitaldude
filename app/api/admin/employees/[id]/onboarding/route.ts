@@ -26,15 +26,11 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { taskIndex, done } = body;
-
-    if (typeof taskIndex !== "number" || typeof done !== "boolean") {
-      return NextResponse.json({ ok: false, error: "taskIndex (number) and done (boolean) are required." }, { status: 400 });
-    }
+    const { action = "toggle", taskIndex, done, task, checklist: newChecklist } = body;
 
     const { data: employee, error: fetchError } = await supabase
       .from("employees")
-      .select("onboarding_checklist")
+      .select("onboarding_checklist, status, full_name, email, role_title")
       .eq("id", id)
       .single();
 
@@ -42,19 +38,45 @@ export async function PUT(
       return NextResponse.json({ ok: false, error: "Employee not found" }, { status: 404 });
     }
 
-    const checklist: ChecklistItem[] = Array.isArray(employee.onboarding_checklist)
-      ? employee.onboarding_checklist
+    let checklist: ChecklistItem[] = Array.isArray(employee.onboarding_checklist)
+      ? [...employee.onboarding_checklist]
       : [];
 
-    if (taskIndex < 0 || taskIndex >= checklist.length) {
-      return NextResponse.json({ ok: false, error: "Task index out of range" }, { status: 400 });
+    if (action === "toggle") {
+      if (typeof taskIndex !== "number" || typeof done !== "boolean") {
+        return NextResponse.json(
+          { ok: false, error: "taskIndex (number) and done (boolean) are required." },
+          { status: 400 }
+        );
+      }
+      if (taskIndex < 0 || taskIndex >= checklist.length) {
+        return NextResponse.json({ ok: false, error: "Task index out of range" }, { status: 400 });
+      }
+      checklist[taskIndex] = {
+        ...checklist[taskIndex],
+        done,
+        done_at: done ? new Date().toISOString() : null,
+      };
+    } else if (action === "add") {
+      if (!task || typeof task !== "string" || !task.trim()) {
+        return NextResponse.json({ ok: false, error: "Task title is required." }, { status: 400 });
+      }
+      checklist.push({
+        task: task.trim(),
+        done: false,
+        done_at: null,
+      });
+    } else if (action === "delete") {
+      if (typeof taskIndex !== "number" || taskIndex < 0 || taskIndex >= checklist.length) {
+        return NextResponse.json({ ok: false, error: "Invalid task index to delete." }, { status: 400 });
+      }
+      checklist.splice(taskIndex, 1);
+    } else if (action === "set") {
+      if (!Array.isArray(newChecklist)) {
+        return NextResponse.json({ ok: false, error: "Checklist must be an array." }, { status: 400 });
+      }
+      checklist = newChecklist;
     }
-
-    checklist[taskIndex] = {
-      ...checklist[taskIndex],
-      done,
-      done_at: done ? new Date().toISOString() : null,
-    };
 
     const { data, error } = await supabase
       .from("employees")
@@ -69,7 +91,7 @@ export async function PUT(
     }
 
     const allDone = checklist.length > 0 && checklist.every((item) => item.done);
-    if (allDone && data.status === "onboarding") {
+    if (allDone && employee.status === "onboarding") {
       const { data: activated } = await supabase
         .from("employees")
         .update({ status: "active", updated_at: new Date().toISOString() })
@@ -80,9 +102,9 @@ export async function PUT(
       try {
         const { sendOnboardingWelcomeEmail } = await import("@/lib/recruitingEmails");
         await sendOnboardingWelcomeEmail({
-          fullName: data.full_name,
-          email: data.email,
-          roleTitle: data.role_title || "team member",
+          fullName: employee.full_name,
+          email: employee.email,
+          roleTitle: employee.role_title || "team member",
         });
       } catch (err) {
         log("warn", { message: "Could not send onboarding welcome email", error: err });

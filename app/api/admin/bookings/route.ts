@@ -18,13 +18,14 @@ export async function GET(request: Request) {
   const search = searchParams.get("search") || "";
   const stage = searchParams.get("stage") || "all";
   const status = searchParams.get("status") || "all";
+  const employeeId = searchParams.get("employee_id") || "";
 
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
       let query = supabase
         .from("bookings")
-        .select("*")
+        .select("*, employees(id, full_name, email, referral_code)")
         .order("slot_start", { ascending: false });
 
       if (stage !== "all") {
@@ -33,6 +34,10 @@ export async function GET(request: Request) {
 
       if (status !== "all") {
         query = query.eq("status", status);
+      }
+
+      if (employeeId) {
+        query = query.eq("sourced_by_employee_id", employeeId);
       }
 
       if (search) {
@@ -48,7 +53,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
       }
 
-      const formatted: BookingLead[] = (data || []).map((b) => ({
+      const formatted = (data || []).map((b) => ({
         id: b.id,
         name: b.name,
         work_email: b.work_email,
@@ -67,6 +72,15 @@ export async function GET(request: Request) {
         admin_notes: b.admin_notes || b.lead_notes || "",
         assigned_to: b.assigned_to || "The Digital Dude Team",
         sourced_by_employee_id: b.sourced_by_employee_id || null,
+        sourced_by_employee: b.employees ? {
+          id: b.employees.id,
+          full_name: b.employees.full_name,
+          email: b.employees.email,
+          referral_code: b.employees.referral_code,
+        } : null,
+        meeting_bonus_payout_status: b.meeting_bonus_payout_status || "pending",
+        deal_commission_payout_status: b.deal_commission_payout_status || "pending",
+        payout_notes: b.payout_notes || "",
         created_at: b.created_at || new Date().toISOString(),
         updated_at: b.updated_at || b.created_at || new Date().toISOString(),
       }));
@@ -78,9 +92,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // In-memory fallback is for local/demo use only. In production, a missing
-  // Supabase config must fail loudly rather than silently serving (or
-  // accepting, in POST below) leads that were never durably stored.
+  // In-memory fallback is for local/demo use only.
   if (process.env.NODE_ENV === "production") {
     log("error", { message: "Supabase not configured in production for /api/admin/bookings" });
     return NextResponse.json(
@@ -220,7 +232,7 @@ export async function POST(request: Request) {
           assigned_to: newLead.assigned_to,
           sourced_by_employee_id: newLead.sourced_by_employee_id,
         })
-        .select()
+        .select("*, employees(id, full_name, email, referral_code)")
         .single();
 
       if (error) {
@@ -246,8 +258,6 @@ export async function POST(request: Request) {
         log("info", { message: "Custom lead created in Supabase", context: { id: data.id, name: data.name } });
       }
     } else {
-      // In-memory fallback is for local/demo use only — never in production,
-      // where it would report a lead as created without durable storage.
       if (process.env.NODE_ENV === "production") {
         log("error", { message: "Supabase not configured in production for POST /api/admin/bookings" });
         return NextResponse.json(
@@ -258,7 +268,6 @@ export async function POST(request: Request) {
       addInMemoryLead(newLead);
     }
 
-    // Optional Brevo welcome / discovery dispatch with custom subject/content
     if (send_welcome_email) {
       try {
         const { sendBrevoEmail, EMAIL_TEMPLATES, wrapInEmailTemplate } = await import("@/lib/emailBrevo");
@@ -304,5 +313,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
-
-
