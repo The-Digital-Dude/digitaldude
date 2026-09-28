@@ -1,6 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { sendBrevoEmail } from "@/lib/emailBrevo";
 import { SITE_URL } from "@/lib/utils";
+import { logRepActivity } from "@/lib/repAudit";
 
 export interface MergeTagsContext {
   firstName: string;
@@ -116,6 +117,19 @@ export async function enrollLeadInCampaign(params: {
   if (queueError) {
     throw new Error(queueError.message);
   }
+
+  // Record in rep audit log
+  await logRepActivity({
+    employeeId: params.repId,
+    actionType: "campaign_enrolled",
+    description: `Enrolled prospect "${leadData.full_name || leadData.company_name || leadData.email}" into multi-touch drip campaign.`,
+    targetIdentifier: leadData.email,
+    metadata: {
+      campaignId: params.campaignId,
+      leadId: params.leadId,
+      enrollmentId: enrollment.id,
+    },
+  });
 
   return { enrollment, queueItem };
 }
@@ -315,6 +329,20 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.enrollment_id);
+
+      // Record audit log entry
+      await logRepActivity({
+        employeeId: rep.id,
+        actionType: "drip_dispatched",
+        description: `Automated drip sequence Step ${job.step_number} dispatched to ${lead.email} ("${renderedSubject}").`,
+        targetIdentifier: lead.email,
+        metadata: {
+          stepNumber: job.step_number,
+          subject: renderedSubject,
+          leadId: lead.id,
+          campaignId: job.campaign_id,
+        },
+      });
 
       // Check if there is a next step (step_number + 1)
       const nextStepNumber = job.step_number + 1;
