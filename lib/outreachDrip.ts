@@ -267,14 +267,18 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
       const lastName = (lead.full_name || "").trim().split(/\s+/).slice(1).join(" ") || "";
       const unsubUrl = `${SITE_URL}/outreach/unsubscribe?email=${encodeURIComponent(lead.email)}&lead_id=${lead.id}`;
 
+      const repDisplayName = (rep.outreach_display_name || "").trim() || "The Digital Dude Partnerships";
+      const repSenderEmail = (rep.assigned_outreach_email || rep.alias_email || "").trim() || "outreach@digitaldude.co.uk";
+      const senderName = repDisplayName.includes("Digital Dude") ? repDisplayName : `${repDisplayName} | The Digital Dude`;
+
       const mergeContext: MergeTagsContext = {
         firstName,
         lastName,
         companyName: lead.company_name || "your company",
         industry: lead.industry || "",
         websiteUrl: lead.website || "",
-        repName: rep.full_name || "The Digital Dude Team",
-        repAliasEmail: rep.alias_email || rep.email || "info@digitaldude.co.uk",
+        repName: repDisplayName,
+        repAliasEmail: repSenderEmail,
         repBookingLink: rep.booking_link || `${SITE_URL}/book`,
         unsubscribeUrl: unsubUrl,
       };
@@ -292,7 +296,7 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
           <div style="margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
             <p style="margin: 0 0 6px 0;">
               Best regards,<br />
-              <strong>${rep.full_name}</strong> &bull; The Digital Dude Ltd<br />
+              <strong>${repDisplayName}</strong> &bull; The Digital Dude Ltd<br />
               <a href="${SITE_URL}" style="color: #7c3aed; text-decoration: none;">digitaldude.co.uk</a>
             </p>
             <p style="margin: 0;">
@@ -303,12 +307,13 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
       `;
 
       // Dispatch through Brevo
-      const replyToEmail = rep.alias_email || rep.email || "info@digitaldude.co.uk";
+      const replyToEmail = repSenderEmail;
       await sendBrevoEmail({
         to: [{ email: lead.email, name: lead.full_name || lead.company_name || "Lead" }],
         subject: renderedSubject,
         htmlContent: htmlContent,
-        replyTo: { email: replyToEmail, name: rep.full_name },
+        sender: { email: repSenderEmail, name: senderName },
+        replyTo: { email: replyToEmail, name: senderName },
       });
 
       // Mark queue job as sent

@@ -129,6 +129,9 @@ export default function EmployeeDetailPage() {
 
   // Profile & Commission Settings State
   const [rates, setRates] = useState({
+    role_title: "",
+    assigned_outreach_email: "",
+    outreach_display_name: "",
     referral_code: "",
     currency: "BDT",
     meeting_bonus_min: "",
@@ -161,6 +164,9 @@ export default function EmployeeDetailPage() {
         setSourcedBookings(data.sourcedBookings || []);
         setCommission(data.commissionSummary);
         setRates({
+          role_title: data.employee.role_title || "",
+          assigned_outreach_email: data.employee.assigned_outreach_email || "",
+          outreach_display_name: data.employee.outreach_display_name || "",
           referral_code: data.employee.referral_code || "",
           currency: data.employee.currency || "BDT",
           meeting_bonus_min: data.employee.meeting_bonus_min ?? "",
@@ -238,6 +244,9 @@ export default function EmployeeDetailPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          role_title: rates.role_title.trim(),
+          assigned_outreach_email: rates.assigned_outreach_email.trim().toLowerCase() || null,
+          outreach_display_name: rates.outreach_display_name.trim() || null,
           referral_code: rates.referral_code.trim().toLowerCase(),
           currency: rates.currency,
           meeting_bonus_min: rates.meeting_bonus_min === "" ? null : Number(rates.meeting_bonus_min),
@@ -254,7 +263,7 @@ export default function EmployeeDetailPage() {
         fetchEmployee();
         setTimeout(() => setRatesSuccess(false), 3000);
       } else {
-        alert(data.error || "Failed to save rates.");
+        alert(data.error || "Failed to save settings.");
       }
     } finally {
       setSavingRates(false);
@@ -748,7 +757,49 @@ export default function EmployeeDetailPage() {
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Outreach Sender Identity Section */}
+              <div className="rounded-xl border border-purple/20 bg-purple/5 p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-purple">
+                    Outreach Sender Identity (Brevo Verified)
+                  </span>
+                  <span className="text-[10px] text-purple/70 font-medium">Domain: @digitaldude.co.uk</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-navy/70 mb-1">
+                      Assigned Outreach Alias Email
+                    </label>
+                    <input
+                      type="email"
+                      value={rates.assigned_outreach_email}
+                      onChange={(e) => setRates((r) => ({ ...r, assigned_outreach_email: e.target.value }))}
+                      placeholder="e.g. alex.sales@digitaldude.co.uk"
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs font-mono text-navy outline-none focus:border-purple"
+                    />
+                    <p className="mt-1 text-[10px] text-navy/50">
+                      Outgoing &amp; reply email address. Any @digitaldude.co.uk sends without extra Brevo setup.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-navy/70 mb-1">
+                      Outreach Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={rates.outreach_display_name}
+                      onChange={(e) => setRates((r) => ({ ...r, outreach_display_name: e.target.value }))}
+                      placeholder="e.g. Alex | The Digital Dude"
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs font-semibold text-navy outline-none focus:border-purple"
+                    />
+                    <p className="mt-1 text-[10px] text-navy/50">
+                      Used in From header &amp; signature. Real personal name is NOT exposed unless typed here.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/60 mb-1">

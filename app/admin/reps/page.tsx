@@ -33,6 +33,7 @@ interface RepScorecard {
   email: string;
   role_title: string;
   assigned_outreach_email: string | null;
+  outreach_display_name?: string | null;
   totalEmailsSent: number;
   emailsSentToday: number;
   totalLeads: number;
@@ -533,7 +534,13 @@ export default function AdminRepsProductivityPage() {
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <span className="text-slate-500">Corporate Outreach Alias:</span>
                     <span className="font-mono text-purple font-semibold">
-                      {selectedRep.assigned_outreach_email || "Default Corporate Alias"}
+                      {selectedRep.assigned_outreach_email || "outreach@digitaldude.co.uk (Default)"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-slate-500">Outreach Display Name:</span>
+                    <span className="font-semibold text-navy">
+                      {selectedRep.outreach_display_name || "The Digital Dude Partnerships"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -576,12 +583,18 @@ export default function AdminRepsProductivityPage() {
             </div>
 
             {/* Drawer Footer */}
-            <div className="border-t border-slate-200 bg-slate-50 p-4 flex justify-end">
+            <div className="border-t border-slate-200 bg-slate-50 p-4 flex items-center justify-between">
+              <a
+                href={`/admin/employees/${selectedRep.id}`}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:bg-purple/90 shadow-2xs transition"
+              >
+                Configure Sender Alias &amp; Rates →
+              </a>
               <button
                 onClick={() => setSelectedRep(null)}
                 className="rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-navy hover:bg-slate-300"
               >
-                Close Inspector
+                Close
               </button>
             </div>
           </div>

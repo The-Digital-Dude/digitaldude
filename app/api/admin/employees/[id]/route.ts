@@ -122,6 +122,7 @@ export async function PUT(
     if (currency !== undefined) updateData.currency = currency;
     if (referral_code !== undefined) updateData.referral_code = referral_code;
     if (assigned_outreach_email !== undefined) updateData.assigned_outreach_email = assigned_outreach_email;
+    if (body.outreach_display_name !== undefined) updateData.outreach_display_name = body.outreach_display_name;
     if (meeting_bonus_min !== undefined) updateData.meeting_bonus_min = meeting_bonus_min;
     if (meeting_bonus_max !== undefined) updateData.meeting_bonus_max = meeting_bonus_max;
     if (deal_commission_percent_min !== undefined) updateData.deal_commission_percent_min = deal_commission_percent_min;

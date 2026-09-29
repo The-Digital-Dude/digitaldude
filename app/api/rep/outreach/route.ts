@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     // Fetch fresh employee data
     const { data: employee, error: empErr } = await supabase
       .from("employees")
-      .select("id, full_name, email, referral_code, assigned_outreach_email, role_title, daily_outreach_limit")
+      .select("id, full_name, email, referral_code, assigned_outreach_email, outreach_display_name, role_title, daily_outreach_limit")
       .eq("id", repSession.id)
       .single();
 
@@ -133,11 +133,13 @@ export async function POST(request: Request) {
     const repRefCode = employee.referral_code || employee.id;
     const repOutreachLink = `${SITE_URL}/contact?ref=${repRefCode}`;
 
-    // Sender alias & corporate reply-to (info@digitaldude.co.uk or assigned alias)
-    const senderAlias = employee.assigned_outreach_email || `${employee.full_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "")}@digitaldude.co.uk`;
-    const senderEmail = employee.assigned_outreach_email || "info@digitaldude.co.uk";
-    const senderName = `${employee.full_name} | The Digital Dude`;
-    const replyToEmail = employee.assigned_outreach_email || "info@digitaldude.co.uk";
+    // Admin-configured sender alias and display name (NO personal full name fallback)
+    const senderEmail = (employee.assigned_outreach_email || "").trim() || "outreach@digitaldude.co.uk";
+    const senderDisplayName = (employee.outreach_display_name || "").trim() || "The Digital Dude Partnerships";
+    const senderName = senderDisplayName.includes("Digital Dude") 
+      ? senderDisplayName 
+      : `${senderDisplayName} | The Digital Dude`;
+    const replyToEmail = senderEmail;
 
     const formattedBody = message
       .split("\n\n")
@@ -165,7 +167,7 @@ export async function POST(request: Request) {
         </table>
 
         <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 24px;">
-          <p style="margin: 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">${employee.full_name}</p>
+          <p style="margin: 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">${senderDisplayName}</p>
           <p style="margin: 2px 0 0 0; font-size: 12px; color: #7b61ff; font-weight: 600;">${
             employee.role_title || "Outreach & Partnerships"
           } · The Digital Dude</p>
@@ -214,13 +216,14 @@ export async function POST(request: Request) {
     await recordRepAuditLog({
       employeeId: employee.id,
       actionType: "outreach_sent",
-      description: `Sent cold outreach email to ${recipientName ? `${recipientName} (${cleanRecipientEmail})` : cleanRecipientEmail} via alias ${senderAlias}.`,
+      description: `Sent cold outreach email to ${recipientName ? `${recipientName} (${cleanRecipientEmail})` : cleanRecipientEmail} via alias ${senderEmail} (${senderDisplayName}).`,
       targetIdentifier: cleanRecipientEmail,
       metadata: {
         subject,
         templateUsed: templateUsed || "custom",
         companyName: companyName || null,
-        senderAlias,
+        senderEmail,
+        senderDisplayName,
         replyTo: replyToEmail,
       },
       ipAddress: ip,

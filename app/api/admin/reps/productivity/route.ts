@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     // 1. Fetch all reps / employees
     const { data: reps } = await supabase
       .from("employees")
-      .select("id, full_name, email, role_title, status, assigned_outreach_email, referral_code, created_at")
+      .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, created_at")
       .order("created_at", { ascending: true });
 
     // 2. Fetch all audit logs in last 30 days
@@ -131,6 +131,7 @@ export async function GET(request: Request) {
         email: rep.email,
         role_title: rep.role_title,
         assigned_outreach_email: rep.assigned_outreach_email,
+        outreach_display_name: rep.outreach_display_name,
         totalEmailsSent,
         emailsSentToday,
         totalLeads,

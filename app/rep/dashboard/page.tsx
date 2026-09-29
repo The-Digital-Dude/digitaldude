@@ -83,6 +83,7 @@ interface RepProfile {
   currency: string;
   referral_code?: string;
   assigned_outreach_email?: string;
+  outreach_display_name?: string;
   meeting_bonus_min: number | null;
   meeting_bonus_max: number | null;
   deal_commission_percent_min: number | null;
@@ -524,13 +525,13 @@ export default function RepDashboardPage() {
       const replacedBody = found.body
         .replace(/\{\{name\}\}/gi, nameVal)
         .replace(/\{\{company\}\}/gi, compVal)
-        .replace(/\{\{rep_name\}\}/gi, profile?.full_name || "The Digital Dude Team")
+        .replace(/\{\{rep_name\}\}/gi, (profile?.outreach_display_name || "").trim() || "The Digital Dude Partnerships")
         .replace(/\{\{referral_link\}\}/gi, refLink);
 
       setEmailSubject(replacedSubject);
       setEmailMessage(replacedBody);
     }
-  }, [selectedTemplateId, recipientName, companyName, profile?.referral_code, profile?.full_name, customTemplates]);
+  }, [selectedTemplateId, recipientName, companyName, profile?.referral_code, profile?.outreach_display_name, customTemplates]);
 
   function handleCopyReferralLink() {
     const link = `${SITE_URL}/contact?ref=${profile?.referral_code || ""}`;
@@ -802,7 +803,8 @@ export default function RepDashboardPage() {
   }
 
   const currencySymbol = profile.currency === "BDT" ? "৳" : profile.currency === "GBP" ? "£" : "$";
-  const repAlias = profile.assigned_outreach_email || `${profile.full_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "")}@digitaldude.co.uk`;
+  const repSenderEmail = (profile.assigned_outreach_email || "").trim() || "outreach@digitaldude.co.uk";
+  const repDisplayName = (profile.outreach_display_name || "").trim() || "The Digital Dude Partnerships";
   const referralLink = `${SITE_URL}/contact?ref=${profile.referral_code || "rep"}`;
 
   const filteredLeads = leads.filter((lead) => {
@@ -924,8 +926,8 @@ export default function RepDashboardPage() {
                 {profile.full_name.charAt(0)}
               </div>
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-white truncate">{profile.full_name}</p>
-                <p className="text-[10px] font-mono text-purple-400 truncate">{repAlias}</p>
+                <p className="text-xs font-bold text-white truncate">{repDisplayName}</p>
+                <p className="text-[10px] font-mono text-purple-400 truncate">{repSenderEmail}</p>
               </div>
             </div>
           </div>
@@ -1449,7 +1451,7 @@ export default function RepDashboardPage() {
                           </div>
 
                           <div className="pt-2 border-t border-white/[0.05] text-[10px] text-slate-500 flex items-center justify-between">
-                            <span>From: {repAlias}</span>
+                            <span>From: {repSenderEmail}</span>
                             <span className="text-emerald-400 font-semibold">Active</span>
                           </div>
                         </div>
@@ -1535,15 +1537,21 @@ export default function RepDashboardPage() {
               </button>
             </div>
 
-            {/* Alias notice */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl bg-[#131B2E]/60 border border-white/[0.08] p-4 text-xs">
+            {/* Sender Identity Notice (Locked & Verified by Admin) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-2xl bg-[#131B2E]/90 border border-purple/20 p-4 text-xs">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">Sender Alias</span>
-                <span className="font-mono text-purple-300 font-semibold">{repAlias}</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Sender Email Alias</span>
+                <span className="font-mono text-purple-300 font-semibold">{repSenderEmail}</span>
               </div>
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-500 block">Reply-To Routing</span>
-                <span className="font-mono text-emerald-400 font-semibold">{profile.assigned_outreach_email || "info@digitaldude.co.uk"}</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Sender Display Name</span>
+                <span className="font-semibold text-white">{repDisplayName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Brevo Status</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-emerald-400 text-[11px]">
+                  <CheckCircle2 size={13} /> Domain Verified
+                </span>
               </div>
             </div>
 
