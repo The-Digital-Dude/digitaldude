@@ -194,16 +194,15 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
         full_name,
         email,
         company_name,
-        industry,
-        website,
-        status
+        job_title,
+        stage
       ),
-      sales_reps (
+      employees (
         id,
         full_name,
         email,
-        alias_email,
-        booking_link
+        assigned_outreach_email,
+        outreach_display_name
       ),
       rep_campaign_steps (
         id,
@@ -218,7 +217,15 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
     .order("scheduled_for", { ascending: true })
     .limit(batchSize);
 
-  if (error || !dueJobs || dueJobs.length === 0) {
+  // A real query error (bad column, broken relationship, etc.) must not be
+  // reported the same way as a genuinely empty queue — conflating the two
+  // previously meant this endpoint could report "healthy, nothing to do"
+  // while actually being completely broken (which is exactly what happened:
+  // the query embedded a "sales_reps" relationship that never existed).
+  if (error) {
+    return { success: false, processed: 0, error: error.message };
+  }
+  if (!dueJobs || dueJobs.length === 0) {
     return { success: true, processed: 0, message: "No due jobs in queue" };
   }
 
@@ -227,7 +234,7 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
 
   for (const job of dueJobs) {
     const lead = job.rep_leads as any;
-    const rep = job.sales_reps as any;
+    const rep = job.employees as any;
     const step = job.rep_campaign_steps as any;
 
     if (!lead || !rep || !step) {
@@ -238,11 +245,11 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
       continue;
     }
 
-    // If lead status changed to 'replied' or 'meeting_booked' or 'won', cancel this job
-    if (["replied", "meeting_booked", "won"].includes(lead.status?.toLowerCase())) {
+    // If the lead's stage moved on (booked/negotiating/won/lost), cancel this job
+    if (["meeting_booked", "negotiation", "won", "lost"].includes((lead.stage || "").toLowerCase())) {
       await supabase
         .from("rep_campaign_queue")
-        .update({ status: "cancelled", error_message: `Lead has status: ${lead.status}` })
+        .update({ status: "cancelled", error_message: `Lead stage: ${lead.stage}` })
         .eq("id", job.id);
 
       await supabase
@@ -273,18 +280,20 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
       const unsubUrl = `${SITE_URL}/outreach/unsubscribe?email=${encodeURIComponent(lead.email)}&lead_id=${lead.id}`;
 
       const repDisplayName = (rep.outreach_display_name || "").trim() || "The Digital Dude Partnerships";
-      const repSenderEmail = (rep.assigned_outreach_email || rep.alias_email || "").trim() || "outreach@digitaldude.co.uk";
+      const repSenderEmail = (rep.assigned_outreach_email || "").trim() || "outreach@digitaldude.co.uk";
       const senderName = repDisplayName.includes("Digital Dude") ? repDisplayName : `${repDisplayName} | The Digital Dude`;
 
       const mergeContext: MergeTagsContext = {
         firstName,
         lastName,
         companyName: lead.company_name || "your company",
-        industry: lead.industry || "",
-        websiteUrl: lead.website || "",
+        // rep_leads has no industry/website columns — these merge tags fall
+        // back to renderMergeTags' own defaults ("your industry", empty).
+        industry: "",
+        websiteUrl: "",
         repName: repDisplayName,
         repAliasEmail: repSenderEmail,
-        repBookingLink: rep.booking_link || `${SITE_URL}/book`,
+        repBookingLink: `${SITE_URL}/book`,
         unsubscribeUrl: unsubUrl,
       };
 

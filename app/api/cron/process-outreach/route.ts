@@ -22,6 +22,9 @@ export async function POST(request: Request) {
 
   try {
     const result = await processOutreachQueueBatch(50);
+    if (!result.success) {
+      return NextResponse.json({ ok: false, ...result }, { status: 500 });
+    }
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     return NextResponse.json({ ok: false, error: (err as Error).message }, { status: 500 });
