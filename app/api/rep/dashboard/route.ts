@@ -28,10 +28,16 @@ export async function GET(request: Request) {
     }
 
     // Live query for all bookings attributed to this rep
+    const refCode = employee.referral_code?.trim().toLowerCase();
+    let queryFilter = `sourced_by_employee_id.eq.${employee.id},employee_id.eq.${employee.id}`;
+    if (refCode) {
+      queryFilter += `,referral_source.eq.${refCode}`;
+    }
+
     const { data: sourcedBookings } = await supabase
       .from("bookings")
-      .select("id, name, work_email, company_name, country, slot_start, status, stage, deal_value, meeting_bonus_payout_status, deal_commission_payout_status, payout_notes, created_at")
-      .or(`sourced_by_employee_id.eq.${employee.id},employee_id.eq.${employee.id}`)
+      .select("id, name, work_email, company_name, country, slot_start, status, stage, deal_value, meeting_bonus_payout_status, deal_commission_payout_status, payout_notes, created_at, referral_source")
+      .or(queryFilter)
       .order("slot_start", { ascending: false });
 
     const bookings = sourcedBookings || [];

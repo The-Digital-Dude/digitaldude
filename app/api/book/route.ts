@@ -99,22 +99,29 @@ export async function POST(request: Request) {
   }
 
   let sourcedByEmployeeId: string | null = null;
+  let matchedEmployeeName: string | null = null;
   if (refCode && supabase) {
     try {
-      const { data: matchedEmp } = await supabase
-        .from("employees")
-        .select("id")
-        .or(`referral_code.eq.${refCode},id.eq.${refCode}`)
-        .maybeSingle();
-      if (matchedEmp) {
-        sourcedByEmployeeId = matchedEmp.id;
-        log("info", { message: "Attributed booking to rep", context: { refCode, employeeId: matchedEmp.id } });
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(refCode);
+      let empQuery = supabase.from("employees").select("id, full_name, email, referral_code");
+      if (isUuid) {
+        empQuery = empQuery.or(`id.eq.${refCode},referral_code.ilike.${refCode}`);
+      } else {
+        empQuery = empQuery.ilike("referral_code", refCode);
       }
-    } catch {}
+      const { data: matchedEmp, error: empErr } = await empQuery.maybeSingle();
+      if (!empErr && matchedEmp) {
+        sourcedByEmployeeId = matchedEmp.id;
+        matchedEmployeeName = matchedEmp.full_name;
+        log("info", { message: "Attributed booking to rep", context: { refCode, employeeId: matchedEmp.id, name: matchedEmp.full_name } });
+      }
+    } catch (empCatchErr) {
+      log("warn", { message: "Error matching rep referral code", error: empCatchErr });
+    }
   }
 
   const bookingId = crypto.randomUUID();
-  const { error } = await supabase.from("bookings").insert({
+  const insertPayload: Record<string, unknown> = {
     id: bookingId,
     name,
     work_email: workEmail,
@@ -125,7 +132,11 @@ export async function POST(request: Request) {
     slot_start: start.toISOString(),
     slot_end: end.toISOString(),
     sourced_by_employee_id: sourcedByEmployeeId,
-  });
+    employee_id: sourcedByEmployeeId,
+    referral_source: refCode || null,
+  };
+
+  const { error } = await supabase.from("bookings").insert(insertPayload);
 
   if (error) {
     // Unique constraint violation on slot_start: someone else just took it.
@@ -218,6 +229,29 @@ export async function POST(request: Request) {
     slotEnd: end.toISOString(),
     meetUrl: calendarMeeting?.meetUrl,
   });
+
+  // Log Rep activity for sourced discovery call
+  if (sourcedByEmployeeId) {
+    try {
+      const { recordRepAuditLog } = await import("@/lib/repAudit");
+      await recordRepAuditLog({
+        employeeId: sourcedByEmployeeId,
+        actionType: "lead_created",
+        description: `Prospect "${name} (${companyName})" booked discovery call via your referral link.`,
+        targetIdentifier: workEmail,
+        metadata: {
+          bookingId,
+          companyName,
+          country,
+          slotStart: start.toISOString(),
+          referralCode: refCode,
+        },
+        ipAddress: ip,
+      });
+    } catch (auditErr) {
+      log("warn", { message: "Could not record rep referral booking audit log", error: auditErr });
+    }
+  }
 
   // Dispatch Meta Conversions API (CAPI) Schedule / Lead Event
   try {

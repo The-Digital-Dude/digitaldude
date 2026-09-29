@@ -55,23 +55,36 @@ export async function GET(request: Request) {
 
       // Safe lookup for employee profiles without requiring PostgREST schema cache relationship
       let employeeMap: Record<string, { id: string; full_name: string; email: string; referral_code?: string }> = {};
+      let refCodeMap: Record<string, { id: string; full_name: string; email: string; referral_code?: string }> = {};
       try {
         const { data: emps } = await supabase
           .from("employees")
           .select("id, full_name, email, referral_code");
         if (emps) {
-          employeeMap = emps.reduce((acc, emp) => {
-            acc[emp.id] = emp;
-            return acc;
-          }, {} as Record<string, typeof emps[0]>);
+          emps.forEach((emp) => {
+            employeeMap[emp.id] = emp;
+            if (emp.referral_code) {
+              refCodeMap[emp.referral_code.trim().toLowerCase()] = emp;
+            }
+          });
         }
       } catch {
         // ignore employee lookup failure
       }
 
       const formatted = (data || []).map((b) => {
-        const repId = b.sourced_by_employee_id || b.employee_id || null;
-        const rep = repId ? employeeMap[repId] || null : null;
+        let repId = b.sourced_by_employee_id || b.employee_id || null;
+        let rep = repId ? employeeMap[repId] || null : null;
+        
+        // Fallback: If repId was missing but referral_source was captured
+        if (!rep && b.referral_source) {
+          const cleanRef = String(b.referral_source).trim().toLowerCase();
+          const matchedByRef = refCodeMap[cleanRef] || employeeMap[cleanRef];
+          if (matchedByRef) {
+            rep = matchedByRef;
+            repId = matchedByRef.id;
+          }
+        }
 
         return {
           id: b.id,

@@ -170,10 +170,9 @@ export async function POST(request: Request) {
           <p style="margin: 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">${senderDisplayName}</p>
           <p style="margin: 2px 0 0 0; font-size: 12px; color: #7b61ff; font-weight: 600;">${
             employee.role_title || "Outreach & Partnerships"
-          } · The Digital Dude</p>
-          <p style="margin: 2px 0 0 0; font-size: 11px; color: #6b6b90;">London · Sydney · Dhaka</p>
+          } · The Digital Dude Ltd</p>
           <p style="margin: 6px 0 0 0; font-size: 11px; color: #6b6b90;">
-            <a href="${SITE_URL}" style="color: #7b61ff; text-decoration: none;">digitaldude.co.uk</a>
+            <a href="${SITE_URL}" style="color: #7b61ff; text-decoration: none; font-weight: 600;">digitaldude.co.uk</a>
           </p>
         </div>
       </div>

@@ -270,6 +270,18 @@ export function ContactForm() {
 
     const eventId = `book_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
+    // Extract referral code from URL search param or localStorage
+    let refCode = "";
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      refCode = (urlParams.get("ref") || "").trim().toLowerCase();
+      if (!refCode) {
+        try {
+          refCode = (localStorage.getItem("tdd_rep_ref") || "").trim().toLowerCase();
+        } catch {}
+      }
+    }
+
     const payload = {
       name,
       workEmail,
@@ -281,6 +293,7 @@ export function ContactForm() {
       slotStart: selectedSlot,
       company: honeypot,
       eventId,
+      ref: refCode || undefined,
     };
 
     try {
