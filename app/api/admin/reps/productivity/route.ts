@@ -21,11 +21,29 @@ export async function GET(request: Request) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    // 1. Fetch all reps / employees
-    const { data: reps } = await supabase
-      .from("employees")
-      .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, created_at")
-      .order("created_at", { ascending: true });
+    // 1. Fetch all reps / employees (with fallback if optional column not yet migrated)
+    let reps: any[] = [];
+    try {
+      const { data: repData, error: repErr } = await supabase
+        .from("employees")
+        .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, created_at")
+        .order("created_at", { ascending: true });
+      if (!repErr && repData) {
+        reps = repData;
+      } else {
+        const { data: fallbackReps } = await supabase
+          .from("employees")
+          .select("id, full_name, email, role_title, status, assigned_outreach_email, referral_code, created_at")
+          .order("created_at", { ascending: true });
+        reps = fallbackReps || [];
+      }
+    } catch {
+      const { data: fallbackReps } = await supabase
+        .from("employees")
+        .select("id, full_name, email, role_title, status, created_at")
+        .order("created_at", { ascending: true });
+      reps = fallbackReps || [];
+    }
 
     // 2. Fetch all audit logs in last 30 days
     const { data: recentLogs } = await supabase
@@ -42,7 +60,7 @@ export async function GET(request: Request) {
     // 4. Fetch all bookings
     const { data: allBookings } = await supabase
       .from("bookings")
-      .select("id, referral_source, status, created_at, deal_value");
+      .select("id, sourced_by_employee_id, employee_id, status, created_at, deal_value");
 
     const totalReps = reps?.length || 0;
     const logs = recentLogs || [];
@@ -72,7 +90,9 @@ export async function GET(request: Request) {
     const repScorecards = (reps || []).map((rep) => {
       const repLogs = logs.filter((l) => l.employee_id === rep.id);
       const repLeads = leads.filter((l) => l.employee_id === rep.id);
-      const repBookings = bookings.filter((b) => b.referral_source === (rep.referral_code || rep.id));
+      const repBookings = bookings.filter(
+        (b) => b.sourced_by_employee_id === rep.id || b.employee_id === rep.id
+      );
 
       const totalEmailsSent = repLogs.filter(
         (l) => l.action_type === "outreach_sent" || l.action_type === "drip_dispatched"
@@ -84,9 +104,11 @@ export async function GET(request: Request) {
 
       const totalLeads = repLeads.length;
       const meetingsBooked = repLeads.filter((l) => l.stage === "meeting_booked" || l.stage === "won").length + repBookings.length;
-      const dealsWon = repLeads.filter((l) => l.stage === "won").length;
+      const dealsWon = repLeads.filter((l) => l.stage === "won").length + repBookings.filter((b) => b.status === "confirmed" || b.status === "completed").length;
 
-      const pipelineValue = repLeads.reduce((acc, l) => acc + (Number(l.estimated_deal_value) || 0), 0);
+      const pipelineFromLeads = repLeads.reduce((acc, l) => acc + (Number(l.estimated_deal_value) || 0), 0);
+      const pipelineFromBookings = repBookings.reduce((acc, b) => acc + (Number(b.deal_value) || 8500), 0);
+      const pipelineValue = pipelineFromLeads + pipelineFromBookings;
 
       const lastActivity = repLogs[0]?.created_at || null;
 
