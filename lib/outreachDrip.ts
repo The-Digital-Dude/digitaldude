@@ -42,11 +42,16 @@ export async function enrollLeadInCampaign(params: {
   const supabase = getSupabaseServerClient();
   if (!supabase) throw new Error("Database client unavailable");
 
-  // Check if lead is already in unsubscribe list
+  // Ownership check: a rep may only enroll their own leads. Without the
+  // employee_id filter here, any authenticated rep could pass another rep's
+  // lead_id and enroll it into their own campaign — which also silently
+  // cancels the original rep's active enrollment for that lead as a side
+  // effect below.
   const { data: leadData } = await supabase
     .from("rep_leads")
     .select("email, full_name, company_name")
     .eq("id", params.leadId)
+    .eq("employee_id", params.repId)
     .single();
 
   if (!leadData) throw new Error("Lead not found");
@@ -296,7 +301,7 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
           <div style="margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; line-height: 1.4;">
             <p style="margin: 0 0 6px 0;">
               Best regards,<br />
-              <strong>${repDisplayName}</strong> &bull; The Digital Dude Ltd<br />
+              <strong>${repDisplayName}</strong> &bull; The Digital Dude<br />
               <a href="${SITE_URL}" style="color: #7c3aed; text-decoration: none;">digitaldude.co.uk</a>
             </p>
             <p style="margin: 0;">

@@ -153,7 +153,7 @@ export function wrapInEmailTemplate(title: string, bodyHtml: string): string {
           <tr>
             <td style="background-color: #fcfbfe; padding: 24px 36px; border-top: 1px solid #f0eeff; text-align: center;">
               <p style="margin: 0; font-size: 12px; color: #6b6b90; line-height: 1.6;">
-                <strong>The Digital Dude Ltd</strong> · Bespoke Web Applications, CRMs & Cloud Architecture<br>
+                <strong>The Digital Dude</strong> · Bespoke Web Applications, CRMs & Cloud Architecture<br>
                 <a href="${SITE_URL}" style="color: #7b61ff; text-decoration: none; font-weight: 600;">digitaldude.co.uk</a> · 
                 <a href="mailto:info@digitaldude.co.uk" style="color: #7b61ff; text-decoration: none; font-weight: 600;">info@digitaldude.co.uk</a>
               </p>

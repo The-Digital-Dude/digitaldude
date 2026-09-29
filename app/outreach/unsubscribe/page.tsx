@@ -151,7 +151,7 @@ export default function OutreachUnsubscribePage() {
       </main>
 
       <footer className="py-4 text-center text-xs text-slate-400">
-        &copy; {new Date().getFullYear()} The Digital Dude Ltd &bull; info@digitaldude.co.uk
+        &copy; {new Date().getFullYear()} The Digital Dude &bull; info@digitaldude.co.uk
       </footer>
     </div>
   );

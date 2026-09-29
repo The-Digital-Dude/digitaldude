@@ -116,7 +116,7 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
               className="h-8 w-auto"
             />
             <div className="text-right text-[11px] text-slate-600 leading-tight">
-              <strong className="text-slate-900 font-bold block">The Digital Dude Ltd</strong>
+              <strong className="text-slate-900 font-bold block">The Digital Dude</strong>
               <span>digitaldude.co.uk · info@digitaldude.co.uk</span>
             </div>
           </div>
@@ -371,7 +371,7 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
 
           {/* Print Footer */}
           <div className="hidden print:block pt-8 text-center text-[11px] text-slate-500 border-t border-slate-200 mt-8">
-            <p className="font-semibold text-slate-700">The Digital Dude Ltd · Bespoke Web Applications, CRMs & Cloud Architecture</p>
+            <p className="font-semibold text-slate-700">The Digital Dude · Bespoke Web Applications, CRMs &amp; Cloud Architecture</p>
             <p className="mt-1 font-mono text-[10px]">Specification Reference: {proposal.slug} · Generated on {new Date(proposal.created_at).toLocaleDateString()}</p>
           </div>
 

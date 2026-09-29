@@ -262,7 +262,6 @@ export async function PATCH(request: Request) {
       bookingId,
       milestoneType, // 'meeting_bonus' | 'deal_commission'
       payoutStatus = "paid", // 'paid' | 'pending'
-      amount,
       transactionReference,
       notes,
       sendNotificationEmail = true,
@@ -284,6 +283,53 @@ export async function PATCH(request: Request) {
 
     if (bErr || !booking) {
       return NextResponse.json({ ok: false, error: "Booking record not found." }, { status: 404 });
+    }
+
+    // Idempotency guard: if this milestone is already at the requested status,
+    // don't re-run the audit log + notification email side effects. Without
+    // this, clicking "approve" twice (double-click, retry, etc.) silently
+    // produced a second audit entry and a second "you got paid" email for
+    // the same milestone.
+    const currentStatus =
+      milestoneType === "meeting_bonus"
+        ? booking.meeting_bonus_payout_status === "paid"
+          ? "paid"
+          : "pending"
+        : booking.deal_commission_payout_status === "paid"
+        ? "paid"
+        : "pending";
+
+    if (currentStatus === payoutStatus) {
+      return NextResponse.json({
+        ok: true,
+        booking,
+        message: `Payout was already marked "${payoutStatus}" — no change made.`,
+        unchanged: true,
+      });
+    }
+
+    // The dollar amount is always recomputed here from the same real
+    // booking/commission data the GET endpoint uses — never trusted from the
+    // request body. A client-supplied amount previously flowed straight into
+    // the permanent audit record and the rep-facing payout email, meaning
+    // the audit trail (the source of truth for "what was paid") could be
+    // set to an arbitrary figure with no relationship to the real deal.
+    let employeeData: { id: string; full_name: string; email: string; currency?: string; meeting_bonus_min?: number; deal_commission_percent_min?: number; payout_details?: { method?: string } } | null = null;
+    let computedAmount = 0;
+    if (booking.employee_id) {
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("*")
+        .eq("id", booking.employee_id)
+        .single();
+      employeeData = emp;
+
+      if (emp) {
+        computedAmount =
+          milestoneType === "meeting_bonus"
+            ? Number(emp.meeting_bonus_min) || 1000
+            : Math.round(((Number(booking.deal_value) || 0) * (Number(emp.deal_commission_percent_min) || 10)) / 100);
+      }
     }
 
     const updatePayload: Record<string, unknown> = {
@@ -311,16 +357,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: false, error: upErr.message }, { status: 500 });
     }
 
-    // Fetch employee if attributed
-    let employeeData = null;
-    if (booking.employee_id) {
-      const { data: emp } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("id", booking.employee_id)
-        .single();
-      employeeData = emp;
-
+    if (booking.employee_id && employeeData) {
       // Record in audit log
       await recordRepAuditLog({
         employeeId: booking.employee_id,
@@ -333,20 +370,20 @@ export async function PATCH(request: Request) {
           bookingId,
           milestoneType,
           payoutStatus,
-          amount,
+          amount: computedAmount,
           transactionReference,
           notes,
         },
       });
 
       // Send Brevo email if approved & requested
-      if (sendNotificationEmail && payoutStatus === "paid" && employeeData?.email) {
+      if (sendNotificationEmail && payoutStatus === "paid" && employeeData.email) {
         try {
           await sendRepPayoutNotificationEmail({
             repEmail: employeeData.email,
             repName: employeeData.full_name,
             milestoneType: milestoneType === "meeting_bonus" ? "Meeting Bonus" : "Deal Commission",
-            amount: Number(amount) || (milestoneType === "meeting_bonus" ? 1000 : 5000),
+            amount: computedAmount,
             currency: employeeData.currency || "BDT",
             clientName: booking.name,
             companyName: booking.company_name || undefined,

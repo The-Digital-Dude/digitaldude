@@ -929,15 +929,18 @@ export default function AdminEmployeesPage() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-navy/70 mb-1">
-                    Disbursed Payout Amount ({approvingItem.currency}) *
+                    Payout Amount ({approvingItem.currency})
                   </label>
                   <input
                     type="number"
-                    required
+                    readOnly
+                    disabled
                     value={approveAmount}
-                    onChange={(e) => setApproveAmount(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-navy font-mono font-bold outline-none focus:border-purple"
+                    className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-xs text-navy/70 font-mono font-bold outline-none"
                   />
+                  <p className="mt-1 text-[11px] text-navy/50">
+                    Calculated from the real booking value and this rep&rsquo;s commission rate — not editable, to keep the payout record accurate.
+                  </p>
                 </div>
 
                 <div>
