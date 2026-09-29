@@ -4,7 +4,7 @@
 -- 1. Rep Campaigns Table
 CREATE TABLE IF NOT EXISTS public.rep_campaigns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  rep_id UUID REFERENCES public.sales_reps(id) ON DELETE CASCADE,
+  rep_id UUID REFERENCES public.employees(id) ON DELETE CASCADE,
   title VARCHAR(255) NOT NULL,
   description TEXT,
   status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'paused', 'archived')),
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.rep_campaign_steps (
 CREATE TABLE IF NOT EXISTS public.rep_campaign_enrollments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id UUID NOT NULL REFERENCES public.rep_campaigns(id) ON DELETE CASCADE,
-  rep_id UUID NOT NULL REFERENCES public.sales_reps(id) ON DELETE CASCADE,
+  rep_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   lead_id UUID NOT NULL REFERENCES public.rep_leads(id) ON DELETE CASCADE,
   current_step INT NOT NULL DEFAULT 1,
   status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'cancelled_replied', 'cancelled_unsubscribed', 'cancelled_manual')),
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.rep_campaign_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   enrollment_id UUID NOT NULL REFERENCES public.rep_campaign_enrollments(id) ON DELETE CASCADE,
   campaign_id UUID NOT NULL REFERENCES public.rep_campaigns(id) ON DELETE CASCADE,
-  rep_id UUID NOT NULL REFERENCES public.sales_reps(id) ON DELETE CASCADE,
+  rep_id UUID NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
   lead_id UUID NOT NULL REFERENCES public.rep_leads(id) ON DELETE CASCADE,
   step_id UUID NOT NULL REFERENCES public.rep_campaign_steps(id) ON DELETE CASCADE,
   step_number INT NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS public.rep_unsubscribes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) NOT NULL UNIQUE,
   lead_id UUID REFERENCES public.rep_leads(id) ON DELETE SET NULL,
-  rep_id UUID REFERENCES public.sales_reps(id) ON DELETE SET NULL,
+  rep_id UUID REFERENCES public.employees(id) ON DELETE SET NULL,
   reason VARCHAR(255) DEFAULT 'User clicked 1-click opt-out',
   unsubscribed_at TIMESTAMPTZ DEFAULT NOW()
 );
