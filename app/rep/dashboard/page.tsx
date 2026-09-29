@@ -1538,7 +1538,7 @@ export default function RepDashboardPage() {
             </div>
 
             {/* Sender Identity Notice (Locked & Verified by Admin) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-2xl bg-[#131B2E]/90 border border-purple/20 p-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 rounded-2xl bg-[#131B2E]/90 border border-purple/20 p-4 text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Sender Email Alias</span>
                 <span className="font-mono text-purple-300 font-semibold">{repSenderEmail}</span>
@@ -1546,6 +1546,10 @@ export default function RepDashboardPage() {
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Sender Display Name</span>
                 <span className="font-semibold text-white">{repDisplayName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Reply-To Routing</span>
+                <span className="font-mono text-emerald-400 font-semibold">info@digitaldude.co.uk</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Brevo Status</span>

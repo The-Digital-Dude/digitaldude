@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     const senderName = senderDisplayName.includes("Digital Dude") 
       ? senderDisplayName 
       : `${senderDisplayName} | The Digital Dude`;
-    const replyToEmail = senderEmail;
+    const replyToEmail = "info@digitaldude.co.uk";
 
     const formattedBody = message
       .split("\n\n")
@@ -182,7 +182,7 @@ export async function POST(request: Request) {
     const emailResult = await sendBrevoEmail({
       to: [{ email: cleanRecipientEmail, name: recipientName || cleanRecipientEmail }],
       sender: { email: senderEmail, name: senderName },
-      replyTo: { email: replyToEmail, name: senderName },
+      replyTo: { email: replyToEmail, name: "The Digital Dude" },
       subject,
       htmlContent: wrapInEmailTemplate(subject, emailHtml),
     });

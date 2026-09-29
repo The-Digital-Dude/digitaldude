@@ -307,13 +307,13 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
       `;
 
       // Dispatch through Brevo
-      const replyToEmail = repSenderEmail;
+      const replyToEmail = "info@digitaldude.co.uk";
       await sendBrevoEmail({
         to: [{ email: lead.email, name: lead.full_name || lead.company_name || "Lead" }],
         subject: renderedSubject,
         htmlContent: htmlContent,
         sender: { email: repSenderEmail, name: senderName },
-        replyTo: { email: replyToEmail, name: senderName },
+        replyTo: { email: replyToEmail, name: "The Digital Dude" },
       });
 
       // Mark queue job as sent
