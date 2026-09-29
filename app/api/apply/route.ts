@@ -141,15 +141,22 @@ export async function POST(request: Request) {
     }
 
     try {
-      const { sendApplicationReceivedEmail } = await import("@/lib/recruitingEmails");
+      const { sendApplicationReceivedEmail, sendApplicationAdminNotification } = await import("@/lib/recruitingEmails");
       await sendApplicationReceivedEmail({
         applicantName,
         applicantEmail,
         jobTitle: job.title,
       });
+      await sendApplicationAdminNotification({
+        applicantName,
+        applicantEmail,
+        applicantPhone,
+        jobTitle: job.title,
+        writtenTestResponse,
+      });
     } catch (err) {
-      // Never fail the application because the confirmation email failed.
-      log("warn", { message: "Could not send application-received email", error: err });
+      // Never fail the application because an email failed.
+      log("warn", { message: "Could not send application emails", error: err });
     }
 
     const clientEventId = String(formData.get("eventId") || "").trim() || undefined;

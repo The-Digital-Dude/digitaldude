@@ -75,6 +75,47 @@ export async function sendApplicationReceivedEmail(params: {
   });
 }
 
+/**
+ * Notifies the internal team that a new application came in — mirrors the
+ * pattern in lib/sendNotification.ts for bookings (CONTACT_NOTIFY_EMAIL,
+ * defaulting to info@digitaldude.co.uk). Without this, a new application
+ * was only visible by someone manually checking /admin/applications.
+ */
+export async function sendApplicationAdminNotification(params: {
+  applicantName: string;
+  applicantEmail: string;
+  applicantPhone?: string | null;
+  jobTitle: string;
+  writtenTestResponse: string;
+}) {
+  const notifyEmail = process.env.CONTACT_NOTIFY_EMAIL || "info@digitaldude.co.uk";
+  const content = `
+    <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 800; color: #1a1a4e; line-height: 1.3;">
+      New application: ${params.jobTitle}
+    </h1>
+    <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">
+      <strong style="color: #1a1a4e;">${params.applicantName}</strong> (${params.applicantEmail}${
+        params.applicantPhone ? `, ${params.applicantPhone}` : ""
+      }) just applied for <strong style="color: #1a1a4e;">${params.jobTitle}</strong>.
+    </p>
+    <div style="background-color: #f8f9fa; border-left: 4px solid #7b61ff; padding: 14px 18px; border-radius: 4px; margin-bottom: 20px; font-size: 13px; color: #333366; line-height: 1.5; white-space: pre-wrap;">${params.writtenTestResponse}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tr>
+        <td align="center">
+          <a href="${SITE_URL}/admin/applications" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px;">
+            Review in Admin →
+          </a>
+        </td>
+      </tr>
+    </table>
+  `;
+  return sendBrevoEmail({
+    to: [{ email: notifyEmail }],
+    subject: `New application: ${params.jobTitle} — ${params.applicantName}`,
+    htmlContent: wrapInEmailTemplate("New Application", content),
+  });
+}
+
 export async function sendApplicationStatusEmail(params: {
   applicantName: string;
   applicantEmail: string;
