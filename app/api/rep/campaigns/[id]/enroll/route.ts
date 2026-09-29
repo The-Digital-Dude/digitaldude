@@ -28,6 +28,17 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "Please select at least one lead to enroll" }, { status: 400 });
     }
 
+    // Cap batch size: nothing else limits how many leads can be enrolled (and
+    // therefore emailed) in a single request, which combined with the queue
+    // processor risks sending-domain reputation/spam issues at volume.
+    const MAX_ENROLL_BATCH = 200;
+    if (lead_ids.length > MAX_ENROLL_BATCH) {
+      return NextResponse.json(
+        { ok: false, error: `You can enroll at most ${MAX_ENROLL_BATCH} leads at once. Split this into smaller batches.` },
+        { status: 400 }
+      );
+    }
+
     // Verify campaign belongs to rep
     const { data: campaign, error: campError } = await supabase
       .from("rep_campaigns")

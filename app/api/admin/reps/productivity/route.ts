@@ -17,7 +17,10 @@ export async function GET(request: Request) {
 
   try {
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    // Use rolling 24-hour cutoff (or current calendar day) so activity across timezones is accurately captured
+    const rolling24hAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const calendarStartOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const startOfToday = rolling24hAgo < calendarStartOfToday ? rolling24hAgo : calendarStartOfToday;
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
