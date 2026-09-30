@@ -55,7 +55,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-slate-50 text-navy antialiased">
       {/* Sidebar Desktop */}
-      <aside className="hidden w-64 flex-col justify-between border-r border-slate-200 bg-white p-5 lg:flex">
+      <aside className="hidden w-64 shrink-0 sticky top-0 h-screen overflow-y-auto flex-col justify-between border-r border-slate-200 bg-white p-5 lg:flex">
         <div>
           <div className="flex items-center gap-3 px-2 py-3">
             <Image

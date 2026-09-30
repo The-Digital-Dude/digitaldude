@@ -220,7 +220,7 @@ export default function AdminRepsProductivityPage() {
               <DollarSign size={16} className="text-purple" />
             </div>
             <div className="text-2xl font-black text-navy">
-              ৳{(metrics?.totalPipelineValue || 0).toLocaleString()}
+              ${(metrics?.totalPipelineValue || 0).toLocaleString()}
             </div>
             <p className="text-xs text-slate-500 font-medium">Estimated deal volume</p>
           </div>
@@ -553,7 +553,7 @@ export default function AdminRepsProductivityPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500">Estimated Pipeline Volume:</span>
                     <span className="font-bold text-navy font-mono">
-                      ৳{selectedRep.pipelineValue.toLocaleString()}
+                      ${selectedRep.pipelineValue.toLocaleString()}
                     </span>
                   </div>
                 </div>
