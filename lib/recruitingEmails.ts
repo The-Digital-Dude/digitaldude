@@ -45,6 +45,11 @@ export const RECRUITING_STATUS_TEMPLATES: Record<
     heading: `Thank you for your interest, ${firstName(applicantName)}`,
     body: `Thank you for taking the time to apply for the ${jobTitle} role and for completing our assessment.\n\nWhile your qualifications are noteworthy, we have decided to move forward with other candidates who more closely align with our current operational requirements.\n\nWe appreciate your interest in The Digital Dude and wish you every success in your search.`,
   }),
+  shortlisted: ({ applicantName, jobTitle }) => ({
+    subject: `Shortlisted: Practical Assessment Task — ${jobTitle} at The Digital Dude`,
+    heading: `Congratulations on shortlisting, ${firstName(applicantName)}!`,
+    body: `We were very impressed with your application for the ${jobTitle} role, and you have been shortlisted for our paid practical assessment!\n\n📋 Assessment Task Instructions:\n1. Target Prospects: Find 10 high-fit decision-makers in AU/UK (companies with 5 to 200 employees) in the target industry.\n2. Verification & Accuracy: Ensure all LinkedIn profile links work and contact details are 100% verified.\n3. Relevant Observations: Note specific, actionable observations for each prospect (e.g. recent hires, tech stacks, growth signals).\n4. Outreach Copy: Draft tailored outreach messages under 120 words—open with the prospect, reference a specific project, keep it natural and human (no AI buzzwords like 'leverage' or 'I hope this finds you well').\n5. Format & bKash: Submit via a clean Google Sheet and include your personal bKash number on the sheet.\n\n💰 Fair Compensation:\nWe value your time. Everyone who submits complete, original work on time will be paid their assessment compensation via bKash, regardless of final hiring outcome. Candidates scoring 18/25 or above will be invited to a 30-minute video interview.`,
+  }),
   reviewing: ({ applicantName, jobTitle }) => ({
     subject: `Application Status Update — ${jobTitle}`,
     heading: `We're reviewing your application, ${firstName(applicantName)}`,

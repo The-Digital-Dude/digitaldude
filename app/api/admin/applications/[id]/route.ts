@@ -51,6 +51,12 @@ export async function PUT(
       status,
       internal_notes,
       scorecard,
+      task_submission_url,
+      task_deadline,
+      bkash_number,
+      bkash_payment_status,
+      bkash_payment_amount,
+      bkash_transaction_id,
       send_email = false,
       email_subject,
       email_message,
@@ -62,6 +68,12 @@ export async function PUT(
     if (status !== undefined) updateData.status = status;
     if (internal_notes !== undefined) updateData.internal_notes = internal_notes;
     if (scorecard !== undefined) updateData.scorecard = scorecard;
+    if (task_submission_url !== undefined) updateData.task_submission_url = task_submission_url;
+    if (task_deadline !== undefined) updateData.task_deadline = task_deadline;
+    if (bkash_number !== undefined) updateData.bkash_number = bkash_number;
+    if (bkash_payment_status !== undefined) updateData.bkash_payment_status = bkash_payment_status;
+    if (bkash_payment_amount !== undefined) updateData.bkash_payment_amount = bkash_payment_amount;
+    if (bkash_transaction_id !== undefined) updateData.bkash_transaction_id = bkash_transaction_id;
 
     let { data, error } = await supabase
       .from("job_applications")
@@ -70,11 +82,17 @@ export async function PUT(
       .select("*, job_postings(title, slug)")
       .single();
 
-    // Fallback if scorecard or internal_notes columns haven't been migrated yet in user's Supabase instance
+    // Fallback if columns haven't been migrated yet in user's Supabase instance
     if (error && error.message?.includes("column")) {
       const sanitizedUpdate = { ...updateData };
       if (error.message.includes("scorecard")) delete sanitizedUpdate.scorecard;
       if (error.message.includes("internal_notes")) delete sanitizedUpdate.internal_notes;
+      if (error.message.includes("task_submission_url")) delete sanitizedUpdate.task_submission_url;
+      if (error.message.includes("task_deadline")) delete sanitizedUpdate.task_deadline;
+      if (error.message.includes("bkash_number")) delete sanitizedUpdate.bkash_number;
+      if (error.message.includes("bkash_payment_status")) delete sanitizedUpdate.bkash_payment_status;
+      if (error.message.includes("bkash_payment_amount")) delete sanitizedUpdate.bkash_payment_amount;
+      if (error.message.includes("bkash_transaction_id")) delete sanitizedUpdate.bkash_transaction_id;
 
       const retryRes = await supabase
         .from("job_applications")
