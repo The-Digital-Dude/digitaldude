@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { services } from "@/lib/content/services";
@@ -19,6 +19,12 @@ export function Header() {
   const pathname = usePathname();
   const [servicesOpen, setServicesOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Automatically close mobile menu and dropdowns whenever navigation occurs
+  useEffect(() => {
+    setMobileOpen(false);
+    setServicesOpen(false);
+  }, [pathname]);
 
   if (pathname?.startsWith("/admin") || pathname?.startsWith("/proposals/") || pathname?.startsWith("/rep") || pathname?.startsWith("/portal")) {
     return null;
