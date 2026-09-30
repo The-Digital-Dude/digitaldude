@@ -166,15 +166,17 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mobile sticky "Book a call" bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white p-3 md:hidden">
-        <Link
-          href="/contact"
-          className="block w-full rounded-full bg-purple py-3 text-center text-sm font-semibold text-white"
-        >
-          Book a 30-minute call
-        </Link>
-      </div>
+      {/* Mobile sticky "Book a call" bar (hidden on /contact to avoid confusion) */}
+      {pathname !== "/contact" && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white p-3 md:hidden">
+          <Link
+            href="/contact"
+            className="block w-full rounded-full bg-purple py-3 text-center text-sm font-semibold text-white"
+          >
+            Book a 30-minute call
+          </Link>
+        </div>
+      )}
     </>
   );
 }

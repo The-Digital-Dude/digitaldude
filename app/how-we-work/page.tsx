@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck } from "lucide-react";
 import { buildMetadata } from "@/lib/content/seo";
 import { StandardCTA } from "@/components/StandardCTA";
+import { SITE_URL } from "@/lib/utils";
 
 export const metadata: Metadata = buildMetadata("how-we-work", "/how-we-work");
 
@@ -51,9 +52,60 @@ const timelines = [
   { type: "Marketplace with customer, provider and admin apps", time: "12 to 20 weeks" },
 ];
 
+const howWeWorkJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/how-we-work#webpage`,
+      url: `${SITE_URL}/how-we-work`,
+      name: "Engineering Methodology & Delivery Process | The Digital Dude",
+      description: "Our structured 6-stage software delivery framework from discovery and interactive design to staging, QA, and handover.",
+      isPartOf: {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}#website`,
+        name: "The Digital Dude",
+        url: SITE_URL,
+      },
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: SITE_URL,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "How We Work",
+          item: `${SITE_URL}/how-we-work`,
+        },
+      ],
+    },
+    {
+      "@type": "HowTo",
+      name: "How Custom Software Is Engineered & Delivered at The Digital Dude",
+      description: "A disciplined 6-step engineering framework ensuring high software quality, bi-weekly demos, and seamless production handover.",
+      step: steps.map((s, idx) => ({
+        "@type": "HowToStep",
+        position: idx + 1,
+        name: s.step,
+        text: `${s.happens}. Key Deliverable: ${s.get}`,
+      })),
+    },
+  ],
+};
+
 export default function HowWeWorkPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howWeWorkJsonLd) }}
+      />
       <section className="mx-auto max-w-content px-6 pb-12 pt-32 sm:pt-40">
         <h1 className="max-w-2xl text-3xl font-bold text-navy sm:text-4xl">
           How working with us goes

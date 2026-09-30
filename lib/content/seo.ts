@@ -10,7 +10,7 @@ export type SeoEntry = {
 
 export const seo: Record<string, SeoEntry> = {
   home: {
-    title: "Custom CRM, SaaS & Marketplace Software Engineering | The Digital Dude",
+    title: "Custom CRM, SaaS & Marketplace Systems | The Digital Dude",
     description:
       "We design, architect and build bespoke CRMs, multi-tenant SaaS platforms, and operational systems for high-growth service businesses in the UK and Australia.",
     keywords: [
@@ -23,7 +23,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   work: {
-    title: "Production Case Studies: CRMs, SaaS & Marketplaces | The Digital Dude",
+    title: "Bespoke Software & CRM Case Studies | The Digital Dude",
     description:
       "Explore production systems built and shipped across property, travel, logistics, recruitment, education, and on-demand marketplaces.",
     keywords: [

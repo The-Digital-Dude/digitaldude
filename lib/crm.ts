@@ -38,6 +38,7 @@ export interface CrmStageConfig {
   badgeClass: string;
   borderClass: string;
   bgClass: string;
+  winProbability: number;
 }
 
 export const CRM_STAGES: CrmStageConfig[] = [
@@ -48,6 +49,7 @@ export const CRM_STAGES: CrmStageConfig[] = [
     badgeClass: "bg-blue-50 text-blue-700 border-blue-200",
     borderClass: "border-blue-400",
     bgClass: "bg-blue-50/40",
+    winProbability: 15,
   },
   {
     id: "call_completed",
@@ -56,6 +58,7 @@ export const CRM_STAGES: CrmStageConfig[] = [
     badgeClass: "bg-purple/10 text-purple border-purple/20",
     borderClass: "border-purple",
     bgClass: "bg-purple/[0.03]",
+    winProbability: 35,
   },
   {
     id: "proposal_sent",
@@ -64,6 +67,7 @@ export const CRM_STAGES: CrmStageConfig[] = [
     badgeClass: "bg-amber-50 text-amber-700 border-amber-200",
     borderClass: "border-amber-400",
     bgClass: "bg-amber-50/40",
+    winProbability: 60,
   },
   {
     id: "negotiation",
@@ -72,6 +76,7 @@ export const CRM_STAGES: CrmStageConfig[] = [
     badgeClass: "bg-cyan-50 text-cyan-700 border-cyan-200",
     borderClass: "border-cyan-400",
     bgClass: "bg-cyan-50/40",
+    winProbability: 80,
   },
   {
     id: "closed_won",
@@ -80,6 +85,7 @@ export const CRM_STAGES: CrmStageConfig[] = [
     badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
     borderClass: "border-emerald-500",
     bgClass: "bg-emerald-50/40",
+    winProbability: 100,
   },
   {
     id: "closed_lost",
@@ -88,6 +94,7 @@ export const CRM_STAGES: CrmStageConfig[] = [
     badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
     borderClass: "border-slate-300",
     bgClass: "bg-slate-50/40",
+    winProbability: 0,
   },
 ];
 
@@ -187,6 +194,51 @@ export function formatUsd(amount: number): string {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+export function getWeightedPipelineMetrics(leads: BookingLead[]) {
+  const stageWeights: Record<CrmStage, number> = {
+    new_booking: 0.15,
+    call_completed: 0.35,
+    proposal_sent: 0.60,
+    negotiation: 0.80,
+    closed_won: 1.0,
+    closed_lost: 0.0,
+  };
+
+  let totalActiveVolume = 0;
+  let weightedForecastVolume = 0;
+  let wonVolume = 0;
+  let wonCount = 0;
+  let closedCount = 0;
+
+  leads.forEach((lead) => {
+    const val = Number(lead.deal_value) || 0;
+    const stg = lead.stage || "new_booking";
+    const weight = stageWeights[stg] ?? 0.15;
+
+    if (stg === "closed_won") {
+      wonVolume += val;
+      wonCount++;
+      closedCount++;
+    } else if (stg === "closed_lost") {
+      closedCount++;
+    } else {
+      totalActiveVolume += val;
+      weightedForecastVolume += val * weight;
+    }
+  });
+
+  const winRate = closedCount > 0 ? Math.round((wonCount / closedCount) * 100) : 0;
+
+  return {
+    totalActiveVolume,
+    weightedForecastVolume,
+    wonVolume,
+    wonCount,
+    totalDealsCount: leads.length,
+    winRate,
+  };
 }
 
 // Global in-memory store for CRM leads

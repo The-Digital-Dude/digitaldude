@@ -362,36 +362,6 @@ export function ContactForm() {
           </div>
         </div>
 
-        {/* Instant, unpriced starting-point brief — not a real proposal yet */}
-        {confirmedData.proposalSlug && (
-          <div className="rounded-2xl border border-purple/30 bg-purple/[0.04] p-5 sm:p-6 space-y-3 shadow-xs">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-purple/10 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-purple">
-                  <Sparkles size={12} /> Starting Point, Not a Quote
-                </span>
-                <h3 className="text-base font-bold text-navy mt-2">
-                  Here&rsquo;s a rough sketch to kick off our conversation
-                </h3>
-                <p className="text-xs sm:text-sm text-navy/70 mt-1 leading-relaxed">
-                  Based on what you told us, we&rsquo;ve put together an illustrative architecture outline for <strong className="text-navy">{companyName}</strong>. It&rsquo;s unpriced and unreviewed — a real proposal comes after we talk.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <a
-                href={`/proposals/${confirmedData.proposalSlug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white transition hover:bg-purple/90 shadow-xs"
-              >
-                <FileText size={15} /> View the Starting Point →
-              </a>
-            </div>
-          </div>
-        )}
-
         {/* Meeting Details Card */}
         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 space-y-3.5">
           <div className="flex items-center gap-3 text-sm text-navy">

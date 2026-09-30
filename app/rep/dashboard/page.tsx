@@ -51,6 +51,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/utils";
+import { RepAnalyticsOverview } from "@/components/rep/RepAnalyticsOverview";
 
 interface ChecklistItem {
   task: string;
@@ -989,140 +990,15 @@ export default function RepDashboardPage() {
         {/* VIEW 1: OVERVIEW & METRICS */}
         {/* ===================================================================== */}
         {activeTab === "overview" && (
-          <div className="space-y-6">
-            {/* 4 Clean Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                  <span>Discovery Calls</span>
-                  <Calendar size={16} className="text-purple-400" />
-                </div>
-                <div className="text-2xl font-bold text-white">{commissionSummary?.totalBookingsCount || 0}</div>
-                <p className="text-[11px] text-emerald-400 font-medium">
-                  {commissionSummary?.qualifiedMeetings || 0} Qualified &amp; Held
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                  <span>Meeting Bonus Range</span>
-                  <DollarSign size={16} className="text-emerald-400" />
-                </div>
-                <div className="text-2xl font-bold text-white font-mono">
-                  {currencySymbol}{commissionSummary?.meetingBonusRangeTotal[0] || 0} – {currencySymbol}{commissionSummary?.meetingBonusRangeTotal[1] || 0}
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  {commissionSummary?.meetingBonusPaidCount || 0} bonuses paid out
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                  <span>Deals Closed</span>
-                  <Award size={16} className="text-blue-400" />
-                </div>
-                <div className="text-2xl font-bold text-white">{commissionSummary?.wonDealsCount || 0}</div>
-                <p className="text-[11px] text-slate-400">
-                  {currencySymbol}{(commissionSummary?.wonDealValue || 0).toLocaleString()} volume
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-5 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-                  <span>Commission Range</span>
-                  <Sparkles size={16} className="text-purple-400" />
-                </div>
-                <div className="text-2xl font-bold text-white font-mono">
-                  {currencySymbol}{commissionSummary?.dealCommissionRangeTotal[0] || 0} – {currencySymbol}{commissionSummary?.dealCommissionRangeTotal[1] || 0}
-                </div>
-                <p className="text-[11px] text-purple-400">
-                  {commissionSummary?.dealCommissionPaidCount || 0} commissions finalized
-                </p>
-              </div>
-            </div>
-
-            {/* Sourced Discovery Calls Table */}
-            <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
-                <div>
-                  <h3 className="text-base font-bold text-white">Discovery Calls &amp; Deals Sourced</h3>
-                  <p className="text-xs text-slate-400">Prospects who booked discovery calls through your link</p>
-                </div>
-                <span className="text-xs font-bold text-purple-400">{bookings.length} Tracked</span>
-              </div>
-
-              {bookings.length === 0 ? (
-                <div className="text-center py-10 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-2">
-                  <Calendar size={28} className="mx-auto text-slate-500" />
-                  <p className="text-xs text-slate-400">No discovery calls tracked yet.</p>
-                  <p className="text-[11px] text-slate-500">
-                    Use the <button onClick={() => setActiveTab("leads")} className="text-purple-400 hover:underline">Leads CRM</button> or <button onClick={() => setActiveTab("campaigns")} className="text-purple-400 hover:underline">Automated Campaigns</button> to start generating inbound interest!
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-white/[0.08] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="py-3 px-3">Client</th>
-                        <th className="py-3 px-3">Company</th>
-                        <th className="py-3 px-3">Scheduled Date</th>
-                        <th className="py-3 px-3">Status</th>
-                        <th className="py-3 px-3">Meeting Bonus</th>
-                        <th className="py-3 px-3">Deal Comm</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
-                      {bookings.map((b) => (
-                        <tr key={b.id} className="hover:bg-white/[0.02]">
-                          <td className="py-3 px-3">
-                            <span className="font-bold text-white block">{b.name}</span>
-                            <span className="text-[11px] text-slate-400 font-mono">{b.work_email}</span>
-                          </td>
-                          <td className="py-3 px-3 text-slate-300">{b.company_name || "—"}</td>
-                          <td className="py-3 px-3 text-slate-400">
-                            {new Date(b.slot_start).toLocaleDateString("en-GB", {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </td>
-                          <td className="py-3 px-3">
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple/20 text-purple-300 border border-purple/30">
-                              {b.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                                b.meeting_bonus_payout_status === "paid"
-                                  ? "bg-emerald-500/20 text-emerald-400"
-                                  : "bg-amber-500/20 text-amber-400"
-                              }`}
-                            >
-                              {b.meeting_bonus_payout_status === "paid" ? "Paid" : "Pending Review"}
-                            </span>
-                          </td>
-                          <td className="py-3 px-3">
-                            <span
-                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
-                                b.deal_commission_payout_status === "paid"
-                                  ? "bg-emerald-500/20 text-emerald-400"
-                                  : "bg-slate-700 text-slate-300"
-                              }`}
-                            >
-                              {b.deal_commission_payout_status === "paid" ? "Paid" : "Pending Close"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
+          <RepAnalyticsOverview
+            profile={profile}
+            commissionSummary={commissionSummary}
+            bookings={bookings}
+            outreachLogs={outreachLogs}
+            leads={leads}
+            currencySymbol={currencySymbol}
+            setActiveTab={setActiveTab}
+          />
         )}
 
         {/* ===================================================================== */}

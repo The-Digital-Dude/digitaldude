@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buildMetadata } from "@/lib/content/seo";
 import { StandardCTA } from "@/components/StandardCTA";
+import { SITE_URL } from "@/lib/utils";
 
 export const metadata: Metadata = buildMetadata("about", "/about");
 
@@ -31,9 +32,49 @@ const byTheNumbers = [
   "3 countries served",
 ];
 
+const aboutJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "AboutPage",
+      "@id": `${SITE_URL}/about#webpage`,
+      url: `${SITE_URL}/about`,
+      name: "About The Digital Dude | Bespoke Software Engineering Team",
+      description: "Learn about The Digital Dude, our engineering values, delivery track record, and how we build custom CRMs, SaaS platforms, and enterprise tooling.",
+      isPartOf: {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}#website`,
+        name: "The Digital Dude",
+        url: SITE_URL,
+      },
+    },
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: SITE_URL,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "About",
+          item: `${SITE_URL}/about`,
+        },
+      ],
+    },
+  ],
+};
+
 export default function AboutPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}
+      />
       <section className="mx-auto max-w-content px-6 pb-12 pt-32 sm:pt-40">
         <h1 className="max-w-2xl text-3xl font-bold text-navy sm:text-4xl">
           A small team that builds big systems

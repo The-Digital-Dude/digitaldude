@@ -6,8 +6,6 @@ import { SLOT_MINUTES, generateSlotsForDate, isDateWithinBookingWindow } from "@
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { log } from "@/lib/logger";
 
-import { generateProposalFromBooking } from "@/lib/content/proposals";
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
@@ -175,49 +173,6 @@ export async function POST(request: Request) {
     }
   }
 
-  // Auto-generate Architecture Spec & Project Proposal
-  const autoProposal = generateProposalFromBooking({
-    name,
-    email: workEmail,
-    company: companyName,
-    country,
-    systemType,
-    teamSize,
-    message,
-  });
-
-  let persistedProposalSlug: string | null = null;
-  try {
-    const { error: pErr } = await supabase.from("proposals").insert({
-      slug: autoProposal.slug,
-      client_name: autoProposal.client_name,
-      client_email: autoProposal.client_email,
-      company_name: autoProposal.company_name,
-      country: autoProposal.country,
-      project_title: autoProposal.project_title,
-      system_type: autoProposal.system_type,
-      scope_summary: autoProposal.scope_summary,
-      problem_statement: autoProposal.problem_statement,
-      target_timeline: autoProposal.target_timeline,
-      budget_range: autoProposal.budget_range,
-      tech_stack: autoProposal.tech_stack,
-      architecture_modules: autoProposal.architecture_modules,
-      deliverable_phases: autoProposal.deliverable_phases,
-      status: autoProposal.status,
-      valid_until: autoProposal.valid_until,
-    });
-
-    if (!pErr) {
-      persistedProposalSlug = autoProposal.slug;
-      const { addInMemoryProposal } = await import("@/lib/content/proposals");
-      addInMemoryProposal(autoProposal);
-    } else {
-      log("warn", { message: "Could not persist auto proposal record", error: pErr });
-    }
-  } catch (pErr) {
-    log("warn", { message: "Could not persist auto proposal record", error: pErr });
-  }
-
   await sendNotification({
     name,
     workEmail,
@@ -292,6 +247,5 @@ export async function POST(request: Request) {
     firstName: String(name).split(" ")[0],
     slotStart: start.toISOString(),
     meetUrl: calendarMeeting?.meetUrl || null,
-    proposalSlug: persistedProposalSlug,
   });
 }

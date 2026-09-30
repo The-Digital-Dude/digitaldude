@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
@@ -54,35 +55,138 @@ export const metadata: Metadata = {
   },
 };
 
-const jsonLdWebsite = {
+const rootJsonLd = {
   "@context": "https://schema.org",
-  "@type": "WebSite",
-  name: "The Digital Dude",
-  url: SITE_URL,
-  description: seo.home.description,
-  publisher: {
-    "@type": "Organization",
-    name: "The Digital Dude",
-    url: SITE_URL,
-    logo: `${SITE_URL}/logo-full-color.png`,
-    email: "info@digitaldude.co.uk",
-    foundingDate: "2020",
-    sameAs: [
-      "https://www.linkedin.com/company/td-dude",
-      "https://www.facebook.com/td.dude/",
-      "https://www.instagram.com/td.dude",
-    ],
-  },
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}#website`,
+      name: "The Digital Dude",
+      url: SITE_URL,
+      description: seo.home.description,
+      publisher: {
+        "@id": `${SITE_URL}#organization`,
+      },
+      inLanguage: "en-GB",
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}#organization`,
+      name: "The Digital Dude",
+      url: SITE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/logo-full-color.png`,
+      },
+      email: "info@digitaldude.co.uk",
+      foundingDate: "2020",
+      sameAs: [
+        "https://www.linkedin.com/company/td-dude",
+        "https://www.facebook.com/td.dude/",
+        "https://www.instagram.com/td.dude",
+      ],
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "Customer Support & Technical Enquiries",
+          email: "info@digitaldude.co.uk",
+          url: `${SITE_URL}/contact`,
+          availableLanguage: ["English"],
+          areaServed: ["GB", "AU", "US", "Global"],
+        },
+      ],
+    },
+    {
+      "@type": "ProfessionalService",
+      "@id": `${SITE_URL}#service`,
+      name: "The Digital Dude",
+      url: SITE_URL,
+      image: `${SITE_URL}/og-image.png`,
+      priceRange: "£££",
+      currenciesAccepted: "GBP, AUD, USD",
+      paymentAccepted: "Bank Transfer, Credit Card, Stripe",
+      areaServed: [
+        { "@type": "Country", name: "United Kingdom" },
+        { "@type": "Country", name: "Australia" },
+        { "@type": "Country", name: "United States" },
+        { "@type": "AdministrativeArea", name: "Global" },
+      ],
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "London",
+        addressCountry: "GB",
+      },
+      description: "Bespoke CRM, SaaS, and internal tooling engineering studio delivering custom software systems for scaling businesses.",
+      hasOfferCatalog: {
+        "@type": "OfferCatalog",
+        name: "Custom Software Engineering Services",
+        itemListElement: [
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Custom CRM Development",
+              url: `${SITE_URL}/services/crm-development`,
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "SaaS Platform Engineering",
+              url: `${SITE_URL}/services/saas-development`,
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "ERP & HRM Operational Systems",
+              url: `${SITE_URL}/services/erp-hrm-systems`,
+            },
+          },
+          {
+            "@type": "Offer",
+            itemOffered: {
+              "@type": "Service",
+              name: "Two-Sided Marketplaces & Web Apps",
+              url: `${SITE_URL}/services/marketplace-development`,
+            },
+          },
+        ],
+      },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
   return (
     <html lang="en" className={plusJakarta.variable}>
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebsite) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(rootJsonLd) }}
         />
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}', {
+                  page_path: window.location.pathname,
+                });
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body className="font-sans antialiased">
         <a

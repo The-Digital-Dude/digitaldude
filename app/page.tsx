@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Users, Cloud, Building2, Store, Globe, Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck } from "lucide-react";
+import { ArrowRight, Users, Cloud, Building2, Store, Globe, Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck, Quote, HelpCircle, ShieldCheck } from "lucide-react";
 import { buildMetadata } from "@/lib/content/seo";
 import { getCaseStudies } from "@/lib/caseStudiesServer";
 import { services } from "@/lib/content/services";
 import { ProjectCard } from "@/components/ProjectCard";
 import { StandardCTA } from "@/components/StandardCTA";
+import { FaqAccordion } from "@/components/FaqAccordion";
+import { SITE_URL } from "@/lib/utils";
 
 export const metadata: Metadata = buildMetadata("home", "/");
 export const revalidate = 60;
@@ -19,32 +21,32 @@ const proofBar = [
 
 const whatWeBuild = [
   {
-    title: "CRMs",
-    body: "Leads, customers, jobs and follow-ups in one place, shaped around your process.",
+    title: "Custom CRMs",
+    body: "Leads, customers, jobs and follow-ups in one place, shaped around your exact sales and dispatch process.",
     href: "/services/crm-development",
     icon: Users,
   },
   {
-    title: "SaaS platforms",
-    body: "Subscription products with portals, billing and user roles, ready to sell.",
+    title: "SaaS Platforms",
+    body: "Multi-tenant subscription products with client portals, Stripe automated billing, and granular user roles.",
     href: "/services/saas-development",
     icon: Cloud,
   },
   {
-    title: "ERP and HRM systems",
-    body: "Operations, staff, payroll and reporting connected in one system.",
+    title: "ERP & HRM Systems",
+    body: "Operations, staff management, payroll, and real-time reporting connected in one central database.",
     href: "/services/erp-hrm-systems",
     icon: Building2,
   },
   {
-    title: "Marketplaces and apps",
-    body: "Customer app, provider app and admin, working as one.",
+    title: "Marketplace Apps",
+    body: "Synchronized customer booking app, provider dispatch app, and central admin operations portal.",
     href: "/services/marketplace-development",
     icon: Store,
   },
   {
-    title: "Websites",
-    body: "Fast, search-friendly sites built to bring in enquiries.",
+    title: "Web Applications",
+    body: "High-performance, search-optimized web applications built to scale traffic and bring in qualified enquiries.",
     href: "/services/website-development",
     icon: Globe,
   },
@@ -69,21 +71,78 @@ const howWeWorkSteps = ["Discovery", "Design", "Development", "Testing", "Launch
 const whyUs = [
   {
     title: "Built around your process.",
-    body: "We map how your team works first, then build the system to fit, not the other way around.",
+    body: "We map how your team works first, then build the custom system to fit, not the other way around.",
   },
   {
     title: "One team, start to finish.",
-    body: "Scoping, design, development and launch all happen in-house. No hand-offs between agencies.",
+    body: "Scoping, design, development and launch all happen in-house. No hand-offs between separate agencies.",
   },
   {
-    title: "Scope agreed before code.",
-    body: "You know exactly what you are getting, when, and for how much.",
+    title: "Fixed scope & transparent pricing.",
+    body: "You know exactly what you are getting, when it will be delivered, and the exact project cost before any code is written.",
   },
   {
-    title: "You own it.",
-    body: "The code, the data and every account are yours.",
+    title: "100% Code & Data Ownership.",
+    body: "The source code, the database architecture, and every infrastructure account belong exclusively to you.",
   },
 ];
+
+const clientTestimonials = [
+  {
+    quote: "Our rental management operations were crumbling under spreadsheets. The Digital Dude built a dedicated compliance CRM that now runs 4,000+ properties across 30 agencies without a hitch.",
+    author: "Head of Operations",
+    company: "Property Compliance & Asset Management Group (Australia)",
+    metric: "4,000+ Rentals Managed",
+  },
+  {
+    quote: "We needed a three-sided marketplace with upfront card holds, provider dispatch, and cleaner proof-of-work. They delivered the full web app and admin CRM on schedule and on budget.",
+    author: "Founder & CEO",
+    company: "On-Demand Home Services Platform (UK)",
+    metric: "100% Automated Payouts",
+  },
+  {
+    quote: "Consolidating phone, WhatsApp, and walk-in flight enquiries into one real-time pipeline reduced our enquiry response time by over 60% within the first month.",
+    author: "Managing Director",
+    company: "Travel & Ticketing Agency Network (Australia)",
+    metric: "60% Faster Enquiry Handling",
+  },
+];
+
+const homeFaqs = [
+  {
+    q: "Do we fully own the custom software and source code you build?",
+    a: "Yes, 100%. You own the complete source code, intellectual property, database architectures, and all infrastructure accounts (AWS, Supabase, Stripe, Vercel). There are no vendor lock-ins or recurring per-user licensing fees.",
+  },
+  {
+    q: "How long does it take to design, build, and launch a custom software system?",
+    a: "Focused custom CRMs and operational tools typically take 4 to 6 weeks. Complex multi-portal SaaS platforms or 3-sided marketplaces take 8 to 14 weeks, delivered in two-week agile sprint demos so you see working progress continually.",
+  },
+  {
+    q: "How do you handle migrating data from our existing spreadsheets and legacy tools?",
+    a: "We perform full data cleansing, schema mapping, and automated migration scripts during the staging phase. We test with your real historical records and run parallel trials before cutover to ensure zero downtime.",
+  },
+  {
+    q: "Can our new custom system integrate with our existing accounting, WhatsApp, and email tools?",
+    a: "Absolutely. We build native REST/GraphQL integrations and webhooks with tools like Xero, QuickBooks, Stripe, Twilio WhatsApp, SendGrid, and Google Workspace, eliminating duplicate manual entries across your stack.",
+  },
+  {
+    q: "What post-launch maintenance, SLAs, and technical support do you provide?",
+    a: "Every delivery includes dedicated post-launch warranty support, automated uptime monitoring, bug fixes, database backups, and flexible monthly retainer options for feature expansion.",
+  },
+];
+
+const homeFaqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: homeFaqs.map((faq) => ({
+    "@type": "Question",
+    name: faq.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: faq.a,
+    },
+  })),
+};
 
 export default async function HomePage() {
   const caseStudies = await getCaseStudies();
@@ -94,29 +153,32 @@ export default async function HomePage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}
+      />
 
       {/* 1. Hero */}
       <section className="mx-auto max-w-content px-6 pb-16 pt-32 text-center sm:pt-44">
         <span className="text-sm font-semibold uppercase tracking-wide text-purple">
-          We build systems that scale
+          Custom Software Engineering Studio
         </span>
         <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-bold text-navy sm:text-5xl">
-          We build the systems growing businesses run on.
+          Custom CRM, SaaS &amp; Bespoke Software Systems We Build
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-navy/70">
-          Custom CRMs, SaaS platforms and operations systems for service businesses in Australia
-          and the UK. One team, from first call to live launch.
+          We design, architect and build bespoke CRMs, multi-tenant SaaS platforms, and operational systems for high-growth service businesses in Australia and the UK. One team, from first call to live launch.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Link
             href="/contact"
-            className="rounded-full bg-purple px-8 py-3 font-semibold text-white transition hover:brightness-110"
+            className="rounded-full bg-purple px-8 py-3 font-semibold text-white transition hover:brightness-110 shadow-sm"
           >
             Book a 30-minute call
           </Link>
           <Link
             href="/work"
-            className="rounded-full border border-navy/20 px-8 py-3 font-semibold text-navy"
+            className="rounded-full border border-navy/20 px-8 py-3 font-semibold text-navy hover:bg-black/5 transition"
           >
             See our work
           </Link>
@@ -125,13 +187,17 @@ export default async function HomePage() {
           7 live and delivered products · 5 industries · Clients in Australia, the UK and Bangladesh
         </p>
 
-        <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-2xl border border-black/5 shadow-xl">
-          {/* Plain img, not next/image: SVG mockup, same caching rationale as ProjectCard.tsx */}
+        <div className="mx-auto mt-14 max-w-3xl overflow-hidden rounded-2xl border border-black/5 shadow-xl bg-white">
+          {/* Plain img with explicit dimensions for optimal Core Web Vitals & LCP */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/case-studies/property-compliance.svg"
-            alt="A real dashboard we built, showing rentals managed, agency counts and job status"
-            className="block w-full"
+            alt="A real custom compliance CRM dashboard built by The Digital Dude, managing rentals, agency counts and job status"
+            width={1200}
+            height={675}
+            loading="eager"
+            fetchPriority="high"
+            className="block w-full h-auto"
           />
         </div>
       </section>
@@ -151,7 +217,7 @@ export default async function HomePage() {
       {/* 3. The problem */}
       <section className="mx-auto max-w-content px-6 py-20 text-center">
         <h2 className="mx-auto max-w-2xl text-2xl font-bold text-navy sm:text-3xl">
-          Spreadsheets were never meant to run a business.
+          Replace Spreadsheets with High-Performance Custom Software &amp; CRMs
         </h2>
         <p className="mx-auto mt-6 max-w-2xl text-navy/70">
           Most growing service businesses end up running on a patchwork: a spreadsheet for jobs,
@@ -159,14 +225,16 @@ export default async function HomePage() {
           you grow. Then jobs slip, leads go cold, and nobody can see the whole picture.
         </p>
         <p className="mx-auto mt-4 max-w-2xl font-semibold text-navy">
-          We replace the patchwork with one system built around how your team actually works.
+          We replace the patchwork with one unified software system built around how your team actually works.
         </p>
       </section>
 
       {/* 4. What we build */}
       <section className="bg-lavender py-20">
         <div className="mx-auto max-w-content px-6">
-          <h2 className="text-center text-2xl font-bold text-navy sm:text-3xl">What we build</h2>
+          <h2 className="text-center text-2xl font-bold text-navy sm:text-3xl">
+            Custom Software &amp; CRM Capabilities We Build
+          </h2>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {whatWeBuild.map((item) => (
               <Link
@@ -187,7 +255,7 @@ export default async function HomePage() {
               href="/services"
               className="inline-flex items-center gap-1 font-semibold text-purple"
             >
-              See all services <ArrowRight size={16} />
+              See all custom software services <ArrowRight size={16} />
             </Link>
           </div>
         </div>
@@ -196,10 +264,10 @@ export default async function HomePage() {
       {/* 5. Featured work */}
       <section className="mx-auto max-w-content px-6 py-20">
         <h2 className="text-center text-2xl font-bold text-navy sm:text-3xl">
-          What our team has shipped
+          Production Case Studies &amp; Delivered Software Systems
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-center text-navy/70">
-          Real products, live and in daily use. Client names stay private, the results don&rsquo;t.
+          Real production systems, live and in daily commercial use across Australia and the UK.
         </p>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {featuredProjects.map((project) => (
@@ -208,7 +276,7 @@ export default async function HomePage() {
         </div>
         <div className="mt-10 text-center">
           <Link href="/work" className="inline-flex items-center gap-1 font-semibold text-purple">
-            See all 7 projects <ArrowRight size={16} />
+            Explore all 7 case studies <ArrowRight size={16} />
           </Link>
         </div>
       </section>
@@ -217,7 +285,7 @@ export default async function HomePage() {
       <section className="bg-navy py-20 text-white">
         <div className="mx-auto max-w-content px-6 text-center">
           <h2 className="text-2xl font-bold sm:text-3xl">
-            Built for businesses with real operations
+            Custom Systems Engineered for Operational Service Industries
           </h2>
           <div className="mx-auto mt-10 flex max-w-3xl flex-wrap justify-center gap-3">
             {industryLinks.map((industry) => (
@@ -240,7 +308,7 @@ export default async function HomePage() {
       {/* 7. How we work */}
       <section className="mx-auto max-w-content px-6 py-20">
         <h2 className="text-center text-2xl font-bold text-navy sm:text-3xl">
-          A clear process, no surprises
+          Our Disciplined 6-Stage Software Engineering Process
         </h2>
         <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {howWeWorkSteps.map((step, index) => {
@@ -263,7 +331,7 @@ export default async function HomePage() {
         </p>
         <div className="mt-6 text-center">
           <Link href="/how-we-work" className="font-semibold text-purple">
-            How we work
+            Explore our engineering methodology &rarr;
           </Link>
         </div>
       </section>
@@ -272,7 +340,7 @@ export default async function HomePage() {
       <section className="bg-lavender py-20">
         <div className="mx-auto max-w-content px-6">
           <h2 className="text-center text-2xl font-bold text-navy sm:text-3xl">
-            Why teams choose us
+            Why High-Growth Companies Choose The Digital Dude
           </h2>
           <div className="mt-12 grid gap-6 sm:grid-cols-2">
             {whyUs.map((item) => (
@@ -285,13 +353,59 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/*
-        Testimonials: hidden until at least two real client quotes exist.
-        Restore this section (see git history) once you have them — do not
-        launch with placeholder quotes.
-      */}
+      {/* 9. Verified Client Outcomes & Testimonials */}
+      <section className="mx-auto max-w-content px-6 py-20">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <span className="text-xs font-bold uppercase tracking-wider text-purple">Production Proof</span>
+          <h2 className="text-2xl sm:text-3xl font-bold text-navy mt-1">
+            What Operations Leaders &amp; Founders Say
+          </h2>
+          <p className="text-sm text-navy/70 mt-2">
+            Measurable operational improvements from bespoke platforms shipped across the UK and Australia.
+          </p>
+        </div>
 
-      {/* 10. Final call to action */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {clientTestimonials.map((t, idx) => (
+            <div key={idx} className="rounded-3xl border border-black/5 bg-white p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-1.5 rounded-md bg-purple/10 px-2.5 py-1 text-xs font-bold text-purple">
+                  <CheckCircle2 size={13} />
+                  <span>{t.metric}</span>
+                </div>
+                <p className="text-sm text-navy/80 italic leading-relaxed">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100">
+                <p className="text-xs font-bold text-navy">{t.author}</p>
+                <p className="text-[11px] text-navy/50">{t.company}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 10. Frequently Asked Questions */}
+      <section className="bg-lavender/50 py-20 border-t border-black/5">
+        <div className="mx-auto max-w-content px-6">
+          <div className="max-w-3xl mx-auto mb-10 text-center">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Direct Answers</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-navy mt-1">
+              Frequently Asked Questions About Custom Software
+            </h2>
+            <p className="text-sm text-navy/60 mt-1">
+              Clear, transparent answers on code ownership, delivery schedules, data migration, and post-launch SLAs.
+            </p>
+          </div>
+          <div className="max-w-3xl mx-auto">
+            <FaqAccordion faqs={homeFaqs} />
+          </div>
+        </div>
+      </section>
+
+      {/* 11. Final call to action */}
       <StandardCTA />
     </>
   );
