@@ -10,7 +10,6 @@ import {
   Target,
   BarChart3,
   CheckCircle2,
-  Sliders,
   Zap,
   Info,
   Layers,
@@ -130,29 +129,10 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
     y: number;
   } | null>(null);
 
-  // Commission Simulator State
   const bonusMin = Number(profile?.meeting_bonus_min) || 0;
   const bonusMax = Number(profile?.meeting_bonus_max) || bonusMin || 0;
   const commPctMin = Number(profile?.deal_commission_percent_min) || 0;
   const commPctMax = Number(profile?.deal_commission_percent_max) || commPctMin || 0;
-
-  const [simCalls, setSimCalls] = useState<number>(10);
-  const [simDealVolume, setSimDealVolume] = useState<number>(25000);
-  const [activePreset, setActivePreset] = useState<"conservative" | "target" | "top" | "custom">("target");
-
-  const handleApplyPreset = (type: "conservative" | "target" | "top") => {
-    setActivePreset(type);
-    if (type === "conservative") {
-      setSimCalls(4);
-      setSimDealVolume(7500);
-    } else if (type === "target") {
-      setSimCalls(12);
-      setSimDealVolume(25000);
-    } else if (type === "top") {
-      setSimCalls(25);
-      setSimDealVolume(65000);
-    }
-  };
 
   // 1. Time Horizon Filtered Calculations
   const filteredData = useMemo(() => {
@@ -402,14 +382,6 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
       overallConv,
     };
   }, [filteredData]);
-
-  // 6. Commission Simulator Real-Time Calculation
-  const simBonusMin = simCalls * bonusMin;
-  const simBonusMax = simCalls * bonusMax;
-  const simCommMin = simDealVolume * (commPctMin / 100);
-  const simCommMax = simDealVolume * (commPctMax / 100);
-  const simTotalMin = simBonusMin + simCommMin;
-  const simTotalMax = simBonusMax + simCommMax;
 
   return (
     <div className="space-y-6">
@@ -768,148 +740,6 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
             <p>
               Maintaining an outreach-to-call conversion rate above <strong>5%</strong> significantly accelerates quota progression.
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Live Commission & Payout Simulator */}
-      <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Sliders size={18} className="text-purple-400" />
-              <h3 className="text-base font-bold text-white">Earnings &amp; Commission Simulator</h3>
-            </div>
-            <p className="text-xs text-slate-400">
-              Interactive sandbox seeded directly with your contract commission rates
-            </p>
-          </div>
-
-          {/* Presets */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 mr-1 hidden sm:inline">Scenarios:</span>
-            <button
-              onClick={() => handleApplyPreset("conservative")}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activePreset === "conservative"
-                  ? "bg-slate-700 text-white border border-slate-500"
-                  : "bg-white/[0.04] text-slate-400 hover:text-white"
-              }`}
-            >
-              Conservative
-            </button>
-            <button
-              onClick={() => handleApplyPreset("target")}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activePreset === "target"
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30 font-bold"
-                  : "bg-white/[0.04] text-slate-400 hover:text-white"
-              }`}
-            >
-              Target Quota
-            </button>
-            <button
-              onClick={() => handleApplyPreset("top")}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activePreset === "top"
-                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 font-bold"
-                  : "bg-white/[0.04] text-slate-400 hover:text-white"
-              }`}
-            >
-              Top Performer 🔥
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
-          {/* Sliders (2 cols) */}
-          <div className="lg:col-span-2 space-y-5">
-            {/* Slider 1: Discovery Calls */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-300">
-                  Projected Discovery Calls: <strong className="text-purple-400 font-mono text-sm">{simCalls}</strong>
-                </span>
-                <span className="text-slate-500 font-mono">
-                  {currencySymbol}{bonusMin}–{bonusMax} bonus/call
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                step="1"
-                value={simCalls}
-                onChange={(e) => {
-                  setSimCalls(Number(e.target.value));
-                  setActivePreset("custom");
-                }}
-                className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-purple-500"
-              />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                <span>0 calls</span>
-                <span>25 calls</span>
-                <span>50 calls</span>
-              </div>
-            </div>
-
-            {/* Slider 2: Deal Volume */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-300">
-                  Projected Deal Volume: <strong className="text-emerald-400 font-mono text-sm">{currencySymbol}{simDealVolume.toLocaleString()}</strong>
-                </span>
-                <span className="text-slate-500 font-mono">
-                  {commPctMin}%–{commPctMax}% commission
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100000"
-                step="2500"
-                value={simDealVolume}
-                onChange={(e) => {
-                  setSimDealVolume(Number(e.target.value));
-                  setActivePreset("custom");
-                }}
-                className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-              />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                <span>{currencySymbol}0</span>
-                <span>{currencySymbol}50,000</span>
-                <span>{currencySymbol}100,000+</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Projection Calculation Result Card (1 col) */}
-          <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-900/30 via-slate-900/80 to-slate-900/90 p-5 space-y-4 shadow-xl">
-            <div className="text-xs font-bold uppercase tracking-wider text-purple-300">
-              Projected Payout Range
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight">
-                {currencySymbol}{Math.round(simTotalMin).toLocaleString()} – {currencySymbol}{Math.round(simTotalMax).toLocaleString()}
-              </div>
-              <p className="text-[11px] text-slate-400">Total estimated monthly earnings</p>
-            </div>
-
-            <div className="space-y-2 pt-3 border-t border-white/[0.08] text-xs">
-              <div className="flex items-center justify-between text-slate-300">
-                <span>Meeting Bonuses:</span>
-                <span className="font-mono text-white font-bold">
-                  {currencySymbol}{simBonusMin.toLocaleString()} – {currencySymbol}{simBonusMax.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-slate-300">
-                <span>Deal Commissions:</span>
-                <span className="font-mono text-emerald-400 font-bold">
-                  {currencySymbol}{Math.round(simCommMin).toLocaleString()} – {currencySymbol}{Math.round(simCommMax).toLocaleString()}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
