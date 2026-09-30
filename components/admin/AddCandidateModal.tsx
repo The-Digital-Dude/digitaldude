@@ -31,12 +31,17 @@ interface AddCandidateModalProps {
   onCreated: (app: Application) => void;
 }
 
-const STAGES = ["new", "reviewing", "interview", "offered", "hired", "rejected"];
+const STAGES = ["new", "reviewing", "shortlisted", "interview", "offered", "hired", "rejected"];
 
 function getTemplateDefaults(status: string, name: string, roleTitle: string) {
   const first = name.trim().split(/\s+/)[0] || "there";
   const role = roleTitle || "the role";
   switch (status) {
+    case "shortlisted":
+      return {
+        subject: `Shortlisted: Paid Practical Assessment — ${role} at The Digital Dude`,
+        message: `Hi ${first},\n\nCongratulations! We were very impressed with your application for the ${role} position at The Digital Dude, and we have shortlisted you for our paid practical assessment.\n\n🎯 Assessment Task Instructions:\n1. Target Prospects: Identify 10 high-fit decision-makers in AU/UK (5 to 200 headcount) in the target niche.\n2. Verification: Verify LinkedIn profile links and company contact details.\n3. Specific Observations: Add 1-2 sharp observations for each prospect.\n4. Personalized Messages: Draft concise outreach copy under 120 words with zero AI tone.\n5. Google Sheet & bKash: Submit via a clean Google Sheet with your bKash personal number included.\n\nEvery complete, on-time task will receive assessment compensation via bKash. Submissions scoring 18/25+ will be invited to an interview.`,
+      };
     case "interview":
       return {
         subject: `Interview Invitation — ${role} at The Digital Dude`,

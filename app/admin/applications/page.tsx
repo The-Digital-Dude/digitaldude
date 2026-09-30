@@ -1809,8 +1809,9 @@ export default function AdminApplicationsPage() {
       {/* Add Candidate Modal */}
       {isAddCandidateOpen && (
         <AddCandidateModal
+          isOpen={isAddCandidateOpen}
           onClose={() => setIsAddCandidateOpen(false)}
-          onAdded={(newApp) => {
+          onCreated={(newApp: Application) => {
             setApplications((prev) => [newApp, ...prev]);
             setSelected(newApp);
             setIsAddCandidateOpen(false);
@@ -1821,15 +1822,15 @@ export default function AdminApplicationsPage() {
       {/* Hire & Convert to Employee Modal */}
       {candidateToHire && (
         <HireCandidateModal
-          application={candidateToHire}
+          application={{
+            id: candidateToHire.id,
+            applicant_name: candidateToHire.applicant_name,
+            applicant_email: candidateToHire.applicant_email,
+            job_title: candidateToHire.job_postings?.title,
+          }}
           onClose={() => setCandidateToHire(null)}
-          onSuccess={(emp, updatedApp) => {
-            setApplications((prev) =>
-              prev.map((a) => (a.id === updatedApp.id ? updatedApp : a))
-            );
-            if (selected?.id === updatedApp.id) {
-              setSelected(updatedApp);
-            }
+          onSuccess={() => {
+            fetchApplications();
             setCandidateToHire(null);
           }}
         />
