@@ -174,13 +174,13 @@ export default async function HomePage() {
             href="/contact"
             className="rounded-full bg-purple px-8 py-3 font-semibold text-white transition hover:brightness-110 shadow-sm"
           >
-            Book a 30-minute call
+            Schedule Discovery Call
           </Link>
           <Link
             href="/work"
             className="rounded-full border border-navy/20 px-8 py-3 font-semibold text-navy hover:bg-black/5 transition"
           >
-            See our work
+            View Case Studies
           </Link>
         </div>
         <p className="mt-8 text-sm text-navy/60">
@@ -253,9 +253,9 @@ export default async function HomePage() {
           <div className="mt-10 text-center">
             <Link
               href="/services"
-              className="inline-flex items-center gap-1 font-semibold text-purple"
+              className="inline-flex items-center gap-1 font-semibold text-purple hover:underline"
             >
-              See all custom software services <ArrowRight size={16} />
+              Explore All Services <ArrowRight size={16} />
             </Link>
           </div>
         </div>
@@ -275,8 +275,8 @@ export default async function HomePage() {
           ))}
         </div>
         <div className="mt-10 text-center">
-          <Link href="/work" className="inline-flex items-center gap-1 font-semibold text-purple">
-            Explore all 7 case studies <ArrowRight size={16} />
+          <Link href="/work" className="inline-flex items-center gap-1 font-semibold text-purple hover:underline">
+            Browse All Case Studies <ArrowRight size={16} />
           </Link>
         </div>
       </section>
@@ -330,8 +330,8 @@ export default async function HomePage() {
           weeks.
         </p>
         <div className="mt-6 text-center">
-          <Link href="/how-we-work" className="font-semibold text-purple">
-            Explore our engineering methodology &rarr;
+          <Link href="/how-we-work" className="font-semibold text-purple hover:underline">
+            Our 6-Stage Process &rarr;
           </Link>
         </div>
       </section>

@@ -13,9 +13,9 @@ export function StandardCTA() {
         </p>
         <Link
           href="/contact"
-          className="mt-8 inline-block rounded-full bg-purple px-8 py-3 font-semibold text-white transition hover:brightness-110"
+          className="mt-8 inline-block rounded-full bg-purple px-8 py-3 font-semibold text-white transition hover:brightness-110 shadow-sm"
         >
-          Book a 30-minute call
+          Book a Discovery Consultation
         </Link>
       </div>
     </section>
