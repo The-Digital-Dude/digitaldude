@@ -7,12 +7,18 @@ import {
   addInMemoryProposal,
 } from "@/lib/content/proposals";
 import { log } from "@/lib/logger";
+import { parsePageParams, isRangeNotSatisfiableError } from "@/lib/adminPagination";
 
 export async function GET(request: Request) {
   const isAuth = await isAdminAuthenticated(request);
   if (!isAuth) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search")?.trim();
+  const status = searchParams.get("status")?.trim();
+  const { page, pageSize, from, to } = parsePageParams(searchParams);
 
   // Return real Supabase data directly when configured — never merge it into
   // the shared in-memory store, which is permanently seeded with a fake demo
@@ -22,13 +28,29 @@ export async function GET(request: Request) {
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("proposals")
-        .select("*")
+        .select("*", { count: "exact" })
         .order("created_at", { ascending: false });
 
+      if (status && status !== "all") query = query.eq("status", status);
+      if (search) {
+        query = query.or(
+          `project_title.ilike.%${search}%,company_name.ilike.%${search}%,client_name.ilike.%${search}%,slug.ilike.%${search}%`
+        );
+      }
+
+      query = query.range(from, to);
+      let { data, error, count } = await query;
+
+      if (error && isRangeNotSatisfiableError(error)) {
+        ({ count } = await query.range(0, 0));
+        data = [];
+        error = null;
+      }
+
       if (!error) {
-        return NextResponse.json({ ok: true, proposals: data || [] });
+        return NextResponse.json({ ok: true, proposals: data || [], totalCount: count || 0, page, pageSize });
       }
       log("error", { message: "Failed to fetch proposals in admin", error });
     } catch (err) {
@@ -38,9 +60,13 @@ export async function GET(request: Request) {
 
   // Only fall back to the demo-seeded in-memory store when Supabase is
   // genuinely unconfigured/unreachable (local/demo use).
+  const inMemory = getInMemoryProposals();
   return NextResponse.json({
     ok: true,
-    proposals: getInMemoryProposals(),
+    proposals: inMemory,
+    totalCount: inMemory.length,
+    page: 1,
+    pageSize: inMemory.length || 25,
   });
 }
 

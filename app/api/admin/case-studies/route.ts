@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
 import { caseStudies as fallbackCaseStudies } from "@/lib/content/caseStudies";
+import { parsePageParams, isRangeNotSatisfiableError } from "@/lib/adminPagination";
 
 function slugify(text: string): string {
   return text
@@ -24,16 +25,34 @@ export async function GET(request: Request) {
   // deleted) must show an empty admin list, not silently re-present the
   // hardcoded content as if it were still in the database.
   const supabase = getSupabaseServerClient();
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search")?.trim();
+  const industry = searchParams.get("industry")?.trim();
+  const { page, pageSize, from, to } = parsePageParams(searchParams);
 
   if (supabase) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("case_studies")
-        .select("*")
+        .select("*", { count: "exact" })
         .order("created_at", { ascending: false });
 
+      if (industry && industry !== "all") query = query.eq("industry", industry);
+      if (search) {
+        query = query.or(`title.ilike.%${search}%,slug.ilike.%${search}%,industry.ilike.%${search}%`);
+      }
+
+      query = query.range(from, to);
+      let { data, error, count } = await query;
+
+      if (error && isRangeNotSatisfiableError(error)) {
+        ({ count } = await query.range(0, 0));
+        data = [];
+        error = null;
+      }
+
       if (!error) {
-        return NextResponse.json({ ok: true, caseStudies: data || [] });
+        return NextResponse.json({ ok: true, caseStudies: data || [], totalCount: count || 0, page, pageSize });
       }
       log("warn", { message: "Supabase case studies query error", error });
     } catch (err) {
@@ -64,7 +83,13 @@ export async function GET(request: Request) {
     created_at: new Date().toISOString(),
   }));
 
-  return NextResponse.json({ ok: true, caseStudies: formattedFallbacks });
+  return NextResponse.json({
+    ok: true,
+    caseStudies: formattedFallbacks,
+    totalCount: formattedFallbacks.length,
+    page: 1,
+    pageSize: formattedFallbacks.length || 25,
+  });
 }
 
 export async function POST(request: Request) {

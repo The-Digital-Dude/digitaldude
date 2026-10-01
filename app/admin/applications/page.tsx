@@ -32,6 +32,9 @@ import {
 } from "lucide-react";
 import { AddCandidateModal } from "@/components/admin/AddCandidateModal";
 import { HireCandidateModal } from "@/components/admin/HireCandidateModal";
+import { ImportCandidatesModal } from "@/components/admin/ImportCandidatesModal";
+import { Pagination } from "@/components/admin/Pagination";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 export interface Scorecard {
   right_prospects?: number; // 0-5
@@ -68,7 +71,21 @@ export interface Application {
   bkash_payment_amount?: number;
   bkash_transaction_id?: string;
   created_at: string;
+  source?: string;
+  source_metadata?: Record<string, string>;
+  screening_answers?: Record<string, string>;
   job_postings?: { title: string; slug: string };
+}
+
+function sourceBadge(source?: string): { label: string; className: string } | null {
+  switch (source) {
+    case "import":
+      return { label: "Imported Lead", className: "bg-sky-50 text-sky-700 border-sky-200" };
+    case "manual":
+      return { label: "Manually Added", className: "bg-slate-100 text-navy/70 border-slate-200" };
+    default:
+      return null;
+  }
 }
 
 const STATUS_OPTIONS = [
@@ -251,11 +268,16 @@ export default function AdminApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
   const [selected, setSelected] = useState<Application | null>(null);
   const [candidateToHire, setCandidateToHire] = useState<Application | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [isAddCandidateOpen, setIsAddCandidateOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Status Change & Email Modal State (for list view)
@@ -309,7 +331,7 @@ export default function AdminApplicationsPage() {
 
   // Lock background scroll when any modal is active
   useEffect(() => {
-    if (selected || pendingStatusModal || isAddCandidateOpen || candidateToHire) {
+    if (selected || pendingStatusModal || isAddCandidateOpen || candidateToHire || isImportOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -317,7 +339,7 @@ export default function AdminApplicationsPage() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [selected, pendingStatusModal, isAddCandidateOpen, candidateToHire]);
+  }, [selected, pendingStatusModal, isAddCandidateOpen, candidateToHire, isImportOpen]);
 
   // Sync draft state whenever a candidate is selected
   useEffect(() => {
@@ -345,13 +367,25 @@ export default function AdminApplicationsPage() {
     }
   }, [selected]);
 
+  function buildApplicationsUrl(overrides?: { page?: number; pageSize?: number; forExportAll?: boolean }) {
+    const params = new URLSearchParams();
+    if (!overrides?.forExportAll) {
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    }
+    params.set("page", String(overrides?.page ?? page));
+    params.set("pageSize", String(overrides?.pageSize ?? pageSize));
+    return `/api/admin/applications?${params.toString()}`;
+  }
+
   async function fetchApplications() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/applications");
+      const res = await fetch(buildApplicationsUrl());
       const data = await res.json();
       if (data.ok) {
         setApplications(data.applications || []);
+        setTotalCount(data.totalCount ?? (data.applications || []).length);
       }
     } catch {
       // ignore
@@ -360,9 +394,34 @@ export default function AdminApplicationsPage() {
     }
   }
 
+  // Loops through every page of the current (or unfiltered, for "export all")
+  // result set — exports need the full matching set, not just the page
+  // currently rendered on screen.
+  async function fetchAllApplications(opts?: { forExportAll?: boolean }): Promise<Application[]> {
+    const all: Application[] = [];
+    let currentPage = 1;
+    const exportPageSize = 100;
+    while (true) {
+      const res = await fetch(buildApplicationsUrl({ page: currentPage, pageSize: exportPageSize, forExportAll: opts?.forExportAll }));
+      const data = await res.json();
+      if (!data.ok) break;
+      const batch: Application[] = data.applications || [];
+      all.push(...batch);
+      if (batch.length < exportPageSize) break;
+      currentPage++;
+    }
+    return all;
+  }
+
   useEffect(() => {
     fetchApplications();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, statusFilter, debouncedSearch]);
+
+  // Reset to page 1 whenever a filter changes (not when the page itself changes).
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   function handleOpenStatusChange(app: Application, targetStatus: string) {
     const defaultDeadline = formatDeadlineDefault();
@@ -618,18 +677,12 @@ export default function AdminApplicationsPage() {
     }
   }
 
-  const filtered = applications.filter((a) => {
-    const matchesSearch =
-      a.applicant_name.toLowerCase().includes(search.toLowerCase()) ||
-      a.applicant_email.toLowerCase().includes(search.toLowerCase()) ||
-      (a.job_postings?.title || "").toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || a.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const hasActiveFilters = statusFilter !== "all" || debouncedSearch.trim() !== "";
 
-  // Export handlers
-  function exportCandidatesCsv(exportAll = false) {
-    const targetList = exportAll ? applications : filtered;
+  // Export handlers — pull every matching row across all pages, not just the
+  // page currently rendered on screen.
+  async function exportCandidatesCsv(exportAll = false) {
+    const targetList = await fetchAllApplications({ forExportAll: exportAll });
     if (targetList.length === 0) {
       alert("No candidate applications to export.");
       return;
@@ -724,10 +777,9 @@ export default function AdminApplicationsPage() {
     setShowExportMenu(false);
   }
 
-  function exportBkashBatchCsv(exportAll = false) {
-    const targetList = (exportAll ? applications : filtered).filter(
-      (a) => a.bkash_number || a.status === "shortlisted"
-    );
+  async function exportBkashBatchCsv(exportAll = false) {
+    const fetched = await fetchAllApplications({ forExportAll: exportAll });
+    const targetList = fetched.filter((a) => a.bkash_number || a.status === "shortlisted");
 
     if (targetList.length === 0) {
       alert("No candidates found with bKash numbers or shortlisted status.");
@@ -778,8 +830,8 @@ export default function AdminApplicationsPage() {
     setShowExportMenu(false);
   }
 
-  function exportJson(exportAll = false) {
-    const targetList = exportAll ? applications : filtered;
+  async function exportJson(exportAll = false) {
+    const targetList = await fetchAllApplications({ forExportAll: exportAll });
     const jsonStr = JSON.stringify(targetList, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -820,6 +872,13 @@ export default function AdminApplicationsPage() {
               <Plus size={14} /> Add Candidate
             </button>
 
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-navy/80 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
+            >
+              <FileSpreadsheet size={14} className="text-sky-600" /> Import Leads
+            </button>
+
             {/* Export Dropdown */}
             <div className="relative">
               <button
@@ -827,14 +886,14 @@ export default function AdminApplicationsPage() {
                 onClick={() => setShowExportMenu((prev) => !prev)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-navy/80 shadow-2xs hover:bg-slate-50 transition cursor-pointer"
               >
-                <Download size={14} className="text-navy/60" /> Export ({filtered.length})
+                <Download size={14} className="text-navy/60" /> Export ({totalCount})
                 <ChevronDown size={13} className="text-navy/40" />
               </button>
 
               {showExportMenu && (
                 <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl z-30 animate-in fade-in zoom-in-95 duration-100">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-navy/40 border-b border-slate-100">
-                    Export Filtered ({filtered.length})
+                    {hasActiveFilters ? `Export Filtered (${totalCount})` : `Export All (${totalCount})`}
                   </div>
                   <button
                     type="button"
@@ -861,10 +920,10 @@ export default function AdminApplicationsPage() {
                     Export as JSON
                   </button>
 
-                  {filtered.length !== applications.length && (
+                  {hasActiveFilters && (
                     <>
                       <div className="mt-1 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-navy/40 border-t border-slate-100">
-                        Export All Candidates ({applications.length})
+                        Export All Candidates (ignoring filters)
                       </div>
                       <button
                         type="button"
@@ -912,11 +971,10 @@ export default function AdminApplicationsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-navy outline-none focus:border-purple"
             >
-              <option value="all">All Stages ({applications.length})</option>
+              <option value="all">All Stages</option>
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
-                  {s.charAt(0).toUpperCase() + s.slice(1)} (
-                  {applications.filter((a) => a.status === s).length})
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
                 </option>
               ))}
             </select>
@@ -927,7 +985,7 @@ export default function AdminApplicationsPage() {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
           {loading ? (
             <div className="p-12 text-center text-xs text-navy/60">Loading applications…</div>
-          ) : filtered.length === 0 ? (
+          ) : applications.length === 0 ? (
             <div className="p-12 text-center text-xs text-navy/60">No applications found.</div>
           ) : (
             <div className="overflow-x-auto">
@@ -943,7 +1001,7 @@ export default function AdminApplicationsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {filtered.map((app) => {
+                  {applications.map((app) => {
                     const totalScore = calculateTotalScore(app.scorecard);
                     const isDQ = app.scorecard?.disqualified;
                     const isPassed = totalScore >= 18 && !isDQ;
@@ -1058,6 +1116,16 @@ export default function AdminApplicationsPage() {
               </table>
             </div>
           )}
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
 
@@ -1076,6 +1144,13 @@ export default function AdminApplicationsPage() {
                   >
                     {selected.status}
                   </span>
+                  {sourceBadge(selected.source) && (
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${sourceBadge(selected.source)!.className}`}
+                    >
+                      {sourceBadge(selected.source)!.label}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-navy/70 mt-0.5">
                   {selected.applicant_email}
@@ -1326,6 +1401,23 @@ export default function AdminApplicationsPage() {
                 {selected.written_test_response || "(No written response provided)"}
               </p>
             </div>
+
+            {/* Imported Lead Screening Answers */}
+            {selected.screening_answers && Object.keys(selected.screening_answers).length > 0 && (
+              <div className="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 space-y-2.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-sky-900">
+                  Lead Form Screening Answers
+                </h3>
+                <div className="space-y-2">
+                  {Object.entries(selected.screening_answers).map(([question, answer]) => (
+                    <div key={question} className="bg-white p-3 rounded-xl border border-sky-200/70">
+                      <p className="text-[11px] font-bold text-navy/70">{question}</p>
+                      <p className="text-xs text-navy mt-0.5">{answer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 25-Point Assessment Scorecard Rubric */}
             <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 space-y-5 shadow-2xs">
@@ -1816,6 +1908,15 @@ export default function AdminApplicationsPage() {
             setSelected(newApp);
             setIsAddCandidateOpen(false);
           }}
+        />
+      )}
+
+      {/* Import Candidates Modal */}
+      {isImportOpen && (
+        <ImportCandidatesModal
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          onImported={fetchApplications}
         />
       )}
 

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Plus, Edit, Trash2, ExternalLink, RefreshCw, Search } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 interface JobPosting {
   id: string;
@@ -19,14 +21,27 @@ export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   async function fetchJobs() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/jobs");
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+
+      const res = await fetch(`/api/admin/jobs?${params.toString()}`);
       const data = await res.json();
-      if (data.ok) setJobs(data.jobs || []);
+      if (data.ok) {
+        setJobs(data.jobs || []);
+        setTotalCount(data.totalCount ?? (data.jobs || []).length);
+      }
     } catch {
       // ignore
     } finally {
@@ -36,7 +51,12 @@ export default function AdminJobsPage() {
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, statusFilter, debouncedSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete job posting "${title}"? Any applications against it will also be removed.`)) return;
@@ -49,12 +69,6 @@ export default function AdminJobsPage() {
       alert("An error occurred while deleting.");
     }
   }
-
-  const filtered = jobs.filter((j) => {
-    const matchesSearch = j.title.toLowerCase().includes(search.toLowerCase()) || j.slug.includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || j.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
 
   return (
     <AdminLayout>
@@ -109,7 +123,7 @@ export default function AdminJobsPage() {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
           {loading ? (
             <div className="p-12 text-center text-xs text-navy/60">Loading job postings…</div>
-          ) : filtered.length === 0 ? (
+          ) : jobs.length === 0 ? (
             <div className="p-12 text-center text-xs text-navy/60">
               No job postings found. Click &ldquo;New Job Posting&rdquo; to create one.
             </div>
@@ -125,7 +139,7 @@ export default function AdminJobsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {filtered.map((job) => (
+                  {jobs.map((job) => (
                     <tr key={job.id} className="hover:bg-slate-50/50 transition">
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-navy">{job.title}</div>
@@ -181,6 +195,16 @@ export default function AdminJobsPage() {
               </table>
             </div>
           )}
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
     </AdminLayout>

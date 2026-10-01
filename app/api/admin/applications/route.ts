@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { createCandidateInterviewMeeting } from "@/lib/googleCalendar";
 import { log } from "@/lib/logger";
+import { parsePageParams, isRangeNotSatisfiableError } from "@/lib/adminPagination";
 
 const BUCKET_NAME = "candidate-documents";
 const ALLOWED_DOC_TYPES = [
@@ -63,24 +64,38 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const jobPostingId = searchParams.get("job_posting_id");
   const status = searchParams.get("status");
+  const search = searchParams.get("search")?.trim();
+  const { page, pageSize, from, to } = parsePageParams(searchParams);
 
   try {
     let query = supabase
       .from("job_applications")
-      .select("*, job_postings(title, slug)")
+      .select("*, job_postings(title, slug)", { count: "exact" })
       .order("created_at", { ascending: false });
 
     if (jobPostingId) query = query.eq("job_posting_id", jobPostingId);
     if (status && status !== "all") query = query.eq("status", status);
+    if (search) {
+      query = query.or(`applicant_name.ilike.%${search}%,applicant_email.ilike.%${search}%`);
+    }
 
-    const { data, error } = await query;
+    query = query.range(from, to);
+    let { data, error, count } = await query;
+
+    if (error && isRangeNotSatisfiableError(error)) {
+      // The requested page is beyond the last matching row (e.g. a filter
+      // just narrowed the result set) — report an empty page, not a failure.
+      ({ count } = await query.range(0, 0));
+      data = [];
+      error = null;
+    }
 
     if (error) {
       log("error", { message: "Failed to fetch job applications", error });
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, applications: data || [] });
+    return NextResponse.json({ ok: true, applications: data || [], totalCount: count || 0, page, pageSize });
   } catch (error) {
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }

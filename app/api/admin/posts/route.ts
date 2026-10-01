@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
+import { parsePageParams, isRangeNotSatisfiableError } from "@/lib/adminPagination";
 
 function calculateReadingTime(content: string): number {
   const wordsPerMinute = 200;
@@ -29,18 +30,35 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Database not connected" }, { status: 503 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search")?.trim();
+  const { page, pageSize, from, to } = parsePageParams(searchParams);
+
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from("posts")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("published_at", { ascending: false });
+
+    if (search) {
+      query = query.ilike("title", `%${search}%`);
+    }
+
+    query = query.range(from, to);
+    let { data, error, count } = await query;
+
+    if (error && isRangeNotSatisfiableError(error)) {
+      ({ count } = await query.range(0, 0));
+      data = [];
+      error = null;
+    }
 
     if (error) {
       log("error", { message: "Failed to fetch posts in admin", error });
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, posts: data || [] });
+    return NextResponse.json({ ok: true, posts: data || [], totalCount: count || 0, page, pageSize });
   } catch (error) {
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }

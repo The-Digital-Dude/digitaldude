@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { sendClientInviteEmail } from "@/lib/clientEmails";
 import { log } from "@/lib/logger";
+import { parsePageParams, isRangeNotSatisfiableError } from "@/lib/adminPagination";
 
 export const dynamic = "force-dynamic";
 
@@ -17,17 +18,34 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Database not connected" }, { status: 503 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search")?.trim();
+  const { page, pageSize, from, to } = parsePageParams(searchParams);
+
   try {
-    const { data: projects, error } = await supabase
+    let query = supabase
       .from("client_projects")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false });
 
-    if (error) {
-      return NextResponse.json({ ok: true, projects: [] });
+    if (search) {
+      query = query.or(`project_name.ilike.%${search}%,company_name.ilike.%${search}%,client_email.ilike.%${search}%`);
     }
 
-    return NextResponse.json({ ok: true, projects: projects || [] });
+    query = query.range(from, to);
+    let { data: projects, error, count } = await query;
+
+    if (error && isRangeNotSatisfiableError(error)) {
+      ({ count } = await query.range(0, 0));
+      projects = [];
+      error = null;
+    }
+
+    if (error) {
+      return NextResponse.json({ ok: true, projects: [], totalCount: 0, page, pageSize });
+    }
+
+    return NextResponse.json({ ok: true, projects: projects || [], totalCount: count || 0, page, pageSize });
   } catch (error) {
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }

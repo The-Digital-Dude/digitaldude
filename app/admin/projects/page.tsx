@@ -26,6 +26,8 @@ import {
   Mail,
   Building,
 } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 interface Milestone {
   id: string;
@@ -76,6 +78,10 @@ export default function AdminProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
@@ -116,15 +122,26 @@ export default function AdminProjectsPage() {
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, debouncedSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   async function fetchProjects() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/projects");
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+
+      const res = await fetch(`/api/admin/projects?${params.toString()}`);
       const data = await res.json();
       if (data.ok) {
         setProjects(data.projects || []);
+        setTotalCount(data.totalCount ?? (data.projects || []).length);
       }
     } catch {
       // ignore
@@ -309,13 +326,6 @@ export default function AdminProjectsPage() {
     }
   }
 
-  const filteredProjects = projects.filter(
-    (p) =>
-      p.project_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.client_email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const healthColors: Record<string, string> = {
     on_track: "bg-emerald-100 text-emerald-800 border-emerald-300",
     at_risk: "bg-amber-100 text-amber-800 border-amber-300",
@@ -358,7 +368,7 @@ export default function AdminProjectsPage() {
         {/* Projects Grid */}
         {loading ? (
           <div className="py-12 text-center text-sm text-slate-500">Loading workspaces...</div>
-        ) : filteredProjects.length === 0 ? (
+        ) : projects.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
             <FolderKanban className="mx-auto h-12 w-12 text-slate-300" />
             <h3 className="mt-3 text-base font-bold text-navy">No Client Projects Yet</h3>
@@ -374,7 +384,7 @@ export default function AdminProjectsPage() {
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredProjects.map((p) => (
+            {projects.map((p) => (
               <div
                 key={p.id}
                 className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-purple/40 hover:shadow-md"
@@ -429,6 +439,16 @@ export default function AdminProjectsPage() {
             ))}
           </div>
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* CREATE PROJECT MODAL */}

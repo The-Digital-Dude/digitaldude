@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
 import { sendOnboardingWelcomeEmail } from "@/lib/recruitingEmails";
+import { parsePageParams, isRangeNotSatisfiableError } from "@/lib/adminPagination";
 
 const DEFAULT_ONBOARDING_CHECKLIST = [
   { task: "Contract & Commission Agreement signed", done: false, done_at: null },
@@ -34,18 +35,37 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
+  const search = searchParams.get("search")?.trim();
+  // Several other admin UIs (bookings/CRM rep dropdowns, hire modal) fetch
+  // this endpoint with no page param and expect every employee back —
+  // pagination only kicks in when the admin employees list page asks for it.
+  const isPaginated = searchParams.has("page") || searchParams.has("pageSize");
 
   try {
-    let query = supabase.from("employees").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("employees").select("*", { count: "exact" }).order("created_at", { ascending: false });
     if (status && status !== "all") query = query.eq("status", status);
+    if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
 
-    const { data, error } = await query;
+    if (isPaginated) {
+      const { from, to } = parsePageParams(searchParams);
+      query = query.range(from, to);
+    }
+
+    let { data, error, count } = await query;
+
+    if (error && isRangeNotSatisfiableError(error)) {
+      ({ count } = await query.range(0, 0));
+      data = [];
+      error = null;
+    }
+
     if (error) {
       log("error", { message: "Failed to fetch employees", error });
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, employees: data || [] });
+    const { page, pageSize } = parsePageParams(searchParams);
+    return NextResponse.json({ ok: true, employees: data || [], totalCount: count ?? (data || []).length, page, pageSize });
   } catch (error) {
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }

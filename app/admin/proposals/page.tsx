@@ -21,22 +21,35 @@ import {
 } from "lucide-react";
 import { Proposal } from "@/lib/content/proposals";
 import { EmailComposerModal, EmailComposerRecipient } from "@/components/admin/EmailComposerModal";
+import { Pagination } from "@/components/admin/Pagination";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 export default function AdminProposalsPage() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [emailRecipient, setEmailRecipient] = useState<EmailComposerRecipient | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   async function fetchProposals() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/proposals");
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+
+      const res = await fetch(`/api/admin/proposals?${params.toString()}`);
       const data = await res.json();
       if (data.ok) {
         setProposals(data.proposals || []);
+        setTotalCount(data.totalCount ?? (data.proposals || []).length);
       }
     } catch {
       // ignore
@@ -47,7 +60,12 @@ export default function AdminProposalsPage() {
 
   useEffect(() => {
     fetchProposals();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, statusFilter, debouncedSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Are you sure you want to delete proposal "${title}"?`)) return;
@@ -71,18 +89,6 @@ export default function AdminProposalsPage() {
     setCopiedId(slug);
     setTimeout(() => setCopiedId(null), 2500);
   };
-
-  const filtered = proposals.filter((p) => {
-    const matchesSearch =
-      p.project_title?.toLowerCase().includes(search.toLowerCase()) ||
-      p.company_name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.client_name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.slug?.toLowerCase().includes(search.toLowerCase());
-
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
 
   return (
     <AdminLayout>
@@ -149,7 +155,7 @@ export default function AdminProposalsPage() {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
           {loading ? (
             <div className="p-12 text-center text-xs text-navy/60">Loading proposals…</div>
-          ) : filtered.length === 0 ? (
+          ) : proposals.length === 0 ? (
             <div className="p-12 text-center text-xs text-navy/60">
               No proposals found. Click &ldquo;Create Proposal&rdquo; to draft one.
             </div>
@@ -167,7 +173,7 @@ export default function AdminProposalsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {filtered.map((item) => (
+                  {proposals.map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/50 transition">
                       <td className="py-3.5 px-4">
                         <div className="font-mono text-[11px] font-bold text-purple">
@@ -277,6 +283,16 @@ export default function AdminProposalsPage() {
               </table>
             </div>
           )}
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
 

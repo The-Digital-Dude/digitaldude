@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Plus, Edit, Trash2, ExternalLink, RefreshCw, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, RefreshCw, Eye, Search } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 interface Post {
   id: string;
@@ -19,14 +21,25 @@ interface Post {
 export default function AdminBlogsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   async function fetchPosts() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/posts");
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+
+      const res = await fetch(`/api/admin/posts?${params.toString()}`);
       const data = await res.json();
       if (data.ok) {
         setPosts(data.posts || []);
+        setTotalCount(data.totalCount ?? (data.posts || []).length);
       }
     } catch {
       // ignore
@@ -37,7 +50,12 @@ export default function AdminBlogsPage() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, debouncedSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
@@ -83,6 +101,18 @@ export default function AdminBlogsPage() {
               Write New Article
             </Link>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search posts by title…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full max-w-sm rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm focus:border-purple focus:outline-none"
+          />
+          <Search size={18} className="absolute left-3.5 top-3 text-slate-400" />
         </div>
 
         {/* Posts Table */}
@@ -174,6 +204,16 @@ export default function AdminBlogsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
     </AdminLayout>

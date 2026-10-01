@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Plus, Edit, Trash2, ExternalLink, RefreshCw, Eye, Briefcase, Search } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 interface CaseStudy {
   id: string;
@@ -20,15 +22,26 @@ export default function AdminCaseStudiesPage() {
   const [caseStudies, setCaseStudies] = useState<CaseStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [industryFilter, setIndustryFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   async function fetchCaseStudies() {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/case-studies");
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      if (industryFilter !== "all") params.set("industry", industryFilter);
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
+
+      const res = await fetch(`/api/admin/case-studies?${params.toString()}`);
       const data = await res.json();
       if (data.ok) {
         setCaseStudies(data.caseStudies || []);
+        setTotalCount(data.totalCount ?? (data.caseStudies || []).length);
       }
     } catch {
       // ignore
@@ -39,7 +52,12 @@ export default function AdminCaseStudiesPage() {
 
   useEffect(() => {
     fetchCaseStudies();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, industryFilter, debouncedSearch]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [industryFilter, debouncedSearch]);
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Are you sure you want to delete the case study "${title}"?`)) return;
@@ -56,15 +74,6 @@ export default function AdminCaseStudiesPage() {
       alert("An error occurred while deleting.");
     }
   }
-
-  const filtered = caseStudies.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(search.toLowerCase()) ||
-      item.slug.toLowerCase().includes(search.toLowerCase()) ||
-      item.industry.toLowerCase().includes(search.toLowerCase());
-    const matchesIndustry = industryFilter === "all" || item.industry === industryFilter;
-    return matchesSearch && matchesIndustry;
-  });
 
   const industries = Array.from(new Set(caseStudies.map((c) => c.industry))).filter(Boolean);
 
@@ -154,7 +163,7 @@ export default function AdminCaseStudiesPage() {
                   </tr>
                 )}
 
-                {!loading && filtered.length === 0 && (
+                {!loading && caseStudies.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-navy/50">
                       No case studies found. Click &quot;Add New Case Study&quot; to publish your first one.
@@ -163,7 +172,7 @@ export default function AdminCaseStudiesPage() {
                 )}
 
                 {!loading &&
-                  filtered.map((item) => (
+                  caseStudies.map((item) => (
                     <tr key={item.id} className="transition hover:bg-slate-50/60">
                       <td className="py-4 pr-4">
                         <div className="font-semibold text-navy">{item.title}</div>
@@ -224,6 +233,16 @@ export default function AdminCaseStudiesPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
       </div>
     </AdminLayout>

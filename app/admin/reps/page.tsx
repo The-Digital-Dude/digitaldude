@@ -26,6 +26,7 @@ import {
   X,
   Building,
 } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
 
 interface RepScorecard {
   id: string;
@@ -97,10 +98,31 @@ export default function AdminRepsProductivityPage() {
   // Selected Rep Deep Dive Drawer
   const [selectedRep, setSelectedRep] = useState<RepScorecard | null>(null);
 
+  // Scorecards are computed in-memory across every employee (an aggregate
+  // report, not a simple table query), so there is no DB-level range to
+  // paginate — row count is bounded by headcount, not an ever-growing table.
+  // We still paginate the rendered list client-side for consistency with the
+  // rest of the admin panel.
+  const [scorecardPage, setScorecardPage] = useState(1);
+  const [scorecardPageSize, setScorecardPageSize] = useState(25);
+
+  // Audit trail table — the backend already supports real offset/limit
+  // pagination (app/api/admin/reps/activity/route.ts); wire it up here.
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(25);
+
   useEffect(() => {
     fetchProductivityData();
-    fetchAuditLogs();
   }, []);
+
+  useEffect(() => {
+    fetchAuditLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditPage, auditPageSize]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [selectedRepFilter, selectedActionFilter]);
 
   async function fetchProductivityData() {
     try {
@@ -116,7 +138,8 @@ export default function AdminRepsProductivityPage() {
   async function fetchAuditLogs() {
     setLoading(true);
     try {
-      let url = `/api/admin/reps/activity?limit=100`;
+      const offset = (auditPage - 1) * auditPageSize;
+      let url = `/api/admin/reps/activity?limit=${auditPageSize}&offset=${offset}`;
       if (selectedRepFilter !== "all") url += `&rep_id=${selectedRepFilter}`;
       if (selectedActionFilter !== "all") url += `&action_type=${selectedActionFilter}`;
       if (searchQuery.trim()) url += `&search=${encodeURIComponent(searchQuery.trim())}`;
@@ -134,7 +157,8 @@ export default function AdminRepsProductivityPage() {
 
   function handleFilterSubmit(e: React.FormEvent) {
     e.preventDefault();
-    fetchAuditLogs();
+    if (auditPage === 1) fetchAuditLogs();
+    else setAuditPage(1);
   }
 
   function handleDownloadCsv() {
@@ -255,7 +279,7 @@ export default function AdminRepsProductivityPage() {
         {/* TAB 1: REP SCORECARDS & LEADERBOARD */}
         {activeTab === "scorecards" && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {scorecards.map((rep) => (
+            {scorecards.slice((scorecardPage - 1) * scorecardPageSize, scorecardPage * scorecardPageSize).map((rep) => (
               <div
                 key={rep.id}
                 className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-purple/40 hover:shadow-md"
@@ -328,6 +352,18 @@ export default function AdminRepsProductivityPage() {
               </div>
             ))}
           </div>
+        )}
+        {activeTab === "scorecards" && (
+          <Pagination
+            page={scorecardPage}
+            pageSize={scorecardPageSize}
+            totalCount={scorecards.length}
+            onPageChange={setScorecardPage}
+            onPageSizeChange={(size) => {
+              setScorecardPageSize(size);
+              setScorecardPage(1);
+            }}
+          />
         )}
 
         {/* TAB 2: LIVE ACTIVITY TIMELINE */}
@@ -473,6 +509,16 @@ export default function AdminRepsProductivityPage() {
                   </table>
                 </div>
               )}
+              <Pagination
+                page={auditPage}
+                pageSize={auditPageSize}
+                totalCount={totalLogCount}
+                onPageChange={setAuditPage}
+                onPageSizeChange={(size) => {
+                  setAuditPageSize(size);
+                  setAuditPage(1);
+                }}
+              />
             </div>
           </div>
         )}

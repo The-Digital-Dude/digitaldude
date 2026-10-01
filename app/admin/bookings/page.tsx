@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CreateLeadModal } from "@/components/admin/CreateLeadModal";
 import { Plus } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
 
 interface EmployeeRef {
   id: string;
@@ -68,6 +69,9 @@ export default function AdminBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Selected booking for Detail Drawer
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -91,17 +95,22 @@ export default function AdminBookingsPage() {
     }
   }
 
-  async function fetchBookings() {
+  async function fetchBookings(opts?: { resetPage?: boolean }) {
     setLoading(true);
     try {
+      const targetPage = opts?.resetPage ? 1 : page;
       const query = new URLSearchParams();
       if (search) query.set("search", search);
       if (statusFilter !== "all") query.set("status", statusFilter);
+      query.set("page", String(targetPage));
+      query.set("pageSize", String(pageSize));
 
       const res = await fetch(`/api/admin/bookings?${query.toString()}`);
       const data = await res.json();
       if (data.ok) {
         setBookings(data.bookings || []);
+        setTotalCount(data.totalCount ?? (data.bookings || []).length);
+        if (opts?.resetPage) setPage(1);
       }
     } catch {
       // ignore
@@ -115,9 +124,14 @@ export default function AdminBookingsPage() {
   }, []);
 
   useEffect(() => {
-    fetchBookings();
+    fetchBookings({ resetPage: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
+
+  useEffect(() => {
+    fetchBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize]);
 
   function openDrawer(b: Booking) {
     setSelectedBooking(b);
@@ -213,7 +227,7 @@ export default function AdminBookingsPage() {
             </button>
 
             <button
-              onClick={fetchBookings}
+              onClick={() => fetchBookings()}
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-navy/70 transition hover:bg-slate-50"
             >
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
@@ -230,7 +244,7 @@ export default function AdminBookingsPage() {
               placeholder="Search by name, company, email, country…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && fetchBookings()}
+              onKeyDown={(e) => e.key === "Enter" && fetchBookings({ resetPage: true })}
               className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm focus:border-purple focus:outline-none"
             />
             <Search size={18} className="absolute left-3.5 top-3 text-slate-400" />
@@ -334,6 +348,16 @@ export default function AdminBookingsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </div>
 
         {/* Meeting Details Modal / Drawer */}
@@ -524,7 +548,7 @@ export default function AdminBookingsPage() {
         <CreateLeadModal
           isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
-          onCreated={fetchBookings}
+          onCreated={() => fetchBookings({ resetPage: true })}
         />
       </div>
     </AdminLayout>

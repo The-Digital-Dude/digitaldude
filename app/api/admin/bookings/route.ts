@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { isAdminAuthenticated } from "@/lib/adminAuth";
 import { log } from "@/lib/logger";
+import { parsePageParams, isRangeNotSatisfiableError } from "@/lib/adminPagination";
 import {
   BookingLead,
   getInMemoryLeads,
@@ -19,13 +20,18 @@ export async function GET(request: Request) {
   const stage = searchParams.get("stage") || "all";
   const status = searchParams.get("status") || "all";
   const employeeId = searchParams.get("employee_id") || "";
+  // Several other admin UIs (dashboard kanban, proposal/employee booking
+  // pickers) fetch this endpoint with no page param and expect every booking
+  // back — pagination only kicks in when the admin bookings list page asks.
+  const isPaginated = searchParams.has("page") || searchParams.has("pageSize");
+  const { page, pageSize, from: rangeFrom, to: rangeTo } = parsePageParams(searchParams);
 
   const supabase = getSupabaseServerClient();
   if (supabase) {
     try {
       let query = supabase
         .from("bookings")
-        .select("*")
+        .select("*", { count: "exact" })
         .order("slot_start", { ascending: false });
 
       if (stage !== "all") {
@@ -46,7 +52,16 @@ export async function GET(request: Request) {
         );
       }
 
-      const { data, error } = await query;
+      if (isPaginated) {
+        query = query.range(rangeFrom, rangeTo);
+      }
+      let { data, error, count } = await query;
+
+      if (error && isRangeNotSatisfiableError(error)) {
+        ({ count } = await query.range(0, 0));
+        data = [];
+        error = null;
+      }
 
       if (error) {
         log("error", { message: "Supabase bookings fetch error", error });
@@ -114,7 +129,7 @@ export async function GET(request: Request) {
         };
       });
 
-      return NextResponse.json({ ok: true, bookings: formatted });
+      return NextResponse.json({ ok: true, bookings: formatted, totalCount: count || 0, page, pageSize });
     } catch (error) {
       log("error", { message: "Supabase bookings fetch exception", error });
       return NextResponse.json({ ok: false, error: "Failed to retrieve bookings from database." }, { status: 500 });
@@ -142,7 +157,7 @@ export async function GET(request: Request) {
     return matchesSearch && matchesStage && matchesStatus;
   });
 
-  return NextResponse.json({ ok: true, bookings: filtered });
+  return NextResponse.json({ ok: true, bookings: filtered, totalCount: filtered.length, page: 1, pageSize: filtered.length || 25 });
 }
 
 function formatEmailBodyToHtml(text: string): string {

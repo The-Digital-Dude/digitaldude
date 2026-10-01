@@ -30,6 +30,8 @@ import {
   Flame,
   Star,
 } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 interface Employee {
   id: string;
@@ -139,7 +141,11 @@ export default function AdminEmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [empPage, setEmpPage] = useState(1);
+  const [empPageSize, setEmpPageSize] = useState(25);
+  const [empTotalCount, setEmpTotalCount] = useState(0);
 
   // Payouts & Approvals State
   const [payoutItems, setPayoutItems] = useState<PayoutItem[]>([]);
@@ -171,9 +177,18 @@ export default function AdminEmployeesPage() {
   async function fetchEmployees() {
     setLoadingEmployees(true);
     try {
-      const res = await fetch("/api/admin/employees");
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+      params.set("page", String(empPage));
+      params.set("pageSize", String(empPageSize));
+
+      const res = await fetch(`/api/admin/employees?${params.toString()}`);
       const data = await res.json();
-      if (data.ok) setEmployees(data.employees || []);
+      if (data.ok) {
+        setEmployees(data.employees || []);
+        setEmpTotalCount(data.totalCount ?? (data.employees || []).length);
+      }
     } catch {
       // ignore
     } finally {
@@ -219,7 +234,12 @@ export default function AdminEmployeesPage() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empPage, empPageSize, statusFilter, debouncedSearch]);
+
+  useEffect(() => {
+    setEmpPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   useEffect(() => {
     if (activeTab === "payouts" || activeTab === "leaderboard") {
@@ -274,14 +294,6 @@ export default function AdminEmployeesPage() {
   }
 
   // Filtered lists
-  const filteredEmployees = employees.filter((e) => {
-    const matchesSearch =
-      e.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || e.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
   const filteredPayouts = payoutItems.filter((item) => {
     const matchesStatus = payoutStatusFilter === "all" || item.payoutStatus === payoutStatusFilter;
     const matchesRep = payoutRepFilter === "all" || item.employee?.id === payoutRepFilter;
@@ -322,7 +334,7 @@ export default function AdminEmployeesPage() {
             )}
             <button
               onClick={() => {
-                if (activeTab === "employees") fetchEmployees();
+                if (activeTab === "employees") void fetchEmployees();
                 else if (activeTab === "payouts" || activeTab === "leaderboard") fetchPayoutsAndLeaderboard();
                 else fetchAuditLogs();
               }}
@@ -429,7 +441,7 @@ export default function AdminEmployeesPage() {
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
               {loadingEmployees ? (
                 <div className="p-12 text-center text-xs text-navy/60">Loading employees…</div>
-              ) : filteredEmployees.length === 0 ? (
+              ) : employees.length === 0 ? (
                 <div className="p-12 text-center text-xs text-navy/60">
                   No employees found. Convert a candidate from the Applications page to add one.
                 </div>
@@ -446,7 +458,7 @@ export default function AdminEmployeesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {filteredEmployees.map((emp) => (
+                      {employees.map((emp) => (
                         <tr key={emp.id} className="hover:bg-slate-50/50 transition">
                           <td className="py-3.5 px-4">
                             <div className="font-bold text-navy">{emp.full_name}</div>
@@ -485,6 +497,16 @@ export default function AdminEmployeesPage() {
                   </table>
                 </div>
               )}
+              <Pagination
+                page={empPage}
+                pageSize={empPageSize}
+                totalCount={empTotalCount}
+                onPageChange={setEmpPage}
+                onPageSizeChange={(size) => {
+                  setEmpPageSize(size);
+                  setEmpPage(1);
+                }}
+              />
             </div>
           </div>
         )}
