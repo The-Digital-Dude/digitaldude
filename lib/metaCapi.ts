@@ -25,8 +25,48 @@ function hashPhone(phone?: string | null): string | undefined {
   return crypto.createHash("sha256").update(clean).digest("hex");
 }
 
+const COUNTRY_TO_ISO: Record<string, string> = {
+  australia: "au",
+  "united kingdom": "gb",
+  uk: "gb",
+  "united states": "us",
+  usa: "us",
+  canada: "ca",
+  "new zealand": "nz",
+  singapore: "sg",
+  germany: "de",
+  "united arab emirates": "ae",
+  uae: "ae",
+  bangladesh: "bd",
+  india: "in",
+  pakistan: "pk",
+  ireland: "ie",
+  france: "fr",
+  spain: "es",
+  italy: "it",
+  netherlands: "nl",
+  switzerland: "ch",
+};
+
+function hashCountry(country?: string | null): string | undefined {
+  if (!country) return undefined;
+  const clean = country.trim().toLowerCase();
+  const code = COUNTRY_TO_ISO[clean] || (clean.length === 2 ? clean : undefined);
+  if (!code) return undefined;
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+function isValidIpAddress(ip?: string | null): boolean {
+  if (!ip) return false;
+  const clean = ip.trim();
+  if (clean === "unknown" || clean === "localhost") return false;
+  const ipv4Regex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+  const ipv6Regex = /^[0-9a-fA-F:]+$/;
+  return ipv4Regex.test(clean) || (clean.includes(":") && ipv6Regex.test(clean));
+}
+
 export interface MetaCapiEventParams {
-  eventName: "PageView" | "Lead" | "Schedule" | "Contact" | "SubmitApplication" | string;
+  eventName: "PageView" | "Lead" | "Schedule" | "Contact" | "SubmitApplication" | "ViewContent" | "ClickCTA" | string;
   eventId?: string;
   eventSourceUrl?: string;
   user: {
@@ -34,6 +74,7 @@ export interface MetaCapiEventParams {
     phone?: string | null;
     firstName?: string | null;
     lastName?: string | null;
+    country?: string | null;
     clientIpAddress?: string | null;
     clientUserAgent?: string | null;
     fbp?: string | null;
@@ -72,13 +113,29 @@ export async function sendMetaCapiEvent(params: MetaCapiEventParams) {
   const hashedLn = hashSha256(user.lastName);
   if (hashedLn) userDataPayload.ln = [hashedLn];
 
-  if (user.clientIpAddress) userDataPayload.client_ip_address = user.clientIpAddress;
-  if (user.clientUserAgent) userDataPayload.client_user_agent = user.clientUserAgent;
-  if (user.fbp) userDataPayload.fbp = user.fbp;
-  if (user.fbc) userDataPayload.fbc = user.fbc;
+  const hashedCountry = hashCountry(user.country);
+  if (hashedCountry) userDataPayload.country = [hashedCountry];
+
+  if (user.clientIpAddress && isValidIpAddress(user.clientIpAddress)) {
+    userDataPayload.client_ip_address = user.clientIpAddress.trim();
+  }
+  if (user.clientUserAgent && user.clientUserAgent.trim()) {
+    userDataPayload.client_user_agent = user.clientUserAgent.trim();
+  }
+  if (user.fbp && user.fbp.trim()) userDataPayload.fbp = user.fbp.trim();
+  if (user.fbc && user.fbc.trim()) userDataPayload.fbc = user.fbc.trim();
 
   const hashedExternalId = hashSha256(user.externalId);
   if (hashedExternalId) userDataPayload.external_id = [hashedExternalId];
+
+  // Validate that user_data contains at least one parameter required by Meta
+  const hasUserDataKeys = Object.keys(userDataPayload).length > 0;
+  if (!hasUserDataKeys) {
+    log("warn", {
+      message: "Meta CAPI: No user_data match parameters available for event",
+      context: { eventName, eventId },
+    });
+  }
 
   const testEventCode = process.env.META_TEST_EVENT_CODE || undefined;
 

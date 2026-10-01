@@ -211,31 +211,49 @@ export async function POST(request: Request) {
   // Dispatch Meta Conversions API (CAPI) Schedule / Lead Event
   try {
     const { sendMetaCapiEvent } = await import("@/lib/metaCapi");
-    const userAgent = request.headers.get("user-agent") || undefined;
+    const userAgent = (body?.userAgent ? String(body.userAgent) : request.headers.get("user-agent")) || undefined;
     const fbpMatch = cookieHeader.match(/_fbp=([^;]+)/);
     const fbcMatch = cookieHeader.match(/_fbc=([^;]+)/);
     const clientEventId = body?.eventId ? String(body.eventId).trim() : undefined;
+    const resolvedFbp = (body?.fbp ? String(body.fbp) : (fbpMatch ? decodeURIComponent(fbpMatch[1]) : undefined));
+    const resolvedFbc = (body?.fbc ? String(body.fbc) : (fbcMatch ? decodeURIComponent(fbcMatch[1]) : undefined));
 
+    const userMetadata = {
+      email: workEmail,
+      firstName: String(name).split(" ")[0],
+      lastName: String(name).split(" ").slice(1).join(" ") || undefined,
+      country: country || undefined,
+      clientIpAddress: ip,
+      clientUserAgent: userAgent,
+      fbp: resolvedFbp,
+      fbc: resolvedFbc,
+      externalId: bookingId,
+    };
+
+    // 1. Schedule Event
     await sendMetaCapiEvent({
       eventName: "Schedule",
       eventId: clientEventId,
       eventSourceUrl: "https://www.digitaldude.co.uk/contact",
-      user: {
-        email: workEmail,
-        firstName: String(name).split(" ")[0],
-        lastName: String(name).split(" ").slice(1).join(" ") || undefined,
-        clientIpAddress: ip,
-        clientUserAgent: userAgent,
-        fbp: fbpMatch ? fbpMatch[1] : undefined,
-        fbc: fbcMatch ? fbcMatch[1] : undefined,
-        externalId: bookingId,
-      },
+      user: userMetadata,
       customData: {
         content_name: "Discovery Call Booking",
         company_name: companyName,
         country,
         currency: "USD",
         value: 0,
+      },
+    });
+
+    // 2. Lead Event
+    await sendMetaCapiEvent({
+      eventName: "Lead",
+      eventId: clientEventId,
+      eventSourceUrl: "https://www.digitaldude.co.uk/contact",
+      user: userMetadata,
+      customData: {
+        content_name: companyName,
+        content_category: systemType,
       },
     });
   } catch (capiErr) {

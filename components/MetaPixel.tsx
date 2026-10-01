@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import { META_PIXEL_ID, pageview, event, customEvent } from "@/lib/metaPixel";
+import { META_PIXEL_ID, pageview, event, customEvent, getOrSetFbc, getOrSetFbp } from "@/lib/metaPixel";
 
 function MetaPixelTracker() {
   const pathname = usePathname();
@@ -15,9 +15,19 @@ function MetaPixelTracker() {
     pathname?.startsWith("/rep") ||
     pathname?.startsWith("/portal");
 
+  // Initialize parameter builder immediately on mount for fbc/fbp capture
+  useEffect(() => {
+    if (isInternalRoute) return;
+    getOrSetFbc();
+    getOrSetFbp();
+  }, [isInternalRoute]);
+
   // Track PageView on initial mount and whenever client-side route changes
   useEffect(() => {
     if (isInternalRoute) return;
+    getOrSetFbc();
+    getOrSetFbp();
+
     const searchString = searchParams ? searchParams.toString() : "";
     const fullPath = searchString ? `${pathname}?${searchString}` : pathname;
 

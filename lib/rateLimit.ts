@@ -52,8 +52,25 @@ export function rateLimit(
 }
 
 /** Extract a best-effort client IP from a Next.js request. */
-export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return "unknown";
+export function getClientIp(request: Request): string | undefined {
+  const headers = request.headers;
+  const cf = headers.get("cf-connecting-ip");
+  if (cf && cf.trim()) return cf.trim();
+
+  const realIp = headers.get("x-real-ip");
+  if (realIp && realIp.trim()) return realIp.trim();
+
+  const forwarded = headers.get("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0].trim();
+    if (first) return first;
+  }
+
+  const fastly = headers.get("fastly-client-ip");
+  if (fastly && fastly.trim()) return fastly.trim();
+
+  const trueClient = headers.get("true-client-ip");
+  if (trueClient && trueClient.trim()) return trueClient.trim();
+
+  return undefined;
 }

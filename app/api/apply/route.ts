@@ -160,11 +160,14 @@ export async function POST(request: Request) {
     }
 
     const clientEventId = String(formData.get("eventId") || "").trim() || undefined;
+    const formFbp = String(formData.get("fbp") || "").trim() || undefined;
+    const formFbc = String(formData.get("fbc") || "").trim() || undefined;
+    const formUserAgent = String(formData.get("userAgent") || "").trim() || undefined;
 
     // Dispatch Meta Conversions API (CAPI) SubmitApplication & Lead Events
     try {
       const { sendMetaCapiEvent } = await import("@/lib/metaCapi");
-      const userAgent = request.headers.get("user-agent") || undefined;
+      const userAgent = formUserAgent || request.headers.get("user-agent") || undefined;
       const cookieHeader = request.headers.get("cookie") || "";
       const fbpMatch = cookieHeader.match(/_fbp=([^;]+)/);
       const fbcMatch = cookieHeader.match(/_fbc=([^;]+)/);
@@ -176,8 +179,8 @@ export async function POST(request: Request) {
         lastName: applicantName.split(" ").slice(1).join(" ") || undefined,
         clientIpAddress: ip,
         clientUserAgent: userAgent,
-        fbp: fbpMatch ? fbpMatch[1] : undefined,
-        fbc: fbcMatch ? fbcMatch[1] : undefined,
+        fbp: formFbp || (fbpMatch ? decodeURIComponent(fbpMatch[1]) : undefined),
+        fbc: formFbc || (fbcMatch ? decodeURIComponent(fbcMatch[1]) : undefined),
         externalId: application.id,
       };
 

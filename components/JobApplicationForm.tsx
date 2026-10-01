@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
-import { event } from "@/lib/metaPixel";
+import { event, getMetaBrowserData } from "@/lib/metaPixel";
 
 export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; jobTitle: string }) {
   const [applicantName, setApplicantName] = useState("");
@@ -26,6 +26,7 @@ export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; job
     setErrorMessage("");
 
     const eventId = `app_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const browserData = getMetaBrowserData();
 
     const form = new FormData();
     form.append("jobSlug", jobSlug);
@@ -37,6 +38,18 @@ export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; job
     if (proofFile) form.append("proofOfResults", proofFile);
     form.append("website", website);
     form.append("eventId", eventId);
+    if (browserData.fbp) form.append("fbp", browserData.fbp);
+    if (browserData.fbc) form.append("fbc", browserData.fbc);
+    if (browserData.clientUserAgent) form.append("userAgent", browserData.clientUserAgent);
+
+    const userTrackingInfo = {
+      email: applicantEmail,
+      phone: applicantPhone || undefined,
+      firstName: applicantName.split(" ")[0],
+      lastName: applicantName.split(" ").slice(1).join(" ") || undefined,
+      fbp: browserData.fbp,
+      fbc: browserData.fbc,
+    };
 
     try {
       const res = await fetch("/api/apply", { method: "POST", body: form });
@@ -47,14 +60,15 @@ export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; job
         return;
       }
 
-      // Fire Client-Side Meta Pixel Events with deduplication eventId
+      // Fire Client-Side Meta Pixel Events with deduplication eventId & user matching data
       event(
         "SubmitApplication",
         {
           content_name: jobTitle,
           job_slug: jobSlug,
         },
-        eventId
+        eventId,
+        userTrackingInfo
       );
 
       event(
@@ -63,7 +77,8 @@ export function JobApplicationForm({ jobSlug, jobTitle }: { jobSlug: string; job
           content_name: jobTitle,
           content_category: "Job Application",
         },
-        eventId
+        eventId,
+        userTrackingInfo
       );
 
       setStatus("success");

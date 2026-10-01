@@ -22,7 +22,7 @@ import {
   AlertCircle,
   FileText
 } from "lucide-react";
-import { event } from "@/lib/metaPixel";
+import { event, getMetaBrowserData } from "@/lib/metaPixel";
 
 const countries = [
   "Australia",
@@ -282,6 +282,7 @@ export function ContactForm() {
       }
     }
 
+    const browserData = getMetaBrowserData();
     const payload = {
       name,
       workEmail,
@@ -294,6 +295,18 @@ export function ContactForm() {
       company: honeypot,
       eventId,
       ref: refCode || undefined,
+      fbp: browserData.fbp,
+      fbc: browserData.fbc,
+      userAgent: browserData.clientUserAgent,
+    };
+
+    const userTrackingInfo = {
+      email: workEmail,
+      firstName: name.split(" ")[0],
+      lastName: name.split(" ").slice(1).join(" ") || undefined,
+      country,
+      fbp: browserData.fbp,
+      fbc: browserData.fbc,
     };
 
     try {
@@ -310,7 +323,7 @@ export function ContactForm() {
         return;
       }
 
-      // Fire Client-Side Meta Pixel Events with deduplication eventId
+      // Fire Client-Side Meta Pixel Events with deduplication eventId & user matching data
       event(
         "Schedule",
         {
@@ -318,7 +331,8 @@ export function ContactForm() {
           currency: "USD",
           value: 0,
         },
-        eventId
+        eventId,
+        userTrackingInfo
       );
 
       event(
@@ -327,7 +341,8 @@ export function ContactForm() {
           content_name: companyName,
           content_category: systemType,
         },
-        eventId
+        eventId,
+        userTrackingInfo
       );
 
       setConfirmedData({
