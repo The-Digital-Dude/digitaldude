@@ -230,10 +230,10 @@ export async function POST(request: Request) {
       externalId: bookingId,
     };
 
-    // 1. Schedule Event
+    // 1. Schedule Event ($250 milestone value)
     await sendMetaCapiEvent({
       eventName: "Schedule",
-      eventId: clientEventId,
+      eventId: clientEventId ? `sched_${clientEventId}` : undefined,
       eventSourceUrl: "https://www.digitaldude.co.uk/contact",
       user: userMetadata,
       customData: {
@@ -241,19 +241,21 @@ export async function POST(request: Request) {
         company_name: companyName,
         country,
         currency: "USD",
-        value: 0,
+        value: 250.00,
       },
     });
 
-    // 2. Lead Event
+    // 2. Lead Event ($50 milestone value)
     await sendMetaCapiEvent({
       eventName: "Lead",
-      eventId: clientEventId,
+      eventId: clientEventId ? `lead_${clientEventId}` : undefined,
       eventSourceUrl: "https://www.digitaldude.co.uk/contact",
       user: userMetadata,
       customData: {
         content_name: companyName,
         content_category: systemType,
+        currency: "USD",
+        value: 50.00,
       },
     });
   } catch (capiErr) {

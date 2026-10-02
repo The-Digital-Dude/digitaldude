@@ -79,6 +79,34 @@ export async function PUT(
 
       if (data) {
         addInMemoryProposal(data);
+
+        // Dispatch Meta CAPI Purchase offline conversion event when proposal is accepted
+        if (data.status === "accepted") {
+          import("@/lib/metaCapi").then(({ sendMetaCapiEvent }) => {
+            const rawEstimate = parseFloat(String(data.budget_range || "0").replace(/[^0-9.]/g, "")) || 5000;
+
+            sendMetaCapiEvent({
+              eventName: "Purchase",
+              eventId: `prop_won_${data.id || data.slug}_${Date.now()}`,
+              eventSourceUrl: `https://www.digitaldude.co.uk/proposals/${data.slug}`,
+              user: {
+                email: data.client_email || undefined,
+                firstName: String(data.client_name || "").split(" ")[0] || undefined,
+                lastName: String(data.client_name || "").split(" ").slice(1).join(" ") || undefined,
+                country: data.country || undefined,
+                externalId: data.id || data.slug,
+              },
+              customData: {
+                content_name: `Proposal Accepted: ${data.project_title}`,
+                content_category: data.system_type || "Bespoke System",
+                value: rawEstimate,
+                currency: "USD",
+                proposal_slug: data.slug,
+              },
+            }).catch(() => {});
+          }).catch(() => {});
+        }
+
         return NextResponse.json({ ok: true, proposal: data });
       }
 
@@ -92,6 +120,32 @@ export async function PUT(
   const updatedLocal = updateInMemoryProposal(id, body);
   if (!updatedLocal) {
     return NextResponse.json({ ok: false, error: "Proposal not found" }, { status: 404 });
+  }
+
+  if (updatedLocal.status === "accepted") {
+    import("@/lib/metaCapi").then(({ sendMetaCapiEvent }) => {
+      const rawEstimate = parseFloat(String(updatedLocal.budget_range || "0").replace(/[^0-9.]/g, "")) || 5000;
+
+      sendMetaCapiEvent({
+        eventName: "Purchase",
+        eventId: `prop_won_${updatedLocal.id || updatedLocal.slug}_${Date.now()}`,
+        eventSourceUrl: `https://www.digitaldude.co.uk/proposals/${updatedLocal.slug}`,
+        user: {
+          email: updatedLocal.client_email || undefined,
+          firstName: String(updatedLocal.client_name || "").split(" ")[0] || undefined,
+          lastName: String(updatedLocal.client_name || "").split(" ").slice(1).join(" ") || undefined,
+          country: updatedLocal.country || undefined,
+          externalId: updatedLocal.id || updatedLocal.slug,
+        },
+        customData: {
+          content_name: `Proposal Accepted: ${updatedLocal.project_title}`,
+          content_category: updatedLocal.system_type || "Bespoke System",
+          value: rawEstimate,
+          currency: "USD",
+          proposal_slug: updatedLocal.slug,
+        },
+      }).catch(() => {});
+    }).catch(() => {});
   }
 
   return NextResponse.json({

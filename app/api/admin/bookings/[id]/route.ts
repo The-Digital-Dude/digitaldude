@@ -81,6 +81,52 @@ async function handleUpdate(
       if (data) {
         updateInMemoryLead(id, data);
         log("info", { message: "Booking CRM record updated", context: { id, updateData } });
+
+        // Dispatch downstream Meta Conversions API (CAPI) offline event
+        if (stage === "closed_won" || status === "completed") {
+          import("@/lib/metaCapi").then(({ sendMetaCapiEvent }) => {
+            sendMetaCapiEvent({
+              eventName: "Purchase",
+              eventId: `won_${id}_${Date.now()}`,
+              eventSourceUrl: "https://www.digitaldude.co.uk/admin/bookings",
+              user: {
+                email: data.work_email || data.email,
+                firstName: String(data.name || "").split(" ")[0],
+                lastName: String(data.name || "").split(" ").slice(1).join(" ") || undefined,
+                country: data.country,
+                externalId: id,
+              },
+              customData: {
+                content_name: data.company_name || "Enterprise Custom Software",
+                content_category: "Closed Won Deal",
+                value: Number(data.deal_value) || 5000,
+                currency: "USD",
+              },
+            }).catch(() => {});
+          }).catch(() => {});
+        } else if (stage === "proposal_sent" || stage === "call_completed") {
+          import("@/lib/metaCapi").then(({ sendMetaCapiEvent }) => {
+            sendMetaCapiEvent({
+              eventName: "Lead",
+              eventId: `qual_${id}_${Date.now()}`,
+              eventSourceUrl: "https://www.digitaldude.co.uk/admin/bookings",
+              user: {
+                email: data.work_email || data.email,
+                firstName: String(data.name || "").split(" ")[0],
+                lastName: String(data.name || "").split(" ").slice(1).join(" ") || undefined,
+                country: data.country,
+                externalId: id,
+              },
+              customData: {
+                content_name: data.company_name || "Qualified Opportunity",
+                content_category: "Qualified Lead",
+                value: 500.00,
+                currency: "USD",
+              },
+            }).catch(() => {});
+          }).catch(() => {});
+        }
+
         return NextResponse.json({ ok: true, booking: data });
       }
     } catch (error) {
@@ -96,6 +142,30 @@ async function handleUpdate(
   }
 
   const updated = updateInMemoryLead(id, body);
+
+  if (stage === "closed_won" || status === "completed") {
+    import("@/lib/metaCapi").then(({ sendMetaCapiEvent }) => {
+      sendMetaCapiEvent({
+        eventName: "Purchase",
+        eventId: `won_${id}_${Date.now()}`,
+        eventSourceUrl: "https://www.digitaldude.co.uk/admin/bookings",
+        user: {
+          email: updated?.work_email,
+          firstName: String(updated?.name || "").split(" ")[0],
+          lastName: String(updated?.name || "").split(" ").slice(1).join(" ") || undefined,
+          country: updated?.country,
+          externalId: id,
+        },
+        customData: {
+          content_name: updated?.company_name || "Enterprise Custom Software",
+          content_category: "Closed Won Deal",
+          value: Number(updated?.deal_value) || 5000,
+          currency: "USD",
+        },
+      }).catch(() => {});
+    }).catch(() => {});
+  }
+
   return NextResponse.json({
     ok: true,
     booking: updated,

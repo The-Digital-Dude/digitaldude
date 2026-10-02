@@ -24,6 +24,7 @@ import {
 import { Proposal, ArchitectureModule, DeliverablePhase } from "@/lib/content/proposals";
 
 import Image from "next/image";
+import { ViewContentTracker } from "@/components/ViewContentTracker";
 
 export function ProposalView({ proposal }: { proposal: Proposal }) {
   const [copied, setCopied] = useState(false);
@@ -64,8 +65,18 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
       ? JSON.parse(proposal.deliverable_phases || "[]")
       : [];
 
+  const totalEstimate = parseFloat(String(proposal.budget_range || "0").replace(/[^0-9.]/g, "")) || 0;
+
   return (
     <div className="min-h-screen bg-slate-50 text-navy selection:bg-purple/20 selection:text-purple">
+      <ViewContentTracker
+        contentName={`Proposal: ${proposal.project_title}`}
+        contentCategory={proposal.system_type || "Bespoke System"}
+        contentIds={[proposal.slug]}
+        contentType="proposal"
+        value={totalEstimate > 0 ? totalEstimate : undefined}
+        currency="USD"
+      />
       {/* Top Floating Action Bar (Hidden during print) */}
       <nav className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 py-3 print:hidden">
         <div className="mx-auto flex max-w-5xl items-center justify-between">

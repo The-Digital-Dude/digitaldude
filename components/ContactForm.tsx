@@ -323,15 +323,15 @@ export function ContactForm() {
         return;
       }
 
-      // Fire Client-Side Meta Pixel Events with deduplication eventId & user matching data
+      // Fire Client-Side Meta Pixel Events with calibrated staged milestone values & distinct eventIds
       event(
         "Schedule",
         {
           content_name: "Discovery Call Booking",
           currency: "USD",
-          value: 0,
+          value: 250.00,
         },
-        eventId,
+        `sched_${eventId}`,
         userTrackingInfo
       );
 
@@ -340,8 +340,10 @@ export function ContactForm() {
         {
           content_name: companyName,
           content_category: systemType,
+          currency: "USD",
+          value: 50.00,
         },
-        eventId,
+        `lead_${eventId}`,
         userTrackingInfo
       );
 
