@@ -283,3 +283,177 @@ export function customEvent(
     user,
   });
 }
+
+/**
+ * Standard Event: ViewContent
+ */
+export function trackViewContent(
+  options: {
+    content_name?: string;
+    content_category?: string;
+    content_ids?: string[];
+    content_type?: string;
+    value?: number;
+    currency?: string;
+    [key: string]: unknown;
+  },
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("ViewContent", options, eventId, user);
+}
+
+/**
+ * Standard Event: Contact
+ */
+export function trackContact(
+  options: {
+    content_name?: string;
+    content_category?: string;
+    status?: string;
+    destination?: string;
+    [key: string]: unknown;
+  } = {},
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("Contact", options, eventId, user);
+}
+
+/**
+ * Standard Event: Lead
+ */
+export function trackLead(
+  options: {
+    content_name?: string;
+    content_category?: string;
+    value?: number;
+    currency?: string;
+    [key: string]: unknown;
+  } = {},
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("Lead", options, eventId, user);
+}
+
+/**
+ * Standard Event: Schedule
+ */
+export function trackSchedule(
+  options: {
+    content_name?: string;
+    appointment_date?: string;
+    appointment_type?: string;
+    value?: number;
+    currency?: string;
+    [key: string]: unknown;
+  } = {},
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("Schedule", options, eventId, user);
+}
+
+/**
+ * Standard Event: SubmitApplication
+ */
+export function trackSubmitApplication(
+  options: {
+    content_name?: string;
+    content_category?: string;
+    job_slug?: string;
+    [key: string]: unknown;
+  } = {},
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("SubmitApplication", options, eventId, user);
+}
+
+/**
+ * Standard Event: Search
+ */
+export function trackSearch(
+  options: {
+    search_string: string;
+    content_category?: string;
+    [key: string]: unknown;
+  },
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("Search", options, eventId, user);
+}
+
+/**
+ * Standard Event: InitiateCheckout
+ */
+export function trackInitiateCheckout(
+  options: {
+    content_ids?: string[];
+    content_category?: string;
+    num_items?: number;
+    value?: number;
+    currency?: string;
+    [key: string]: unknown;
+  } = {},
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("InitiateCheckout", options, eventId, user);
+}
+
+/**
+ * Standard Event: AddToCart
+ */
+export function trackAddToCart(
+  options: {
+    content_name?: string;
+    content_ids?: string[];
+    content_type?: string;
+    value?: number;
+    currency?: string;
+    [key: string]: unknown;
+  },
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("AddToCart", options, eventId, user);
+}
+
+/**
+ * Standard Event: Purchase
+ */
+export function trackPurchase(
+  options: {
+    content_ids?: string[];
+    content_type?: string;
+    num_items?: number;
+    value: number;
+    currency: string;
+    transaction_id?: string;
+    [key: string]: unknown;
+  },
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("Purchase", options, eventId, user);
+}
+
+/**
+ * Standard Event: CompleteRegistration
+ */
+export function trackCompleteRegistration(
+  options: {
+    content_name?: string;
+    status?: string;
+    value?: number;
+    currency?: string;
+    [key: string]: unknown;
+  } = {},
+  eventId?: string,
+  user?: UserTrackingData
+) {
+  event("CompleteRegistration", options, eventId, user);
+}

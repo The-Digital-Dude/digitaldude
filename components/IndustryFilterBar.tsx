@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Search, Tag, X, Layers, Briefcase } from "lucide-react";
 import { caseStudies as defaultCaseStudies, type CaseStudy } from "@/lib/content/caseStudies";
 import { ProjectCard } from "@/components/ProjectCard";
 import { cn } from "@/lib/utils";
+import { trackSearch } from "@/lib/metaPixel";
 
 export function IndustryFilterBar({
   projects = defaultCaseStudies,
@@ -14,6 +15,21 @@ export function IndustryFilterBar({
   const [activeIndustry, setActiveIndustry] = useState<string>("All");
   const [activeTechFilter, setActiveTechFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Debounced Meta Pixel Search standard event
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length < 2) return;
+
+    const timer = setTimeout(() => {
+      trackSearch({
+        search_string: trimmed,
+        content_category: activeIndustry !== "All" ? activeIndustry : "Case Studies & Work",
+      });
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeIndustry]);
 
   // Extract all unique industries
   const allIndustries = useMemo(() => {

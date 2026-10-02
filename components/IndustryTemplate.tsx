@@ -15,6 +15,8 @@ import {
   ArrowRight 
 } from "lucide-react";
 
+import { ViewContentTracker } from "@/components/ViewContentTracker";
+
 export function IndustryTemplate({ industry }: { industry: IndustryPage }) {
   const caseStudy = getCaseStudy(industry.caseStudySlug);
   const relatedServices = industry.relatedServiceSlugs
@@ -73,6 +75,12 @@ export function IndustryTemplate({ industry }: { industry: IndustryPage }) {
 
   return (
     <>
+      <ViewContentTracker
+        contentName={industry.headline}
+        contentCategory={industry.displayLabel}
+        contentIds={[industry.slug]}
+        contentType="industry"
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(industryJsonLd) }}

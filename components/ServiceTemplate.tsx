@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { ViewContentTracker } from "@/components/ViewContentTracker";
+
 export function ServiceTemplate({ service }: { service: Service }) {
   const serviceUrl = `${SITE_URL}/services/${service.slug}`;
 
@@ -85,6 +87,12 @@ export function ServiceTemplate({ service }: { service: Service }) {
 
   return (
     <>
+      <ViewContentTracker
+        contentName={service.headline}
+        contentCategory={service.navLabel}
+        contentIds={[service.slug]}
+        contentType="service"
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceJsonLd) }}

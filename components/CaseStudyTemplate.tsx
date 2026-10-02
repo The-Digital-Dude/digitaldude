@@ -4,6 +4,8 @@ import { RelatedWork } from "@/components/RelatedWork";
 import { StandardCTA } from "@/components/StandardCTA";
 import { SITE_URL } from "@/lib/utils";
 
+import { ViewContentTracker } from "@/components/ViewContentTracker";
+
 export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
   const caseStudyJsonLd = {
     "@context": "https://schema.org",
@@ -58,6 +60,12 @@ export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
 
   return (
     <>
+      <ViewContentTracker
+        contentName={project.title}
+        contentCategory={project.tag}
+        contentIds={[project.slug]}
+        contentType="case_study"
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(caseStudyJsonLd) }}
