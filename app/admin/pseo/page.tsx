@@ -654,27 +654,55 @@ export default function AdminPseoDashboard() {
                 ) : inspectionResult ? (
                   inspectionResult.ok ? (
                     <div className="space-y-3">
-                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-emerald-800">
-                        <div className="font-bold flex items-center gap-1.5">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          Index Status: {inspectionResult.inspectionResult?.indexStatusResult?.coverageState || "Evaluated by Google"}
+                      {inspectionResult.inspectionResult?.indexStatusResult?.verdict === "PASS" ? (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-emerald-800">
+                          <div className="font-bold flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            Index Status: Indexed in Google
+                          </div>
+                          <div className="text-[11px] mt-1 text-emerald-700">
+                            Coverage: {inspectionResult.inspectionResult?.indexStatusResult?.coverageState || "Submitted and indexed"}
+                          </div>
                         </div>
-                        <div className="text-[11px] mt-1 text-emerald-700">
-                          Verdict: {inspectionResult.inspectionResult?.indexStatusResult?.verdict || "PASS"}
+                      ) : (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-amber-900 space-y-2">
+                          <div className="font-bold flex items-center gap-1.5">
+                            <AlertCircle className="h-4 w-4 text-amber-600" />
+                            Index Status: {inspectionResult.inspectionResult?.indexStatusResult?.coverageState || "URL is unknown to Google (Pending Crawl)"}
+                          </div>
+                          <p className="text-[11px] text-slate-600 leading-relaxed">
+                            Google Search Console verified this URL, but Googlebot has not crawled it yet. Click below to push it to Google&apos;s high-priority crawl queue.
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (inspectionResult?.url) {
+                                handleSubmitGoogle([inspectionResult.url]);
+                              }
+                            }}
+                            disabled={isSubmittingGoogle}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-navy px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
+                          >
+                            <Zap className="h-3.5 w-3.5 text-accent-primary" />
+                            {isSubmittingGoogle ? "Submitting..." : "Push to Google Indexing Queue"}
+                          </button>
                         </div>
-                      </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-2 text-slate-600">
                         <div className="rounded-lg border border-slate-200 p-2.5">
                           <div className="text-slate-400 text-[10px] uppercase font-bold">Robots.txt</div>
                           <div className="font-semibold text-navy mt-0.5">
-                            {inspectionResult.inspectionResult?.indexStatusResult?.robotsTxtState || "ALLOWED"}
+                            {inspectionResult.inspectionResult?.indexStatusResult?.robotsTxtState === "ROBOTS_TXT_STATE_UNSPECIFIED"
+                              ? "Allowed (Default)"
+                              : (inspectionResult.inspectionResult?.indexStatusResult?.robotsTxtState || "Allowed")}
                           </div>
                         </div>
                         <div className="rounded-lg border border-slate-200 p-2.5">
                           <div className="text-slate-400 text-[10px] uppercase font-bold">Page Fetch</div>
                           <div className="font-semibold text-navy mt-0.5">
-                            {inspectionResult.inspectionResult?.indexStatusResult?.pageFetchState || "SUCCESSFUL"}
+                            {inspectionResult.inspectionResult?.indexStatusResult?.pageFetchState === "PAGE_FETCH_STATE_UNSPECIFIED"
+                              ? "Pending First Crawl"
+                              : (inspectionResult.inspectionResult?.indexStatusResult?.pageFetchState || "Pending")}
                           </div>
                         </div>
                       </div>
