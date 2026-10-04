@@ -320,11 +320,12 @@ export function PseoEditModal({
             type="button"
             disabled={isSaving}
             onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-xl bg-accent-primary px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-accent-primary/90 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-indigo-700 disabled:opacity-50 cursor-pointer"
+            style={{ backgroundColor: "#5B4FE8", color: "#ffffff" }}
           >
             {isSaving ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
                 Saving Changes...
               </>
             ) : (

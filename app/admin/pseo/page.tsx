@@ -275,16 +275,17 @@ export default function AdminPseoDashboard() {
                   serviceSlug: "crm-development",
                 } as any);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-accent-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-accent-primary/90 transition"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition cursor-pointer"
+              style={{ backgroundColor: "#5B4FE8", color: "#ffffff" }}
               title="Create a new single programmatic landing page"
             >
-              <Plus className="h-4 w-4" />
-              + Create Single Page
+              <Plus className="h-4 w-4 text-white" />
+              <span>Create Single Page</span>
             </button>
 
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition cursor-pointer"
               title="Upload CSV or JSON spreadsheet in bulk"
             >
               <Upload className="h-4 w-4" />
@@ -430,17 +431,19 @@ export default function AdminPseoDashboard() {
                   serviceSlug: "crm-development",
                 } as any);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-accent-primary px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-accent-primary/90 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition cursor-pointer"
+              style={{ backgroundColor: "#5B4FE8", color: "#ffffff" }}
             >
-              <Plus className="h-4 w-4" />
-              + Create Single Page
+              <Plus className="h-4 w-4 text-white" />
+              <span>Create Single Page</span>
             </button>
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition cursor-pointer"
+              style={{ backgroundColor: "#059669", color: "#ffffff" }}
             >
-              <Upload className="h-4 w-4" />
-              Bulk Upload CSV / JSON
+              <Upload className="h-4 w-4 text-white" />
+              <span>Bulk Upload CSV / JSON</span>
             </button>
           </div>
         </div>

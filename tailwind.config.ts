@@ -6,6 +6,7 @@ const config: Config = {
     extend: {
       colors: {
         purple: "#5B4FE8",
+        "accent-primary": "#5B4FE8",
         navy: "#1A1A4E",
         lavender: "#F4F3FF",
         tint: "#E8E6FF",
