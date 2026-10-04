@@ -303,6 +303,61 @@ export function ServiceTemplate({ service }: { service: Service }) {
         </div>
       </section>
 
+      {/* Regional Engineering Hubs & Build vs Buy Cross-Links */}
+      <section className="mx-auto max-w-content px-6 pb-16">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-purple">
+                UK &amp; Australia Hubs
+              </span>
+              <h3 className="text-xl font-bold text-navy mt-0.5">
+                {service.navLabel} in Your Metropolitan Region
+              </h3>
+            </div>
+            <Link
+              href="/locations"
+              className="text-xs font-bold text-purple hover:underline flex items-center gap-1"
+            >
+              All Engineering Hubs <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+            {[
+              { city: "London", slug: "london" },
+              { city: "Manchester", slug: "manchester" },
+              { city: "Birmingham", slug: "birmingham" },
+              { city: "Leeds", slug: "leeds" },
+              { city: "Bristol", slug: "bristol" },
+              { city: "Edinburgh", slug: "edinburgh" },
+              { city: "Sydney", slug: "sydney" },
+              { city: "Melbourne", slug: "melbourne" },
+              { city: "Brisbane", slug: "brisbane" },
+              { city: "Perth", slug: "perth" },
+            ].map((loc) => (
+              <Link
+                key={loc.slug}
+                href={`/locations/${loc.slug}/${service.slug}`}
+                className="rounded-xl bg-slate-50 p-2.5 text-xs font-semibold text-slate-700 hover:bg-purple hover:text-white transition text-center border border-slate-100"
+              >
+                {loc.city}
+              </Link>
+            ))}
+          </div>
+
+          <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 text-xs text-slate-500">
+            <span>Evaluating build vs. buy?</span>
+            <Link
+              href="/compare"
+              className="font-bold text-purple hover:underline flex items-center gap-1"
+            >
+              Read Build vs. Buy SaaS Guides <ArrowRight size={13} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <StandardCTA />
     </>
   );

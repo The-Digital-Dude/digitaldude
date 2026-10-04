@@ -117,7 +117,14 @@ export function ContactForm() {
     proposalSlug?: string | null;
   } | null>(null);
 
-  // Detect user's timezone on mount
+  // Contextual pSEO Inbound Detection
+  const [pseoContext, setPseoContext] = useState<{
+    location?: string;
+    service?: string;
+    country?: string;
+  } | null>(null);
+
+  // Detect user's timezone & pSEO parameters on mount
   useEffect(() => {
     try {
       const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -129,6 +136,35 @@ export function ContactForm() {
       }
     } catch {
       setUserTimezone("Europe/London");
+    }
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const loc = params.get("location");
+      const srv = params.get("service");
+      const cntry = params.get("country");
+      const src = params.get("source");
+
+      if (loc || srv || src === "pseo") {
+        setPseoContext({
+          location: loc || undefined,
+          service: srv || undefined,
+          country: cntry || undefined,
+        });
+
+        if (cntry && countries.includes(cntry)) {
+          setCountry(cntry);
+        }
+
+        if (srv) {
+          const lower = srv.toLowerCase();
+          if (lower.includes("crm")) setSystemType("crm");
+          else if (lower.includes("saas")) setSystemType("saas");
+          else if (lower.includes("market")) setSystemType("marketplace");
+          else if (lower.includes("erp") || lower.includes("hrm")) setSystemType("erp");
+          else if (lower.includes("web")) setSystemType("webapp");
+        }
+      }
     }
   }, []);
 
@@ -270,11 +306,14 @@ export function ContactForm() {
 
     const eventId = `book_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-    // Extract referral code from URL search param or localStorage
+    // Extract referral code from URL search param, pSEO context, or localStorage
     let refCode = "";
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       refCode = (urlParams.get("ref") || "").trim().toLowerCase();
+      if (!refCode && pseoContext) {
+        refCode = `pseo:${(pseoContext.location || "global").toLowerCase()}:${(pseoContext.service || "custom-system").toLowerCase()}`;
+      }
       if (!refCode) {
         try {
           refCode = (localStorage.getItem("tdd_rep_ref") || "").trim().toLowerCase();
@@ -501,6 +540,23 @@ export function ContactForm() {
           </div>
         </div>
       </div>
+
+      {/* Contextual Inbound Personalization Badge */}
+      {pseoContext && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl bg-purple/10 p-3.5 sm:p-4 text-xs font-semibold text-purple border border-purple/20">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="h-4 w-4 shrink-0 text-purple" />
+            <span>
+              Personalized Discovery for{" "}
+              <strong className="text-navy">{pseoContext.service || "Bespoke System"}</strong>
+              {pseoContext.location ? ` in ${pseoContext.location}` : ""}
+            </span>
+          </div>
+          <span className="hidden sm:inline-block rounded-md bg-white/60 px-2 py-0.5 text-[10px] uppercase tracking-wider text-purple font-bold">
+            Auto-Configured
+          </span>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs sm:text-sm flex items-center gap-2.5">

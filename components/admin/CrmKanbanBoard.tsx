@@ -36,6 +36,7 @@ import {
   X,
   GripVertical,
   Layers,
+  Globe,
 } from "lucide-react";
 import {
   BookingLead,
@@ -531,6 +532,24 @@ export function CrmKanbanBoard({
                               </span>
                             )}
                           </div>
+
+                          {/* Source / Referral Tag */}
+                          {lead.referral_source && (
+                            <div className="flex items-center gap-1 text-[10px]">
+                              {lead.referral_source.startsWith("pseo:") ? (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 font-bold text-emerald-700 border border-emerald-200 truncate max-w-full">
+                                  <Globe size={10} className="shrink-0 text-emerald-600" />
+                                  <span className="truncate">
+                                    {lead.referral_source.replace("pseo:", "pSEO: ")}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-600 truncate max-w-full">
+                                  Ref: {lead.referral_source}
+                                </span>
+                              )}
+                            </div>
+                          )}
 
                           {/* Meeting Slot */}
                           <div className="flex items-center gap-1.5 text-[11px] text-navy/70">

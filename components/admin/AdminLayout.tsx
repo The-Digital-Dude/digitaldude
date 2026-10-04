@@ -19,11 +19,13 @@ import {
   UserCheck,
   FolderKanban,
   Activity,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/admin/pseo", label: "Programmatic SEO", icon: Globe, exact: false },
   { href: "/admin/projects", label: "Client Projects", icon: FolderKanban, exact: false },
   { href: "/admin/reps", label: "Rep Activity & Audit", icon: Activity, exact: false },
   { href: "/admin/bookings", label: "Meetings & Bookings", icon: CalendarCheck, exact: false },

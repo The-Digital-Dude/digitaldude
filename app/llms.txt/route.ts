@@ -72,9 +72,10 @@ ${blogPosts
   )
   .join("\n")}
 
-## Target Geography & Clients
-- Primary markets: United Kingdom and Australia.
-- Industry verticals: Property & Real Estate, Logistics & Transportation, Home Services, Recruitment, Travel & Ticketing, Community & Matchmaking, and Education/Tutoring.
+## Programmatic Solutions, Locations & Comparisons
+- [UK & Australia Engineering Hubs](${SITE_URL}/locations): Bespoke software engineering across London, Manchester, Birmingham, Leeds, Bristol, Edinburgh, Sydney, Melbourne, Brisbane, and Perth.
+- [Vertical Industry Solutions](${SITE_URL}/solutions): Purpose-built systems for Property, Logistics, Travel, Recruitment, Home Services, and EdTech.
+- [Build vs. Buy Architectural Comparisons](${SITE_URL}/compare): In-depth comparison guides of bespoke software vs. Salesforce, HubSpot, Sharetribe, NetSuite, and Bubble.
 
 ## Contact & Discovery
 - Official Website: ${SITE_URL}

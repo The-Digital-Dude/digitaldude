@@ -251,6 +251,48 @@ export function IndustryTemplate({ industry }: { industry: IndustryPage }) {
         </div>
       </section>
 
+      {/* Vertical Solutions Cross-Links */}
+      <section className="mx-auto max-w-content px-6 pb-16">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-purple">
+                Vertical Solutions
+              </span>
+              <h3 className="text-xl font-bold text-navy mt-0.5">
+                Purpose-Built Platforms for {industry.navLabel}
+              </h3>
+            </div>
+            <Link
+              href="/solutions"
+              className="text-xs font-bold text-purple hover:underline flex items-center gap-1"
+            >
+              All Industry Solutions <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { label: "CRM Development", slug: "crm-development" },
+              { label: "SaaS Engineering", slug: "saas-development" },
+              { label: "Operations & ERP", slug: "erp-hrm-systems" },
+              { label: "Marketplace Development", slug: "marketplace-development" },
+              { label: "Web Applications", slug: "website-development" },
+              { label: "SEO & Growth Systems", slug: "seo-growth" },
+            ].map((srv) => (
+              <Link
+                key={srv.slug}
+                href={`/solutions/${industry.slug}/${srv.slug}`}
+                className="flex items-center justify-between rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-700 hover:bg-purple hover:text-white transition group border border-slate-100"
+              >
+                <span>{srv.label} for {industry.navLabel}</span>
+                <ArrowRight size={14} className="opacity-60 group-hover:opacity-100" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <StandardCTA />
     </>
   );

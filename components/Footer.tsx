@@ -83,6 +83,32 @@ export function Footer() {
         </div>
 
         <div>
+          <h3 className="text-sm font-semibold text-white">Solutions & Hubs</h3>
+          <ul className="mt-4 space-y-2 text-sm">
+            <li>
+              <Link href="/solutions" className="hover:text-white">
+                Industry Solutions
+              </Link>
+            </li>
+            <li>
+              <Link href="/locations" className="hover:text-white">
+                UK & AU Engineering Hubs
+              </Link>
+            </li>
+            <li>
+              <Link href="/compare" className="hover:text-white">
+                Build vs. Buy Guides
+              </Link>
+            </li>
+            <li>
+              <Link href="/services" className="hover:text-white">
+                All Core Services
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div>
           <h3 className="text-sm font-semibold text-white">Company</h3>
           <ul className="mt-4 space-y-2 text-sm">
             <li>
@@ -113,36 +139,6 @@ export function Footer() {
             <li>
               <a href="mailto:info@digitaldude.co.uk" className="hover:text-white">
                 info@digitaldude.co.uk
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.linkedin.com/company/td-dude"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white"
-              >
-                LinkedIn
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.facebook.com/td.dude/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white"
-              >
-                Facebook
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://www.instagram.com/td.dude"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-white"
-              >
-                Instagram
               </a>
             </li>
           </ul>

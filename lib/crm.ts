@@ -27,6 +27,7 @@ export interface BookingLead {
   lead_notes?: string;
   assigned_to?: string;
   sourced_by_employee_id?: string | null;
+  referral_source?: string | null;
   created_at: string;
   updated_at?: string;
 }
