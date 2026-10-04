@@ -7,6 +7,8 @@ import { getCaseStudies } from "@/lib/caseStudiesServer";
 
 import { getAllPseoSlugs } from "@/lib/pseo/engine";
 
+export const revalidate = 3600; // Cache and revalidate sitemap every hour for instant edge delivery
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
