@@ -27,6 +27,7 @@ import {
   SearchCheck,
   Gauge,
   Zap,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { SITE_URL } from "@/lib/utils";
@@ -243,7 +244,7 @@ export default function AdminPseoDashboard() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
             {/* Google Quota Badge */}
             <div
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
@@ -256,29 +257,49 @@ export default function AdminPseoDashboard() {
 
             <button
               onClick={() => setIsIndexNowModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-slate-800 transition"
               title="Submit URLs to Google Indexing API and IndexNow"
             >
               <Sparkles className="h-4 w-4 text-accent-primary" />
-              Instant Indexing (Google & Bing)
+              Instant Indexing
             </button>
+
+            <button
+              onClick={() => {
+                setEditingPage({
+                  slug: "new-page",
+                  title: "New Programmatic Page",
+                  category: "location",
+                  status: "published",
+                  city: "",
+                  serviceSlug: "crm-development",
+                } as any);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-accent-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-accent-primary/90 transition"
+              title="Create a new single programmatic landing page"
+            >
+              <Plus className="h-4 w-4" />
+              + Create Single Page
+            </button>
+
+            <button
+              onClick={() => setIsBulkModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+              title="Upload CSV or JSON spreadsheet in bulk"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Upload CSV / JSON
+            </button>
+
             <button
               onClick={() => {
                 fetchPseoPages();
                 fetchGoogleQuota();
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
               title="Refresh list"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-accent-primary" : ""}`} />
-              Refresh
-            </button>
-            <button
-              onClick={() => setIsBulkModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-accent-primary px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-accent-primary/90 transition"
-            >
-              <Upload className="h-4 w-4" />
-              Bulk Upload CSV / JSON
             </button>
           </div>
         </div>
@@ -388,6 +409,39 @@ export default function AdminPseoDashboard() {
               /compare Hub
               <ExternalLink className="h-3 w-3 text-slate-400" />
             </Link>
+          </div>
+        </div>
+
+        {/* Creation Quick Action Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4 border border-slate-200 shadow-xs">
+          <div>
+            <div className="text-xs font-bold text-navy">Content Generation & Publishing</div>
+            <div className="text-[11px] text-slate-500">Create new programmatic landing pages individually or upload spreadsheets in bulk.</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                setEditingPage({
+                  slug: "new-page",
+                  title: "New Programmatic Page",
+                  category: "location",
+                  status: "published",
+                  city: "",
+                  serviceSlug: "crm-development",
+                } as any);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-accent-primary px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-accent-primary/90 transition cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              + Create Single Page
+            </button>
+            <button
+              onClick={() => setIsBulkModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition cursor-pointer"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Upload CSV / JSON
+            </button>
           </div>
         </div>
 

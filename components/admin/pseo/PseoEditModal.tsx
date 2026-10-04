@@ -18,25 +18,35 @@ export function PseoEditModal({
   onClose,
   onSaved,
 }: PseoEditModalProps) {
+  const [category, setCategory] = useState<"location" | "solution" | "comparison" | "custom">("location");
+  const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [heroBadge, setHeroBadge] = useState("");
   const [heroHeadline, setHeroHeadline] = useState("");
   const [heroSubheadline, setHeroSubheadline] = useState("");
   const [targetKeyword, setTargetKeyword] = useState("");
+  const [city, setCity] = useState("");
+  const [serviceSlug, setServiceSlug] = useState("crm-development");
   const [status, setStatus] = useState<"published" | "draft" | "archived">("published");
   const [customContent, setCustomContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const isCreatingNew = !page?.id && (!page?.slug || page.slug === "new-page");
+
   useEffect(() => {
     if (page) {
-      setTitle(page.title || "");
+      setCategory((page.category as any) || "location");
+      setSlug(page.slug === "new-page" ? "" : (page.slug || ""));
+      setTitle(page.title === "New Programmatic Page" ? "" : (page.title || ""));
       setMetaDescription(page.metaDescription || "");
       setHeroBadge(page.heroBadge || "");
       setHeroHeadline(page.heroHeadline || "");
       setHeroSubheadline(page.heroSubheadline || "");
       setTargetKeyword(page.targetKeyword || "");
+      setCity(page.city || "");
+      setServiceSlug(page.serviceSlug || "crm-development");
       setStatus(page.status || "published");
       setCustomContent(page.customContent || "");
       setErrorMessage(null);
@@ -46,33 +56,41 @@ export function PseoEditModal({
   if (!isOpen || !page) return null;
 
   async function handleSave() {
-    if (!page) return;
     setIsSaving(true);
     setErrorMessage(null);
 
     try {
+      let finalSlug = slug.trim().replace(/^\/+|\/+$/g, "");
+      if (!finalSlug) {
+        if (city && serviceSlug) {
+          finalSlug = `locations/${city.toLowerCase().replace(/\s+/g, "-")}/${serviceSlug}`;
+        } else {
+          finalSlug = `custom/${(title || "new-page").toLowerCase().replace(/[^\w-]/g, "-")}`;
+        }
+      }
+
       const payload = {
-        slug: page.slug,
-        category: page.category,
-        title,
+        slug: finalSlug,
+        category,
+        title: title || (city ? `${city} Software Development | The Digital Dude` : "Custom Page"),
         metaDescription,
         heroBadge,
-        heroHeadline,
+        heroHeadline: heroHeadline || title,
         heroSubheadline,
-        targetKeyword,
+        targetKeyword: targetKeyword || title,
         status,
         customContent,
-        city: page.city,
-        country: page.country,
-        region: page.region,
-        currency: page.currency,
-        industrySlug: page.industrySlug,
-        serviceSlug: page.serviceSlug,
-        competitorName: page.competitorName,
-        featuredCaseStudySlug: page.featuredCaseStudySlug,
-        faqs: page.faqs,
-        stats: page.stats,
-        comparisonMatrix: page.comparisonMatrix
+        city: city || page?.city || null,
+        country: page?.country || (city ? "United Kingdom" : null),
+        region: page?.region || null,
+        currency: page?.currency || "GBP",
+        industrySlug: page?.industrySlug || null,
+        serviceSlug: serviceSlug || page?.serviceSlug || null,
+        competitorName: page?.competitorName || null,
+        featuredCaseStudySlug: page?.featuredCaseStudySlug || null,
+        faqs: page?.faqs || [],
+        stats: page?.stats || [],
+        comparisonMatrix: page?.comparisonMatrix || []
       };
 
       const res = await fetch("/api/admin/pseo", {
@@ -95,7 +113,7 @@ export function PseoEditModal({
     }
   }
 
-  const liveUrl = `${SITE_URL}/${page.slug}`;
+  const liveUrl = `${SITE_URL}/${slug || page.slug || "new-page"}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -105,13 +123,13 @@ export function PseoEditModal({
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-accent-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-accent-primary uppercase tracking-wider">
-                {page.category}
+                {isCreatingNew ? "New Page Creation" : category}
               </span>
               <h3 className="text-lg font-bold text-navy">
-                Edit Programmatic Page
+                {isCreatingNew ? "Create Programmatic Page" : "Edit Programmatic Page"}
               </h3>
             </div>
-            <div className="text-xs font-mono text-slate-500 mt-1">/{page.slug}</div>
+            <div className="text-xs font-mono text-slate-500 mt-1">/{slug || page.slug || "new-page"}</div>
           </div>
           <button
             onClick={onClose}
@@ -127,6 +145,80 @@ export function PseoEditModal({
             <div className="flex items-center gap-2 rounded-xl bg-red-50 p-4 text-xs text-red-700 border border-red-200">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* New Page Setup Fields */}
+          {isCreatingNew && (
+            <div className="rounded-xl border border-accent-primary/20 bg-accent-primary/5 p-4 space-y-4">
+              <div className="text-xs font-bold text-navy uppercase tracking-wider">Page Routing & Setup</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-navy">Category:</label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as any)}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-800 focus:border-accent-primary focus:outline-none"
+                  >
+                    <option value="location">Location (City + Service)</option>
+                    <option value="solution">Solution (Industry + Service)</option>
+                    <option value="comparison">Comparison (Build vs SaaS)</option>
+                    <option value="custom">Custom URL</option>
+                  </select>
+                </div>
+
+                {category === "location" && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-navy">City / Metro:</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Newcastle, Gold Coast"
+                      value={city}
+                      onChange={(e) => {
+                        setCity(e.target.value);
+                        if (!slug) {
+                          setSlug(`locations/${e.target.value.toLowerCase().replace(/\s+/g, "-")}/${serviceSlug}`);
+                        }
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-800 focus:border-accent-primary focus:outline-none"
+                    />
+                  </div>
+                )}
+
+                {(category === "location" || category === "solution") && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-navy">Service:</label>
+                    <select
+                      value={serviceSlug}
+                      onChange={(e) => {
+                        setServiceSlug(e.target.value);
+                        if (city && category === "location") {
+                          setSlug(`locations/${city.toLowerCase().replace(/\s+/g, "-")}/${e.target.value}`);
+                        }
+                      }}
+                      className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-800 focus:border-accent-primary focus:outline-none"
+                    >
+                      <option value="crm-development">CRM Development</option>
+                      <option value="saas-development">SaaS Development</option>
+                      <option value="marketplace-development">Marketplace Development</option>
+                      <option value="erp-hrm-systems">ERP / HRM Systems</option>
+                      <option value="website-development">Website Development</option>
+                      <option value="seo-growth">SEO & Growth</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-1 md:col-span-3">
+                  <label className="text-xs font-bold text-navy">URL Slug (Live path):</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. locations/newcastle/crm-development"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white p-2 font-mono text-xs text-slate-800 focus:border-accent-primary focus:outline-none"
+                  />
+                </div>
+              </div>
             </div>
           )}
 
@@ -152,6 +244,7 @@ export function PseoEditModal({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Custom CRM Development in Newcastle | The Digital Dude"
                 className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-accent-primary focus:outline-none"
               />
             </div>
@@ -162,6 +255,7 @@ export function PseoEditModal({
                 type="text"
                 value={targetKeyword}
                 onChange={(e) => setTargetKeyword(e.target.value)}
+                placeholder="e.g. CRM Development Newcastle"
                 className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-accent-primary focus:outline-none"
               />
             </div>
