@@ -20,14 +20,14 @@ interface PseoBulkImportModalProps {
   onImported: () => void;
 }
 
-type ImportType = "locations" | "solutions" | "comparisons" | "custom_csv";
+type ImportType = "smart" | "locations" | "solutions" | "comparisons";
 
 export function PseoBulkImportModal({
   isOpen,
   onClose,
   onImported,
 }: PseoBulkImportModalProps) {
-  const [importType, setImportType] = useState<ImportType>("locations");
+  const [importType, setImportType] = useState<ImportType>("smart");
   const [rawText, setRawText] = useState("");
   const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [parsingError, setParsingError] = useState<string | null>(null);
@@ -36,24 +36,43 @@ export function PseoBulkImportModal({
 
   if (!isOpen) return null;
 
+  // Handle CSV file upload directly
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        setRawText(text);
+        parseContent(text);
+      }
+    };
+    reader.readAsText(file);
+  }
+
   // Generate Sample CSVs
   function downloadSampleCsv(type: ImportType) {
     let content = "";
     let filename = "";
 
-    if (type === "locations") {
-      filename = "pseo_locations_sample.csv";
+    if (type === "smart") {
+      filename = "pseo_smart_minimal_matrix.csv";
+      content = `city,country,service_slug\nNewcastle,United Kingdom,crm-development\nSheffield,United Kingdom,saas-development\nGold Coast,Australia,marketplace-development\nBristol,United Kingdom,ai-automation\nPerth,Australia,cloud-infrastructure`;
+    } else if (type === "locations") {
+      filename = "pseo_locations_full.csv";
       content = `city,region,country,country_code,currency,service_slug,title,meta_description,hero_headline
 Newcastle,Tyne and Wear,United Kingdom,UK,GBP,crm-development,Custom CRM Development in Newcastle | The Digital Dude,Custom CRM development in Newcastle and the North East with zero per-seat fees.,Custom CRM Development for Newcastle Enterprises
 Sheffield,South Yorkshire,United Kingdom,UK,GBP,saas-development,SaaS Product Development in Sheffield | The Digital Dude,Multi-tenant SaaS engineering for Sheffield scaleups.,Bespoke SaaS Development for Sheffield Brands
 Gold Coast,Queensland,Australia,AU,AUD,marketplace-development,Marketplace Platform Development Gold Coast | The Digital Dude,Two-sided service and booking marketplace development in Gold Coast.,Custom Marketplace Development in Gold Coast`;
     } else if (type === "solutions") {
-      filename = "pseo_solutions_sample.csv";
+      filename = "pseo_solutions_full.csv";
       content = `industry_slug,industry_name,service_slug,title,meta_description,hero_headline,featured_case_study
 automotive,Automotive & Dealerships,crm-development,Automotive Dealership CRM Software | The Digital Dude,Custom dealership CRM with vehicle inventory sync and test drive booking.,Custom CRM Engineered for Automotive Dealerships,property-compliance-crm
 healthcare,Private Healthcare & Clinics,erp-hrm-systems,Clinic Management & Patient Scheduling Portal | The Digital Dude,HIPAA and GDPR compliant patient scheduling and clinic management ERP.,Bespoke Clinic Operations Portals for Healthcare Providers,logistics-platform`;
     } else if (type === "comparisons") {
-      filename = "pseo_comparisons_sample.csv";
+      filename = "pseo_comparisons_full.csv";
       content = `slug,competitor_name,category,title,meta_description,hero_headline
 custom-crm-vs-zoho,Zoho CRM,CRM,Custom Software vs Zoho CRM | The Digital Dude,Compare bespoke operational software vs Zoho CRM. Eliminate complexity and license fees.,Custom CRM vs Zoho CRM: Full Comparison
 custom-portal-vs-sharepoint,Microsoft SharePoint,Operations,Custom Portal vs Microsoft SharePoint | The Digital Dude,Compare custom web portal vs SharePoint intranet. Faster UX and zero Microsoft 365 licensing.,Custom Client Portal vs Microsoft SharePoint`;
@@ -69,19 +88,20 @@ custom-portal-vs-sharepoint,Microsoft SharePoint,Operations,Custom Portal vs Mic
     document.body.removeChild(link);
   }
 
-  function handleParseInput() {
+  function parseContent(contentToParse: string) {
     setParsingError(null);
     setParsedRows([]);
 
-    if (!rawText.trim()) {
-      setParsingError("Please paste CSV data or JSON array.");
+    const text = contentToParse.trim();
+    if (!text) {
+      setParsingError("Please paste CSV data, upload a file, or enter a JSON array.");
       return;
     }
 
     // Attempt JSON parse first
-    if (rawText.trim().startsWith("[") && rawText.trim().endsWith("]")) {
+    if (text.startsWith("[") && text.endsWith("]")) {
       try {
-        const json = JSON.parse(rawText);
+        const json = JSON.parse(text);
         if (Array.isArray(json)) {
           setParsedRows(json);
           return;
@@ -94,7 +114,7 @@ custom-portal-vs-sharepoint,Microsoft SharePoint,Operations,Custom Portal vs Mic
 
     // CSV Parse
     try {
-      const lines = rawText.trim().split(/\r?\n/).filter((l) => l.trim().length > 0);
+      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
       if (lines.length < 2) {
         setParsingError("CSV must contain a header row and at least one data row.");
         return;
@@ -121,10 +141,19 @@ custom-portal-vs-sharepoint,Microsoft SharePoint,Operations,Custom Portal vs Mic
           } else if (rowObj.industry_slug && rowObj.service_slug) {
             rowObj.slug = `solutions/${rowObj.industry_slug}/${rowObj.service_slug}`;
             rowObj.category = "solution";
+          } else if (rowObj.competitor_name) {
+            rowObj.slug = `compare/custom-software-vs-${rowObj.competitor_name.toLowerCase().replace(/\s+/g, "-")}`;
+            rowObj.category = "comparison";
           } else {
             rowObj.slug = `custom/${(rowObj.title || `page-${i}`).toLowerCase().replace(/[^\w-]/g, "-")}`;
             rowObj.category = "custom";
           }
+        }
+
+        // Auto-generate preview title if empty
+        if (!rowObj.title) {
+          const sName = (rowObj.service_slug || "Software").replace(/-/g, " ");
+          rowObj.title = rowObj.city ? `${rowObj.city} ${sName} | The Digital Dude` : `Custom ${sName}`;
         }
 
         rows.push(rowObj);
@@ -139,6 +168,10 @@ custom-portal-vs-sharepoint,Microsoft SharePoint,Operations,Custom Portal vs Mic
     } catch (err: any) {
       setParsingError(`Failed to parse CSV: ${err.message}`);
     }
+  }
+
+  function handleParseInput() {
+    parseContent(rawText);
   }
 
   async function handleExecuteBulkImport() {
@@ -231,48 +264,101 @@ custom-portal-vs-sharepoint,Microsoft SharePoint,Operations,Custom Portal vs Mic
               {/* Step 1: Template selection */}
               <div className="space-y-3">
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Step 1: Choose Template / Format
+                  Step 1: Choose Template / Download Sample
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {(["locations", "solutions", "comparisons"] as ImportType[]).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setImportType(t)}
-                      className={`rounded-xl px-4 py-2 text-xs font-bold capitalize transition border ${
-                        importType === t
-                          ? "bg-navy text-white border-navy"
-                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                      }`}
-                    >
-                      {t} Batch
-                    </button>
-                  ))}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <button
+                    type="button"
+                    onClick={() => setImportType("smart")}
+                    className={`rounded-xl px-3.5 py-2 text-xs font-bold transition border ${
+                      importType === "smart"
+                        ? "bg-navy text-white border-navy"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    ⚡ Smart Minimal (City + Service)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportType("locations")}
+                    className={`rounded-xl px-3.5 py-2 text-xs font-bold transition border ${
+                      importType === "locations"
+                        ? "bg-navy text-white border-navy"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    Full Locations
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportType("solutions")}
+                    className={`rounded-xl px-3.5 py-2 text-xs font-bold transition border ${
+                      importType === "solutions"
+                        ? "bg-navy text-white border-navy"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    Full Solutions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImportType("comparisons")}
+                    className={`rounded-xl px-3.5 py-2 text-xs font-bold transition border ${
+                      importType === "comparisons"
+                        ? "bg-navy text-white border-navy"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    Comparisons
+                  </button>
 
                   <button
                     type="button"
                     onClick={() => downloadSampleCsv(importType)}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-accent-primary hover:bg-slate-50 transition ml-auto"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-accent-primary hover:bg-slate-50 transition ml-auto"
                   >
                     <Download className="h-3.5 w-3.5" />
-                    Download Sample CSV ({importType})
+                    Download Sample ({importType})
                   </button>
                 </div>
               </div>
 
-              {/* Step 2: Paste Raw CSV or JSON */}
-              <div className="space-y-2">
+              {/* Step 2: Upload File or Paste Raw CSV / JSON */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
-                  <span>Step 2: Paste CSV Data or JSON Array</span>
+                  <span>Step 2: Upload CSV File or Paste Content</span>
                   <span className="font-normal text-slate-400">Comma-separated with headers</span>
                 </div>
-                <textarea
-                  rows={6}
-                  value={rawText}
-                  onChange={(e) => setRawText(e.target.value)}
-                  placeholder={`city,region,country,country_code,currency,service_slug,title,meta_description,hero_headline\nNewcastle,Tyne and Wear,United Kingdom,UK,GBP,crm-development,Custom CRM Development in Newcastle,Bespoke CRM software for Newcastle firms,Custom CRM Development in Newcastle`}
-                  className="w-full rounded-xl border border-slate-200 p-3 font-mono text-xs text-slate-800 focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary"
-                />
+
+                {/* Direct File Picker */}
+                <div className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 transition">
+                  <FileSpreadsheet className="h-5 w-5 text-accent-primary shrink-0" />
+                  <div className="flex-1 text-xs">
+                    <span className="font-bold text-navy">Upload .CSV spreadsheet:</span>
+                    <span className="text-slate-500 ml-1.5">Pick any prepared CSV file from your computer</span>
+                  </div>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg bg-navy px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition">
+                    <Upload className="h-3.5 w-3.5" />
+                    Browse File
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="relative">
+                  <textarea
+                    rows={5}
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    placeholder={`city,country,service_slug\nNewcastle,United Kingdom,crm-development\nSheffield,United Kingdom,saas-development\nGold Coast,Australia,marketplace-development`}
+                    className="w-full rounded-xl border border-slate-200 p-3 font-mono text-xs text-slate-800 focus:border-accent-primary focus:outline-none focus:ring-1 focus:ring-accent-primary"
+                  />
+                </div>
+
                 <div className="flex justify-end">
                   <button
                     type="button"
