@@ -16,15 +16,25 @@ export async function getGoogleSeoAuthClient() {
   const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (serviceAccountJson) {
     try {
-      const creds = JSON.parse(serviceAccountJson);
+      let raw = serviceAccountJson.trim();
+      if (!raw.startsWith("{") && !raw.startsWith('"')) {
+        try {
+          raw = Buffer.from(raw, "base64").toString("utf-8");
+        } catch {}
+      }
+      const creds = JSON.parse(raw);
+      const privateKey = (creds.private_key || "").includes("\\n")
+        ? creds.private_key.replace(/\\n/g, "\n")
+        : creds.private_key;
+
       const auth = new google.auth.JWT({
         email: creds.client_email,
-        key: creds.private_key,
+        key: privateKey,
         scopes: GOOGLE_SCOPES,
       });
       return auth;
-    } catch (e) {
-      log("warn", { message: "[Google SEO] Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY json, trying OAuth fallback" });
+    } catch (e: any) {
+      log("warn", { message: `[Google SEO] Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY: ${e.message}, trying fallback` });
     }
   }
 
@@ -142,12 +152,15 @@ export async function submitToGoogleIndexing(
     }
   }
 
+  const firstError = details.find((d) => d.status === "error")?.error;
+
   return {
-    ok: submittedCount > 0 || urls.length === 0,
+    ok: submittedCount > 0 || (urls.length === 0 && failedCount === 0),
     submitted: submittedCount,
     failed: failedCount,
     quotaRemaining: Math.max(0, 200 - dailyQuotaCount),
     details,
+    error: firstError || (submittedCount === 0 && failedCount > 0 ? "Google Indexing submission failed" : undefined),
   };
 }
 
