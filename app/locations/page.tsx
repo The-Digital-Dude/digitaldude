@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { pseoLocations } from "@/lib/pseo/data/locations";
 import { pseoServices } from "@/lib/pseo/data/services";
 import { MapPin, ArrowRight, CheckCircle2, Globe, ShieldCheck } from "lucide-react";
@@ -20,9 +18,7 @@ export default function LocationsIndexPage() {
   const auLocations = pseoLocations.filter((l) => l.countryCode === "AU");
 
   return (
-    <>
-      <Header />
-      <main className="min-h-screen bg-slate-50 pt-28 pb-20">
+    <main className="min-h-screen bg-slate-50 pt-28 pb-20">
         {/* Hero */}
         <section className="container mx-auto px-4 max-w-6xl">
           <div className="text-center max-w-3xl mx-auto space-y-4">
@@ -186,7 +182,5 @@ export default function LocationsIndexPage() {
           </div>
         </section>
       </main>
-      <Footer />
-    </>
   );
 }

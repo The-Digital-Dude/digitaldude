@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { pseoIndustries } from "@/lib/pseo/data/industries";
 import { pseoServices } from "@/lib/pseo/data/services";
 import { Layers, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
@@ -17,9 +15,7 @@ export const metadata: Metadata = {
 
 export default function SolutionsIndexPage() {
   return (
-    <>
-      <Header />
-      <main className="min-h-screen bg-slate-50 pt-28 pb-20">
+    <main className="min-h-screen bg-slate-50 pt-28 pb-20">
         <section className="container mx-auto px-4 max-w-6xl">
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-accent-primary/10 px-4 py-1.5 text-xs font-semibold text-accent-primary">
@@ -82,7 +78,5 @@ export default function SolutionsIndexPage() {
           </div>
         </section>
       </main>
-      <Footer />
-    </>
   );
 }

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { pseoLocations } from "@/lib/pseo/data/locations";
 import { pseoServices } from "@/lib/pseo/data/services";
 import { getPseoPage, getAllCodePseoPages } from "@/lib/pseo/engine";
@@ -87,7 +85,6 @@ export default async function LocationServicePage({ params }: PageProps) {
   return (
     <>
       <PseoJsonLd page={page} />
-      <Header />
       <main className="min-h-screen bg-slate-50 pt-28 pb-20">
         <div className="container mx-auto px-4 max-w-5xl">
           {/* Breadcrumbs */}
@@ -258,7 +255,6 @@ export default async function LocationServicePage({ params }: PageProps) {
           />
         </div>
       </main>
-      <Footer />
     </>
   );
 }
