@@ -24,6 +24,26 @@ const nextConfig = {
         destination: '/contact',
         permanent: true,
       },
+      {
+        source: '/solutions/logistics/erp-operations',
+        destination: '/solutions/logistics/erp-hrm-systems',
+        permanent: true,
+      },
+      {
+        source: '/solutions/travel/marketplace-booking',
+        destination: '/solutions/travel/marketplace-development',
+        permanent: true,
+      },
+      {
+        source: '/solutions/recruitment/candidate-portal',
+        destination: '/solutions/recruitment/crm-development',
+        permanent: true,
+      },
+      {
+        source: '/solutions/home-services/dispatch-management',
+        destination: '/solutions/home-services/marketplace-development',
+        permanent: true,
+      },
     ];
   },
   async headers() {

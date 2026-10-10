@@ -115,22 +115,22 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/solutions/logistics/erp-operations" className="hover:text-white transition">
+                <Link href="/solutions/logistics/erp-hrm-systems" className="hover:text-white transition">
                   Logistics & Fleet Systems
                 </Link>
               </li>
               <li>
-                <Link href="/solutions/travel/marketplace-booking" className="hover:text-white transition">
+                <Link href="/solutions/travel/marketplace-development" className="hover:text-white transition">
                   Travel & Booking Engines
                 </Link>
               </li>
               <li>
-                <Link href="/solutions/recruitment/candidate-portal" className="hover:text-white transition">
+                <Link href="/solutions/recruitment/crm-development" className="hover:text-white transition">
                   Recruitment & ATS Portals
                 </Link>
               </li>
               <li>
-                <Link href="/solutions/home-services/dispatch-management" className="hover:text-white transition">
+                <Link href="/solutions/home-services/marketplace-development" className="hover:text-white transition">
                   Field & Home Services
                 </Link>
               </li>
