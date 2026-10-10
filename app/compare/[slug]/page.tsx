@@ -18,7 +18,9 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return pseoComparisons.map((c) => ({ slug: c.slug }));
+  return pseoComparisons
+    .filter((c) => c.slug !== "custom-crm-vs-hubspot")
+    .map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
