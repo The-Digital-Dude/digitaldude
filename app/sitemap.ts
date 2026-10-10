@@ -32,12 +32,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const allCaseStudies = await getCaseStudies();
   const caseStudyPages: MetadataRoute.Sitemap = allCaseStudies.map((c) => ({
     url: `${SITE_URL}/work/${c.slug}`,
-    lastModified: baseReleaseDate,
+    lastModified: recentAuditUpdate,
   }));
 
   const servicePages: MetadataRoute.Sitemap = services.map((s) => ({
     url: `${SITE_URL}/services/${s.slug}`,
-    lastModified: s.slug === "crm-development" ? recentAuditUpdate : baseReleaseDate,
+    lastModified: recentAuditUpdate,
   }));
 
   const industryPages: MetadataRoute.Sitemap = industries.map((i) => ({
