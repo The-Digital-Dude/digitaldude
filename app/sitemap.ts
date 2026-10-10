@@ -5,44 +5,44 @@ import { industries } from "@/lib/content/industries";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { getCaseStudies } from "@/lib/caseStudiesServer";
 
-import { getAllPseoSlugs } from "@/lib/pseo/engine";
+import { getIndexablePseoSlugs } from "@/lib/pseo/engine";
 
 export const revalidate = 3600; // Cache and revalidate sitemap every hour for instant edge delivery
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // Use a stable content release date for core static architecture rather than current timestamp
-  const releaseDate = new Date("2026-04-01T00:00:00Z");
+  const baseReleaseDate = new Date("2026-04-01T00:00:00Z");
+  const recentAuditUpdate = new Date("2026-10-10T00:00:00Z");
 
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}`, lastModified: releaseDate },
-    { url: `${SITE_URL}/work`, lastModified: releaseDate },
-    { url: `${SITE_URL}/services`, lastModified: releaseDate },
-    { url: `${SITE_URL}/solutions`, lastModified: releaseDate },
-    { url: `${SITE_URL}/locations`, lastModified: releaseDate },
-    { url: `${SITE_URL}/compare`, lastModified: releaseDate },
-    { url: `${SITE_URL}/how-we-work`, lastModified: releaseDate },
-    { url: `${SITE_URL}/blog`, lastModified: releaseDate },
-    { url: `${SITE_URL}/about`, lastModified: releaseDate },
-    { url: `${SITE_URL}/contact`, lastModified: releaseDate },
-    { url: `${SITE_URL}/careers`, lastModified: releaseDate },
-    { url: `${SITE_URL}/privacy`, lastModified: releaseDate },
-    { url: `${SITE_URL}/terms`, lastModified: releaseDate },
+    { url: `${SITE_URL}`, lastModified: recentAuditUpdate },
+    { url: `${SITE_URL}/work`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/services`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/solutions`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/locations`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/compare`, lastModified: recentAuditUpdate },
+    { url: `${SITE_URL}/how-we-work`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/blog`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/about`, lastModified: recentAuditUpdate },
+    { url: `${SITE_URL}/contact`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/careers`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/privacy`, lastModified: baseReleaseDate },
+    { url: `${SITE_URL}/terms`, lastModified: baseReleaseDate },
   ];
 
   const allCaseStudies = await getCaseStudies();
   const caseStudyPages: MetadataRoute.Sitemap = allCaseStudies.map((c) => ({
     url: `${SITE_URL}/work/${c.slug}`,
-    lastModified: releaseDate,
+    lastModified: baseReleaseDate,
   }));
 
   const servicePages: MetadataRoute.Sitemap = services.map((s) => ({
     url: `${SITE_URL}/services/${s.slug}`,
-    lastModified: releaseDate,
+    lastModified: s.slug === "crm-development" ? recentAuditUpdate : baseReleaseDate,
   }));
 
   const industryPages: MetadataRoute.Sitemap = industries.map((i) => ({
     url: `${SITE_URL}/industries/${i.slug}`,
-    lastModified: releaseDate,
+    lastModified: baseReleaseDate,
   }));
 
   let jobPages: MetadataRoute.Sitemap = [];
@@ -56,7 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       jobPages = (data || []).map((job) => ({
         url: `${SITE_URL}/careers/${job.slug}`,
-        lastModified: job.updated_at ? new Date(job.updated_at) : releaseDate,
+        lastModified: job.updated_at ? new Date(job.updated_at) : baseReleaseDate,
       }));
     }
   } catch {}
@@ -73,7 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (data && data.length > 0) {
         blogPages = data.map((post) => ({
           url: `${SITE_URL}/blog/${post.slug}`,
-          lastModified: new Date(post.updated_at || post.published_at || releaseDate),
+          lastModified: new Date(post.updated_at || post.published_at || baseReleaseDate),
         }));
       }
     }
@@ -81,10 +81,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let pseoPages: MetadataRoute.Sitemap = [];
   try {
-    const slugs = await getAllPseoSlugs();
+    const slugs = await getIndexablePseoSlugs();
     pseoPages = slugs.map((slug) => ({
       url: `${SITE_URL}/${slug}`,
-      lastModified: releaseDate,
+      lastModified: recentAuditUpdate,
     }));
   } catch {}
 

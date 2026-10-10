@@ -85,6 +85,8 @@ export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
           <img
             src={project.image}
             alt={project.imageAlt}
+            width={1200}
+            height={675}
             loading="eager"
             className="absolute inset-0 h-full w-full object-contain p-10"
           />

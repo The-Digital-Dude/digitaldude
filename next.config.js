@@ -1,5 +1,18 @@
 const path = require('path');
 
+const cspHeader = `
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  img-src 'self' blob: data: https:;
+  font-src 'self' https://fonts.gstatic.com data:;
+  connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://connect.facebook.net https://api.stripe.com;
+  frame-ancestors 'self';
+  form-action 'self' https://*.supabase.co https://api.stripe.com;
+  base-uri 'self';
+  object-src 'none';
+`.replace(/\s{2,}/g, ' ').trim();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -9,6 +22,17 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'digitaldude.co.uk',
+          },
+        ],
+        destination: 'https://www.digitaldude.co.uk/:path*',
+        permanent: true,
+      },
       {
         source: '/book',
         destination: '/contact',
@@ -51,6 +75,10 @@ const nextConfig = {
       {
         source: '/:path*',
         headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: cspHeader,
+          },
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',

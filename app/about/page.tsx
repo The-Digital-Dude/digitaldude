@@ -65,6 +65,19 @@ const aboutJsonLd = {
         },
       ],
     },
+    {
+      "@type": "Person",
+      "@id": `${SITE_URL}#farhad-hossain`,
+      name: "Farhad Hossain",
+      jobTitle: "Founder & Solutions Architect",
+      url: `${SITE_URL}/about`,
+      sameAs: ["https://www.linkedin.com/company/td-dude"],
+      worksFor: {
+        "@type": "Organization",
+        "@id": `${SITE_URL}#organization`,
+        name: "The Digital Dude",
+      },
+    },
   ],
 };
 
@@ -135,9 +148,9 @@ export default function AboutPage() {
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <div className="rounded-2xl border border-tint bg-white p-6 shadow-xs">
             <span className="text-xs font-bold uppercase tracking-wider text-purple">Engineering Leadership</span>
-            <h3 className="mt-2 text-lg font-bold text-navy">Solutions Architecture & Technical Direction</h3>
+            <h3 className="mt-2 text-lg font-bold text-navy">Farhad Hossain &bull; Founder &amp; Solutions Architect</h3>
             <p className="mt-2 text-sm text-navy/70 leading-relaxed">
-              Every client system is scoped and architected by our founder. We define data schemas, API contracts, security policies, and performance baselines before a single line of code is written.
+              Every client system is scoped and architected directly by Farhad. Bringing deep full-stack engineering expertise across Next.js, PostgreSQL/Supabase, and API architectures, he defines data schemas, access controls, and security baselines before a single line of code is written.
             </p>
           </div>
           <div className="rounded-2xl border border-tint bg-white p-6 shadow-xs">

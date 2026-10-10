@@ -37,6 +37,7 @@ export function CookieConsent() {
   function choose(value: "accepted" | "declined") {
     try {
       localStorage.setItem(STORAGE_KEY, value);
+      window.dispatchEvent(new Event("cookie-consent-updated"));
     } catch {
       // If storage is blocked, the choice just won't persist across visits.
     }
@@ -49,7 +50,7 @@ export function CookieConsent() {
       {consent === "accepted" && <MetaPixel />}
 
       {ready && consent === null && (
-        <div className="fixed inset-x-0 bottom-16 z-50 border-t border-black/10 bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:bottom-0 print:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-black/10 bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] print:hidden">
           <div className="mx-auto flex max-w-content flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-navy/70">
               We use cookies to see how visitors use this site (Google Analytics) and, for job ads,
@@ -62,13 +63,13 @@ export function CookieConsent() {
             <div className="flex shrink-0 gap-3">
               <button
                 onClick={() => choose("declined")}
-                className="rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy"
+                className="min-h-[44px] rounded-full border border-navy/20 px-5 py-2.5 text-sm font-semibold text-navy active:bg-slate-50 transition"
               >
                 Decline
               </button>
               <button
                 onClick={() => choose("accepted")}
-                className="rounded-full bg-purple px-4 py-2 text-sm font-semibold text-white"
+                className="min-h-[44px] rounded-full bg-purple px-5 py-2.5 text-sm font-semibold text-white shadow-sm active:brightness-95 transition"
               >
                 Accept
               </button>

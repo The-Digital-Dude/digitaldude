@@ -5,13 +5,57 @@ import { pseoIndustries } from "./data/industries";
 import { pseoComparisons } from "./data/comparisons";
 import { PseoPageData, PseoLocation, PseoService, PseoIndustry, PseoComparison } from "./types";
 
+export const TIER1_LOCATIONS = new Set(["london", "manchester", "sydney"]);
+export const TIER1_INDUSTRIES = new Set(["property", "logistics", "home-services"]);
+
+function getShortServiceName(service: PseoService): string {
+  switch (service.slug) {
+    case "crm-development":
+      return "CRM Development";
+    case "saas-development":
+      return "SaaS Development";
+    case "marketplace-development":
+      return "Marketplace Apps";
+    case "erp-hrm-systems":
+      return "ERP & Systems";
+    case "website-development":
+      return "Web Applications";
+    case "seo-growth":
+      return "Technical SEO";
+    default:
+      return service.navLabel;
+  }
+}
+
+function getShortIndustryName(industry: PseoIndustry): string {
+  switch (industry.slug) {
+    case "property":
+      return "Property & Real Estate";
+    case "logistics":
+      return "Logistics & Fleets";
+    case "home-services":
+      return "Home & Field Services";
+    case "travel":
+      return "Travel & Ticketing";
+    case "recruitment":
+      return "Recruitment & ATS";
+    case "community":
+      return "Community & Matchmaking";
+    case "education":
+      return "EdTech & LMS";
+    default:
+      return industry.name;
+  }
+}
+
 /**
  * Generate Location x Service Programmatic Page Data
  */
 export function buildLocationServicePage(location: PseoLocation, service: PseoService): PseoPageData {
+  const shortService = getShortServiceName(service);
   const targetKeyword = `${service.name} in ${location.city}`;
-  const title = `${service.name} in ${location.city}, ${location.countryCode} | The Digital Dude`;
-  const metaDescription = `Looking for ${service.name.toLowerCase()} in ${location.city}? We design & build bespoke ${service.navLabel.toLowerCase()} and operational systems for ${location.city} businesses with zero per-seat licensing.`;
+  const title = `${shortService} in ${location.city}, ${location.countryCode} | Digital Dude`;
+  const metaDescription = `Bespoke ${service.navLabel.toLowerCase()} engineered for ${location.city} businesses. Full IP ownership, custom workflows, zero seat fees, and dedicated support.`;
   const heroBadge = `${location.flag} ${location.city} Engineering Hub • ${service.badge}`;
   const heroHeadline = `${service.headlinePrefix} for High-Growth Businesses in ${location.city}`;
   const heroSubheadline = `${location.localIntro} We engineer high-performance systems with zero per-seat fees, custom workflow logic, and full IP ownership.`;
@@ -35,6 +79,8 @@ export function buildLocationServicePage(location: PseoLocation, service: PseoSe
     { metric: "100%", label: "IP Ownership", detail: `You own 100% of the proprietary code and database, hosted securely in ${location.country}.` },
     ...service.roiHighlights
   ];
+
+  const isTier1 = TIER1_LOCATIONS.has(location.slug);
 
   return {
     slug: `locations/${location.slug}/${service.slug}`,
@@ -63,6 +109,7 @@ export function buildLocationServicePage(location: PseoLocation, service: PseoSe
       { label: location.city, url: `/locations#${location.slug}` },
       { label: service.navLabel, url: `/locations/${location.slug}/${service.slug}` }
     ],
+    isTier1,
     status: "published"
   };
 }
@@ -71,9 +118,11 @@ export function buildLocationServicePage(location: PseoLocation, service: PseoSe
  * Generate Industry Solution x Service Programmatic Page Data
  */
 export function buildIndustryServicePage(industry: PseoIndustry, service: PseoService): PseoPageData {
+  const shortService = getShortServiceName(service);
+  const shortIndustry = getShortIndustryName(industry);
   const targetKeyword = `${service.name} for ${industry.name}`;
-  const title = `${service.name} for ${industry.name} | The Digital Dude`;
-  const metaDescription = `Engineered ${service.name.toLowerCase()} for ${industry.name.toLowerCase()}. Eliminate spreadsheet chaos, automate compliance, and scale operations with bespoke portals.`;
+  const title = `${shortService} for ${shortIndustry} | Digital Dude`;
+  const metaDescription = `Bespoke ${service.navLabel.toLowerCase()} for ${shortIndustry.toLowerCase()}. Eliminate spreadsheet chaos, automate compliance, and scale operations with full IP ownership.`;
   const heroBadge = `${industry.badge} • ${service.badge}`;
   const heroHeadline = `${service.name} Engineered for ${industry.name}`;
   const heroSubheadline = `${industry.overview} We replace generic software constraints with bespoke multi-portal workflows, automated client delivery, and real-time operations dashboards.`;
@@ -85,6 +134,8 @@ export function buildIndustryServicePage(industry: PseoIndustry, service: PseoSe
       a: `We build strict data validation and compliance tracking directly into your database schema (${industry.statutoryCompliance.slice(0, 3).join(", ")}), ensuring zero missed deadlines or compliance breaches.`
     }
   ];
+
+  const isTier1 = TIER1_INDUSTRIES.has(industry.slug);
 
   return {
     slug: `solutions/${industry.slug}/${service.slug}`,
@@ -110,6 +161,7 @@ export function buildIndustryServicePage(industry: PseoIndustry, service: PseoSe
       { label: industry.name, url: `/solutions#${industry.slug}` },
       { label: service.navLabel, url: `/solutions/${industry.slug}/${service.slug}` }
     ],
+    isTier1,
     status: "published"
   };
 }
@@ -118,15 +170,15 @@ export function buildIndustryServicePage(industry: PseoIndustry, service: PseoSe
  * Generate Comparison Page Data
  */
 export function buildComparisonPage(comp: PseoComparison): PseoPageData {
-  const targetKeyword = `Bespoke Software vs ${comp.competitorName}`;
-  const title = `Bespoke Software vs ${comp.competitorName} | Which Is Right For Your Business?`;
-  const metaDescription = `Comparing custom software vs ${comp.competitorName} for ${comp.targetNiche.toLowerCase()}. Compare pricing, feature flexibility, IP ownership, and scalability.`;
+  const targetKeyword = `Custom vs ${comp.competitorName}`;
+  const title = `Custom vs ${comp.competitorName}: Complete Guide (2026)`;
+  const metaDescription = `Compare custom software vs ${comp.competitorName} on pricing, workflow fit, IP ownership, and scalability. Honest architectural guide for growing teams.`;
   const heroBadge = `Build vs Buy Guide • ${comp.category} Comparison`;
-  const heroHeadline = `Bespoke Software vs ${comp.competitorName}: The Complete Comparison`;
+  const heroHeadline = `Custom Software vs ${comp.competitorName}: The Complete Decision Guide`;
   const heroSubheadline = comp.summary;
 
   const stats = [
-    { metric: "£0 / seat", label: "Marginal User Cost", detail: `Unlike ${comp.competitorName}, custom software has zero per-user licensing fees.` },
+    { metric: "$0 / seat", label: "Marginal User Cost", detail: `Unlike ${comp.competitorName}, bespoke systems have zero per-user licensing fees.` },
     { metric: "100%", label: "IP Ownership", detail: "Proprietary software asset on your balance sheet rather than rented SaaS." },
     { metric: comp.migrationTimeline, label: "Rollout Velocity", detail: "End-to-end discovery, schema migration, and production deployment." }
   ];
@@ -151,6 +203,11 @@ export function buildComparisonPage(comp: PseoComparison): PseoPageData {
       { label: "Compare", url: "/compare" },
       { label: `vs ${comp.competitorName}`, url: `/compare/${comp.slug}` }
     ],
+    tcoModels: comp.tcoModels,
+    whenToChoose: comp.whenToChoose,
+    migrationRoadmap: comp.migrationRoadmap,
+    architectureBlueprint: comp.architectureBlueprint,
+    isTier1: true,
     status: "published"
   };
 }
@@ -229,6 +286,7 @@ export async function getPseoPage(slug: string): Promise<PseoPageData | null> {
             { label: data.category.charAt(0).toUpperCase() + data.category.slice(1), url: `/${data.category === "location" ? "locations" : data.category === "solution" ? "solutions" : "compare"}` },
             { label: data.title, url: `/${data.slug}` }
           ],
+          isTier1: true,
           status: data.status
         };
       }
@@ -239,6 +297,35 @@ export async function getPseoPage(slug: string): Promise<PseoPageData | null> {
   const allCodePages = getAllCodePseoPages();
   const match = allCodePages.find((p) => p.slug === cleanSlug);
   return match || null;
+}
+
+/**
+ * Get indexable PSEO slugs (Tier-1 high quality only) for XML sitemap
+ */
+export async function getIndexablePseoSlugs(): Promise<string[]> {
+  const codePages = getAllCodePseoPages().filter((p) => p.isTier1);
+  const slugSet = new Set(codePages.map((p) => p.slug));
+
+  try {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data } = await supabase
+        .from("pseo_pages")
+        .select("slug, status");
+
+      if (data) {
+        for (const row of data) {
+          if (row.status === "archived") {
+            slugSet.delete(row.slug);
+          } else if (row.status === "published") {
+            slugSet.add(row.slug);
+          }
+        }
+      }
+    }
+  } catch {}
+
+  return Array.from(slugSet);
 }
 
 /**

@@ -64,6 +64,36 @@ export interface PseoService {
   baseMonthlyCostSaaS: number; // For ROI calculator reference
 }
 
+export interface TcoBreakdown {
+  timeline: string;
+  competitorEstimate: string;
+  competitorDetails: string[];
+  bespokeEstimate: string;
+  bespokeDetails: string[];
+  netDifference: string;
+}
+
+export interface WhenToChooseItem {
+  scenario: string;
+  recommendation: "competitor" | "bespoke";
+  rationale: string;
+}
+
+export interface MigrationPhase {
+  phase: string;
+  duration: string;
+  focus: string;
+  deliverables: string[];
+}
+
+export interface ArchitectureBlueprint {
+  frontend: string;
+  backend: string;
+  database: string;
+  cloud: string;
+  integrations: string[];
+}
+
 export interface PseoComparison {
   slug: string;
   competitorName: string;
@@ -78,6 +108,10 @@ export interface PseoComparison {
   migrationTimeline: string;
   whoShouldSwitch: string;
   faqs: PseoFaq[];
+  tcoModels?: TcoBreakdown[];
+  whenToChoose?: WhenToChooseItem[];
+  migrationRoadmap?: MigrationPhase[];
+  architectureBlueprint?: ArchitectureBlueprint;
 }
 
 export interface PseoPageData {
@@ -108,5 +142,10 @@ export interface PseoPageData {
   deliverables?: string[];
   techStack?: string[];
   breadcrumbs: Array<{ label: string; url: string }>;
+  isTier1?: boolean;
   status?: "published" | "draft" | "archived";
+  tcoModels?: TcoBreakdown[];
+  whenToChoose?: WhenToChooseItem[];
+  migrationRoadmap?: MigrationPhase[];
+  architectureBlueprint?: ArchitectureBlueprint;
 }

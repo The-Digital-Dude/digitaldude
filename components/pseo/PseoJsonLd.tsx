@@ -20,33 +20,67 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
     })),
   };
 
-  // 2. Service Schema
-  const serviceSchema = {
-    "@context": "https://schema.org",
-    "@type": "Service",
-    name: page.heroHeadline,
-    description: page.metaDescription,
-    url: pageUrl,
-    provider: {
-      "@type": "Organization",
-      name: "The Digital Dude",
-      url: SITE_URL,
-      logo: `${SITE_URL}/logo-full-color.png`,
-    },
-    areaServed: page.city
+  // 2. Main Entity Schema (WebPage with author for comparison guides, Service for commercial hubs)
+  const mainEntitySchema =
+    page.category === "comparison"
       ? {
-          "@type": "City",
-          name: page.city,
-          containedInPlace: {
-            "@type": "Country",
-            name: page.country || "United Kingdom",
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "@id": `${pageUrl}#webpage`,
+          url: pageUrl,
+          name: page.title,
+          headline: page.heroHeadline,
+          description: page.metaDescription,
+          datePublished: "2026-04-01T00:00:00Z",
+          dateModified: "2026-10-10T00:00:00Z",
+          isPartOf: {
+            "@type": "WebSite",
+            "@id": `${SITE_URL}#website`,
+            name: "The Digital Dude",
+            url: SITE_URL,
+          },
+          author: {
+            "@type": "Person",
+            name: "Farhad Hossain",
+            jobTitle: "Founder & Solutions Architect",
+            url: `${SITE_URL}/about`,
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "The Digital Dude",
+            url: SITE_URL,
+            logo: {
+              "@type": "ImageObject",
+              url: `${SITE_URL}/logo-full-color.png`,
+            },
           },
         }
       : {
-          "@type": "Country",
-          name: "United Kingdom & Australia",
-        },
-  };
+          "@context": "https://schema.org",
+          "@type": "Service",
+          name: page.heroHeadline,
+          description: page.metaDescription,
+          url: pageUrl,
+          provider: {
+            "@type": "Organization",
+            name: "The Digital Dude",
+            url: SITE_URL,
+            logo: `${SITE_URL}/logo-full-color.png`,
+          },
+          areaServed: page.city
+            ? {
+                "@type": "City",
+                name: page.city,
+                containedInPlace: {
+                  "@type": "Country",
+                  name: page.country || "United Kingdom",
+                },
+              }
+            : {
+                "@type": "Country",
+                name: "United Kingdom & Australia",
+              },
+        };
 
   // 3. FAQPage Schema (if FAQs exist)
   const faqSchema =
@@ -73,7 +107,7 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(mainEntitySchema) }}
       />
       {faqSchema && (
         <script

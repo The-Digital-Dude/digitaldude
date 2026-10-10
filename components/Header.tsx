@@ -19,6 +19,22 @@ export function Header() {
   const pathname = usePathname();
   const [servicesOpen, setServicesOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hasConsentChoice, setHasConsentChoice] = useState(false);
+
+  // Synchronize with cookie consent so mobile sticky CTA never collides with banner
+  useEffect(() => {
+    const check = () => {
+      try {
+        const val = localStorage.getItem("cookie-consent");
+        setHasConsentChoice(val === "accepted" || val === "declined");
+      } catch {
+        setHasConsentChoice(true);
+      }
+    };
+    check();
+    window.addEventListener("cookie-consent-updated", check);
+    return () => window.removeEventListener("cookie-consent-updated", check);
+  }, []);
 
   // Automatically close mobile menu and dropdowns whenever navigation occurs
   useEffect(() => {
@@ -122,7 +138,7 @@ export function Header() {
           </div>
 
           <button
-            className="touch-manipulation text-navy md:hidden"
+            className="flex h-12 w-12 items-center justify-center -mr-2.5 rounded-xl touch-manipulation text-navy active:bg-slate-100 transition md:hidden"
             aria-label="Toggle menu"
             onClick={() => setMobileOpen((v) => !v)}
           >
@@ -172,12 +188,12 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mobile sticky "Book a call" bar (hidden on /contact to avoid confusion) */}
-      {pathname !== "/contact" && (
+      {/* Mobile sticky "Book a call" bar (only shown if cookie consent has been handled to prevent screen collision, and hidden on /contact) */}
+      {pathname !== "/contact" && hasConsentChoice && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white p-3 md:hidden">
           <Link
             href="/contact"
-            className="block w-full rounded-full bg-purple py-3 text-center text-sm font-semibold text-white"
+            className="flex min-h-[48px] w-full items-center justify-center rounded-full bg-purple py-3 px-4 text-center text-sm font-semibold text-white shadow-md active:opacity-90 transition"
           >
             Book a 30-minute call
           </Link>

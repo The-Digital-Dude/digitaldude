@@ -43,6 +43,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: page.title,
     description: page.metaDescription,
+    robots: page.isTier1
+      ? { index: true, follow: true }
+      : { index: false, follow: true },
     alternates: {
       canonical: url,
     },

@@ -62,8 +62,38 @@ export default async function JobPostingPage({
     notFound();
   }
 
+  const breadcrumbsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Careers",
+        item: `${SITE_URL}/careers`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: job.title,
+        item: `${SITE_URL}/careers/${job.slug}`,
+      },
+    ],
+  };
+
   return (
-    <section className="mx-auto max-w-content px-6 pb-20 pt-32 sm:pt-40">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+      />
+      <section className="mx-auto max-w-content px-6 pb-20 pt-32 sm:pt-40">
       <JobViewTracker
         jobTitle={job.title}
         jobSlug={job.slug}
@@ -91,6 +121,7 @@ export default async function JobPostingPage({
           </div>
         </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

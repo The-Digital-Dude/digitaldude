@@ -23,9 +23,9 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   work: {
-    title: "Bespoke Software & CRM Case Studies | The Digital Dude",
+    title: "Bespoke Software & CRM Case Studies | Digital Dude",
     description:
-      "Explore production systems built and shipped across property, travel, logistics, recruitment, education, and on-demand marketplaces.",
+      "Explore production systems shipped across property, logistics, and marketplaces. Real case studies with measurable efficiency and conversion lifts.",
     keywords: [
       "software case studies",
       "custom CRM case study",
@@ -34,44 +34,44 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "work/property-compliance-crm": {
-    title: "Property Compliance CRM Case Study | The Digital Dude",
+    title: "Property Compliance CRM Case Study | Digital Dude",
     description:
-      "How we built a multi-portal compliance CRM now managing 4,000+ rentals across 30+ agencies in Australia, 4x faster than before.",
+      "How we built a multi-portal compliance CRM managing 4,000+ rental properties across 30+ real estate agencies, delivering 4x faster turnaround times.",
   },
   "work/airline-ticketing-crm": {
-    title: "Travel Agency CRM Case Study | The Digital Dude",
+    title: "Travel Agency Ticketing CRM Study | Digital Dude",
     description:
-      "A multi-channel ticketing CRM for an Australian travel agency consolidating WhatsApp, Facebook, phone and walk-in leads into one pipeline.",
+      "How we built a multi-channel ticketing CRM unifying WhatsApp, Facebook, phone, and walk-in leads into a high-converting automated sales pipeline.",
   },
   "work/matrimony-saas-platform": {
-    title: "Matchmaking SaaS Platform Case Study | The Digital Dude",
+    title: "Matchmaking SaaS Platform Study | Digital Dude",
     description:
-      "A premium matchmaking platform with AI matching, 5-tier identity and police check verification, and subscription billing.",
+      "Engineering a high-trust membership platform with 5-tier identity verification, automated compatibility scoring, and recurring subscription billing.",
   },
   "work/cleaning-marketplace": {
-    title: "Cleaning Marketplace App Case Study | The Digital Dude",
+    title: "Cleaning Marketplace App Study | Digital Dude",
     description:
-      "A three-app cleaning platform: customer booking with upfront payment, a cleaner app with photo proof, and an admin CRM.",
+      "A three-sided on-demand cleaning platform connecting customer booking, contractor mobile apps with photo verification, and central ops dispatch.",
   },
   "work/logistics-platform": {
-    title: "Logistics Coordination Platform | The Digital Dude",
+    title: "Logistics Coordination Platform | Digital Dude",
     description:
-      "A mobile-first breakdown management platform for drivers and dispatch that improved response coordination by 40%.",
+      "Mobile breakdown and fleet coordination platform that cut emergency response delays by 40% with real-time GPS tracking and instant digital PODs.",
   },
   "work/recruitment-crm": {
-    title: "Recruitment CRM Case Study | The Digital Dude",
+    title: "Custom Recruitment CRM Study | Digital Dude",
     description:
-      "A recruitment CRM with a real-time candidate portal, document tracking and automated WhatsApp and email updates.",
+      "How we engineered a bespoke applicant tracking system and candidate portal with automated WhatsApp status triggers and zero per-seat software fees.",
   },
   "work/ai-tutoring-platform": {
-    title: "AI Tutoring Platform Case Study | The Digital Dude",
+    title: "AI Tutoring Platform Case Study | Digital Dude",
     description:
-      "A tutoring platform with AI-generated quizzes, automatic grading and a parent and student portal.",
+      "An intelligent learning management platform featuring automated quiz generation, instant test grading, and dedicated student and parent portals.",
   },
   services: {
-    title: "Bespoke Software Engineering & Technical Services | The Digital Dude",
+    title: "Bespoke Software Engineering Services | Digital Dude",
     description:
-      "Custom CRMs, multi-tenant SaaS platforms, ERP/HRM operations engines, and scalable on-demand marketplaces engineered for high ROI.",
+      "Custom CRMs, multi-tenant SaaS platforms, ERP systems, and on-demand marketplaces engineered for high ROI, full IP ownership, and zero seat bloat.",
     keywords: [
       "custom software development services",
       "bespoke CRM developers",
@@ -80,9 +80,9 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "services/crm-development": {
-    title: "Custom CRM Development Company UK & Australia | The Digital Dude",
+    title: "Custom CRM Development UK & Australia | Digital Dude",
     description:
-      "Replace spreadsheet bottlenecks and rigid off-the-shelf CRMs with bespoke sales, dispatch, mobile field apps, and role-based portals tailored to your exact workflow.",
+      "Replace spreadsheet chaos with bespoke sales pipelines, mobile field technician apps, and role-based portals built for your exact operational workflow.",
     keywords: [
       "custom CRM development",
       "bespoke CRM developers UK",
@@ -92,9 +92,9 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "services/saas-development": {
-    title: "Full-Stack SaaS Product Development Agency | The Digital Dude",
+    title: "Full-Stack SaaS Product Development | Digital Dude",
     description:
-      "End-to-end SaaS engineering: multi-tenant architecture, Stripe recurring billing, role-based access control (RBAC), AI integrations, and high-concurrency cloud infrastructure.",
+      "End-to-end SaaS engineering: multi-tenant cloud schemas, Stripe billing, granular RBAC permissions, and high-concurrency architecture built to scale.",
     keywords: [
       "SaaS product development",
       "SaaS MVP builder",
@@ -104,9 +104,9 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "services/erp-hrm-systems": {
-    title: "Custom ERP & HRM Systems Development | The Digital Dude",
+    title: "Custom ERP & Operations Systems | Digital Dude",
     description:
-      "Unified operational engines connecting multi-location staffing, automated payroll, resource allocation, and real-time business intelligence.",
+      "Unified operational engines connecting multi-location staffing, automated timesheet approvals, resource allocation, and real-time business metrics.",
     keywords: [
       "custom ERP development",
       "custom HRM software",
@@ -115,9 +115,9 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "services/marketplace-development": {
-    title: "3-Sided Marketplace App Development | The Digital Dude",
+    title: "Two-Sided Marketplace App Development | Digital Dude",
     description:
-      "Synchronized marketplace architecture connecting customer booking apps, service provider mobile dispatch, and central operations admin with automated Stripe payouts.",
+      "Synchronized marketplace software connecting customer booking, service provider dispatch, and central admin with automated Stripe Connect payouts.",
     keywords: [
       "marketplace app development",
       "on-demand service platform development",
@@ -126,7 +126,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "services/website-development": {
-    title: "High-Performance Web Application Engineering | The Digital Dude",
+    title: "High-Performance Web Applications | Digital Dude",
     description:
       "Sub-second Next.js web applications and conversion-optimized digital experiences built for sub-second page loads, Core Web Vitals, and lead generation.",
     keywords: [
@@ -136,9 +136,9 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "services/seo-growth": {
-    title: "Technical SEO, AEO & Generative Search Engineering | The Digital Dude",
+    title: "Technical SEO & GEO Search Engineering | Digital Dude",
     description:
-      "Programmatic SEO, Answer Engine Optimization (AEO), Schema.org graph engineering, and Core Web Vitals performance to dominate Google, ChatGPT, and Perplexity.",
+      "Programmatic SEO, Schema.org graph engineering, and Core Web Vitals performance built to maximize indexation and authority across Google and AI search.",
     keywords: [
       "technical SEO agency",
       "Answer Engine Optimization AEO",
@@ -148,9 +148,9 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "how-we-work": {
-    title: "Engineering Process, Timelines & Fixed Scope | The Digital Dude",
+    title: "Engineering Process & Fixed Delivery | Digital Dude",
     description:
-      "Transparent 6-stage delivery framework, agile sprint milestones, fixed proposals, and 30-day post-launch warranty with zero scope ambiguity.",
+      "Transparent 6-stage delivery framework, agile sprint milestones, fixed proposals, and 30-day post-launch warranty with zero hidden scope drift.",
     keywords: [
       "software development process",
       "agile delivery methodology",
@@ -158,12 +158,12 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   about: {
-    title: "About The Digital Dude | Engineering & Technical Growth Team",
+    title: "About The Digital Dude | Software Engineering Studio",
     description:
-      "UK-registered engineering team with international delivery hubs, building production CRMs and scalable SaaS platforms for businesses in the UK and Australia since 2020.",
+      "UK-registered engineering team with international delivery studios, building bespoke CRMs and SaaS platforms for UK and Australian businesses since 2020.",
   },
   contact: {
-    title: "Book a 30-Minute Discovery Consultation | The Digital Dude",
+    title: "Book a Technical Discovery Consultation | Digital Dude",
     description:
       "Schedule a 30-minute technical discovery call with our founder. We'll map your system requirements, architecture, timelines, and fixed delivery scope.",
   },
@@ -176,7 +176,7 @@ export const seo: Record<string, SeoEntry> = {
     description: "The operational terms that govern client agreements, IP ownership, and project warranties.",
   },
   "industries/property": {
-    title: "Custom CRM & Compliance Software for Property & Real Estate | The Digital Dude",
+    title: "Property & Real Estate CRM Software | Digital Dude",
     description:
       "Bespoke multi-portal software for real estate agencies, property managers, and field compliance technicians. 4,000+ rental properties actively managed.",
     keywords: [
@@ -187,7 +187,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "industries/travel": {
-    title: "Custom CRM & Lead Routing Software for Travel Agencies | The Digital Dude",
+    title: "Travel Agency Ticketing CRM Software | Digital Dude",
     description:
       "Omnichannel ticketing CRMs integrating WhatsApp, Facebook Messenger, phone, and walk-in leads into one centralized quotation and conversion engine.",
     keywords: [
@@ -198,7 +198,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "industries/home-services": {
-    title: "On-Demand Booking & Dispatch Software for Home Services | The Digital Dude",
+    title: "Home & Field Services Dispatch Software | Digital Dude",
     description:
       "End-to-end dispatch, upfront Stripe payment authorization, mobile technician photo proof, and automated client invoicing for cleaning and home services.",
     keywords: [
@@ -208,7 +208,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "industries/logistics": {
-    title: "Dispatch & Fleet Coordination Software for Logistics | The Digital Dude",
+    title: "Logistics & Fleet Dispatch Software | Digital Dude",
     description:
       "Mobile-first fleet breakdown management, real-time driver routing, and automated dispatcher coordination systems that cut response times by 40%.",
     keywords: [
@@ -218,7 +218,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "industries/recruitment": {
-    title: "Candidate Portal & Automated Recruitment CRM | The Digital Dude",
+    title: "Custom Recruitment CRM & ATS Software | Digital Dude",
     description:
       "High-speed recruitment pipelines with self-service candidate document portals, automated WhatsApp status triggers, and placement KPI dashboards.",
     keywords: [
@@ -228,7 +228,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "industries/education": {
-    title: "AI Tutoring Platforms & LMS Software for Education | The Digital Dude",
+    title: "Custom LMS & EdTech Platform Software | Digital Dude",
     description:
       "AI-driven learning management systems with automated question generation, instant grading, interactive lesson hubs, and parent progress portals.",
     keywords: [
@@ -238,7 +238,7 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "industries/community": {
-    title: "High-Trust Community & Matchmaking SaaS Platforms | The Digital Dude",
+    title: "Community & Matchmaking SaaS Platforms | Digital Dude",
     description:
       "Secure community platforms engineered with AI compatibility scoring, 5-tier police check/identity verification, and encrypted subscriber portals.",
     keywords: [

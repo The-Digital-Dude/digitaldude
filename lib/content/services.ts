@@ -144,7 +144,7 @@ export const services: Service[] = [
       },
       {
         q: "What are the payment terms and ongoing costs?",
-        a: "We work with fixed, transparent proposals with zero hidden costs. Payment is structured across agreed milestones: 50% upfront deposit and the remainder across defined delivery sprints. Ongoing costs are minimal—just your cloud hosting (e.g. Vercel & Supabase, typically $25–$100/month total) rather than thousands in per-user software licenses.",
+        a: "We work with fixed, transparent milestone proposals with zero hidden fees. Estimates are in USD ($) for international clarity, with UK bank transfer (GBP) and Australia (AUD) invoice equivalents available. Payment is structured across agreed milestones: 50% upfront deposit and the remainder upon delivery UAT. Ongoing infrastructure costs are minimal—just your cloud hosting (e.g., Vercel & Supabase, typically $25–$100/month total, ex. VAT) rather than recurring thousands in per-user software licenses.",
       },
       {
         q: "Who owns the intellectual property (IP) and source code?",
@@ -310,6 +310,59 @@ export const services: Service[] = [
         feature: "Ongoing Software Cost",
         custom: "Fixed one-time build cost. Zero recurring per-user enterprise licensing fees.",
         offTheShelf: "Exorbitant annual maintenance contracts and thousands in monthly seat licensing."
+      },
+      {
+        feature: "Data Ownership",
+        custom: "You own 100% of the proprietary database and code on your balance sheet.",
+        offTheShelf: "Vendor locks your organizational operational data into proprietary cloud silos."
+      }
+    ],
+    architectureBlueprint: [
+      {
+        title: "Multi-Branch & Organization Engine",
+        description: "PostgreSQL database with multi-tenant row-level security mapping physical depots, branch hierarchies, and department permissions.",
+        techHighlights: ["Supabase PostgreSQL", "Multi-Tenant RLS", "Role Hierarchies", "Audit Logging"]
+      },
+      {
+        title: "Geofenced Mobile Attendance & Timesheets",
+        description: "Mobile web app with GPS geofencing verification, biometric check-ins, automated break calculations, and supervisor sign-offs.",
+        techHighlights: ["Progressive Web App", "Geolocation API", "Optimistic Offline Sync", "Tailwind CSS"]
+      },
+      {
+        title: "Payroll & Commission Calculation Worker",
+        description: "Automated engine computing standard hours, overtime thresholds, and performance bonuses with direct two-way accounting sync.",
+        techHighlights: ["Xero / QuickBooks API", "Async Job Queue", "PDF Paystub Generator", "TypeScript"]
+      },
+      {
+        title: "Live Inventory & Equipment Tracking",
+        description: "Centralized asset roster tracking equipment allocation, depot check-in/out barcodes, maintenance alerts, and automatic reorder triggers.",
+        techHighlights: ["Next.js 16 App Router", "Server Actions", "Barcode Scanner", "Supabase Storage"]
+      }
+    ],
+    deliveryPhases: [
+      {
+        phase: "Phase 1: Operational Mapping & Hierarchy Blueprint",
+        duration: "Week 1–2",
+        focus: "Auditing branch structures, pay rates, timesheet rules, and inventory categories to establish clean relational database schemas.",
+        deliverables: ["Organizational ERD blueprint", "Clickable Figma management wireframes", "Fixed milestone roadmap"]
+      },
+      {
+        phase: "Phase 2: Core HRM, Timesheets & Mobile Check-in",
+        duration: "Week 3–6",
+        focus: "Engineering employee portals, mobile check-in interfaces, supervisor approval queues, and role-based permissions.",
+        deliverables: ["Staging environment access", "Mobile technician PWA", "Branch admin dashboard"]
+      },
+      {
+        phase: "Phase 3: Payroll Rules & Inventory Integrations",
+        duration: "Week 7–10",
+        focus: "Building accounting API synchronization, overtime calculations, asset management modules, and automated report exports.",
+        deliverables: ["Xero/QuickBooks sync testing", "Inventory allocation tools", "Automated commission engine"]
+      },
+      {
+        phase: "Phase 4: Data Migration & Multi-Depot Go-Live",
+        duration: "Week 11–14",
+        focus: "Importing historical employee records, running dual-entry payroll stress tests, and launching across branches with full handover.",
+        deliverables: ["Complete historical data import", "Staff onboarding walkthrough", "30-day post-launch warranty"]
       }
     ],
     faqs: [
@@ -328,6 +381,14 @@ export const services: Service[] = [
       {
         q: "How long does a custom ERP or HRM implementation take?",
         a: "A foundational modular ERP build takes between 8 to 14 weeks depending on the number of departments, role hierarchies, and third-party accounting integrations included.",
+      },
+      {
+        q: "What ongoing infrastructure costs should we expect?",
+        a: "Because our systems run on modern cloud-native serverless architecture (e.g., Supabase PostgreSQL and Vercel/Cloudflare), hosting typically runs between $50–$200/month total rather than thousands in per-user monthly SaaS fees.",
+      },
+      {
+        q: "Who owns the code and database intellectual property?",
+        a: "You own 100% of the proprietary source code, database architecture, and intellectual property from the moment final milestones are settled. There are no vendor lock-ins or recurring proprietary license fees.",
       },
     ],
   },
@@ -368,6 +429,59 @@ export const services: Service[] = [
         feature: "Commission Splitting",
         custom: "Automated split payments via Stripe Connect directly depositing earnings to contractors.",
         offTheShelf: "Hours of manual end-of-month spreadsheet reconciliation and manual bank transfers."
+      },
+      {
+        feature: "Unified Codebase",
+        custom: "Customer booking, worker app, and admin desk in a single synchronized repository.",
+        offTheShelf: "Fragmented third-party tools glued together with fragile Zapier webhooks."
+      }
+    ],
+    architectureBlueprint: [
+      {
+        title: "Customer Booking & Upfront Payment Flow",
+        description: "Instant quote calculations, real-time calendar availability, card pre-authorization, and live booking milestone tracking.",
+        techHighlights: ["Next.js 16 App Router", "Stripe Custom Elements", "Escrow Pre-Authorization", "Server Actions"]
+      },
+      {
+        title: "Provider Mobile Web App & Dispatch Queue",
+        description: "Mobile interface with instant job notifications, turn-by-turn routing, GPS arrival timestamps, and mandatory before/after photo uploads.",
+        techHighlights: ["Mobile PWA", "Supabase Storage CDN", "Leaflet / Google Maps API", "Optimistic UI"]
+      },
+      {
+        title: "Operations Command Center & Map Dispatch",
+        description: "Real-time interactive map of active jobs, dispute mediation tools, driver clustering, and manual override capabilities.",
+        techHighlights: ["Realtime WebSockets", "Role-Based Access Control", "Interactive Dispatch Kanban"]
+      },
+      {
+        title: "Stripe Connect Split Payout & Commission Engine",
+        description: "Automated commission deductions, contractor balance payouts, automated PDF invoicing, and annual earnings tax export summaries.",
+        techHighlights: ["Stripe Connect Express", "Automated Split Webhooks", "PDFKit Invoice Engine"]
+      }
+    ],
+    deliveryPhases: [
+      {
+        phase: "Phase 1: 3-Sided Workflow Architecture & UX Design",
+        duration: "Week 1–3",
+        focus: "Mapping customer booking funnels, service contractor workflows, and dispatcher governance into clickable interactive prototypes.",
+        deliverables: ["Figma prototypes for all 3 apps", "Relational database schema", "Fixed functional specification"]
+      },
+      {
+        phase: "Phase 2: Customer Booking & Provider Mobile Apps",
+        duration: "Week 4–8",
+        focus: "Building responsive customer booking interfaces, calendar availability logic, provider job queues, and photo upload pipelines.",
+        deliverables: ["Customer booking staging build", "Service provider mobile app", "Photo verification pipeline"]
+      },
+      {
+        phase: "Phase 3: Stripe Connect Payouts & Admin Console",
+        duration: "Week 9–12",
+        focus: "Integrating automated split payouts, master dispatch dashboard, customer review flows, and automated notification triggers.",
+        deliverables: ["Live Stripe Connect testing", "Master operations dispatch console", "Automated SMS/Email triggers"]
+      },
+      {
+        phase: "Phase 4: Field Testing & Regional Production Launch",
+        duration: "Week 13–16",
+        focus: "Simulating live field bookings, testing payment escrow release under real scenarios, and rolling out initial geographical territories.",
+        deliverables: ["Production infrastructure cutover", "Admin operations training", "30-day post-launch warranty"]
       }
     ],
     faqs: [
@@ -382,6 +496,10 @@ export const services: Service[] = [
       {
         q: "What is the typical development timeline for a 3-sided marketplace?",
         a: "Building all three synchronized modules (Customer, Provider, and Admin) typically takes between 10 to 16 weeks, delivered across phased milestones with active staging test environments.",
+      },
+      {
+        q: "Can we support multiple geographical cities with custom pricing?",
+        a: "Yes. The architecture supports dynamic regional rules, letting you define unique service catalogs, minimum call-out fees, and surge pricing multipliers by postcode or city district.",
       },
     ],
   },
@@ -402,6 +520,81 @@ export const services: Service[] = [
     whoFor:
       "B2B service businesses, tech companies, and commercial contractors whose existing website is slow, outdated, or failing to convert traffic into leads.",
     related: ["property-compliance-crm"],
+    roiHighlights: [
+      { metric: "< 0.8s", label: "Page Load Speed", detail: "Edge-cached static delivery ensuring sub-second Largest Contentful Paint (LCP)." },
+      { metric: "99%", label: "Passing Core Web Vitals", detail: "Zero layout shift (CLS), instant response (INP), and optimized hydration." },
+      { metric: "100%", label: "CRM Lead Automation", detail: "Inbound form submissions routed directly into your CRM and Slack in real time." }
+    ],
+    comparisonMatrix: [
+      {
+        feature: "Speed & Core Web Vitals",
+        custom: "Sub-800ms Next.js SSR/ISR delivery with zero render-blocking plugin bloat.",
+        offTheShelf: "Heavy WordPress / Elementor themes loading 40+ plugins and taking 3.5s+ to paint."
+      },
+      {
+        feature: "Lead Conversion Depth",
+        custom: "Interactive ROI calculators, custom step forms, and instant calendar booking sync.",
+        offTheShelf: "Generic contact form plugins that frequently drop submissions or fail spam checks."
+      },
+      {
+        feature: "Security & Upkeep",
+        custom: "Headless serverless hosting with zero vulnerable PHP plugins or database hacks.",
+        offTheShelf: "Continuous plugin update vulnerabilities and weekly maintenance downtime risk."
+      },
+      {
+        feature: "Technical SEO Foundation",
+        custom: "Deep Schema.org entity graphs, programmatic URL logic, and optimized image pipelines.",
+        offTheShelf: "Basic third-party SEO plugins generating superficial meta tags."
+      }
+    ],
+    architectureBlueprint: [
+      {
+        title: "Edge Rendering & Global Caching Layer",
+        description: "Next.js App Router deploying static HTML to global edge nodes with instant revalidation upon CMS or database edits.",
+        techHighlights: ["Next.js 16", "Cloudflare CDN", "Server Components", "Tailwind CSS"]
+      },
+      {
+        title: "Interactive Lead Qualification Funnel",
+        description: "Multi-step interactive forms that pre-qualify inbound commercial prospects before syncing directly to your CRM.",
+        techHighlights: ["Server Actions", "CRM Webhooks", "Optimistic Validation", "Resend API"]
+      },
+      {
+        title: "Automated Structured Data & Entity Graph",
+        description: "Automated JSON-LD schemas covering Organization, Service, Breadcrumbs, and FAQs to earn rich snippets in Google SERPs.",
+        techHighlights: ["Schema.org Graph", "Dynamic OpenGraph", "XML Sitemap Generator"]
+      },
+      {
+        title: "Asset & Layout Stability Optimization",
+        description: "Responsive AVIF/WebP image pipelines with strict layout preservation preventing Cumulative Layout Shift (CLS).",
+        techHighlights: ["next/image", "Dynamic SVG Generation", "Font Subsetting"]
+      }
+    ],
+    deliveryPhases: [
+      {
+        phase: "Phase 1: Messaging, Conversion Hierarchy & Wireframing",
+        duration: "Week 1–2",
+        focus: "Crafting clear value propositions, customer journeys, and clickable desktop & mobile Figma prototypes.",
+        deliverables: ["Conversion-focused copywriting", "Complete Figma design system", "Technical architecture brief"]
+      },
+      {
+        phase: "Phase 2: High-Performance Next.js Engineering",
+        duration: "Week 3–4",
+        focus: "Building all pages as high-speed React Server Components with sub-second page transition speeds.",
+        deliverables: ["Functional staging website", "Interactive ROI calculators", "Mobile-optimized responsive layouts"]
+      },
+      {
+        phase: "Phase 3: Lead Routing, Analytics & Schema QA",
+        duration: "Week 5",
+        focus: "Connecting CRM webhooks, calendar scheduling widgets, conversion tracking pixels, and structured data audits.",
+        deliverables: ["CRM webhook integrations", "Google Analytics 4 & Meta Pixel setup", "100% Schema validation"]
+      },
+      {
+        phase: "Phase 4: Domain Cutover & 30-Day Launch Warranty",
+        duration: "Week 6",
+        focus: "Executing zero-downtime DNS cutover, setting up 301 redirects for legacy URLs, and monitoring Core Web Vitals.",
+        deliverables: ["Production DNS cutover", "301 redirect map", "30 days included launch support"]
+      }
+    ],
     faqs: [
       {
         q: "How fast will the website load?",
@@ -410,6 +603,14 @@ export const services: Service[] = [
       {
         q: "Can the website connect directly to our CRM and calendar?",
         a: "Yes. All contact forms and calendar pickers push lead records directly into your CRM, database, or notification channels in real time.",
+      },
+      {
+        q: "Can our internal team edit content easily without touching code?",
+        a: "Yes. We can integrate lightweight headless CMS systems (such as Supabase, Sanity, or Markdown repos) that let non-technical team members update copy, case studies, and blog posts effortlessly.",
+      },
+      {
+        q: "Do you handle 301 redirects from our current website?",
+        a: "Yes. We map and configure all historical URLs to preserve existing search engine rankings and backlink authority during cutover.",
       },
     ],
   },
@@ -430,6 +631,81 @@ export const services: Service[] = [
     whoFor:
       "B2B service businesses and SaaS platforms looking to scale inbound qualified lead volume without relying exclusively on rising paid ad costs.",
     related: [],
+    roiHighlights: [
+      { metric: "100%", label: "Indexation Efficiency", detail: "Eliminate low-value crawl traps and duplicate canonical confusion." },
+      { metric: "Top-Tier", label: "Entity Authority", detail: "Connected Schema.org graph establishing your brand identity in Knowledge Graphs." },
+      { metric: "AI-Ready", label: "Answer Engine Citations", detail: "Structured data feeds directly cited by Google AI Overviews and Perplexity." }
+    ],
+    comparisonMatrix: [
+      {
+        feature: "Architecture Depth",
+        custom: "Clean semantic server-rendered HTML with deep Schema.org entity graphs.",
+        offTheShelf: "Generic SEO plugins producing superficial meta tags without true entity linkages."
+      },
+      {
+        feature: "AI / GEO Readiness",
+        custom: "Dedicated /llms.txt endpoints and answer-first structured passages for AI models.",
+        offTheShelf: "Unstructured copy that generative AI answer engines struggle to parse or cite."
+      },
+      {
+        feature: "Crawl Scalability",
+        custom: "Selective programmatic SEO engines that enforce quality floors and avoid doorway penalties.",
+        offTheShelf: "Indiscriminate programmatic content generation that triggers Google helpful-content penalties."
+      },
+      {
+        feature: "Speed & Performance",
+        custom: "Sub-second serverless response times ensuring Googlebot crawls 10x more pages per visit.",
+        offTheShelf: "Slow server responses that exhaust crawl budget and reduce indexing frequency."
+      }
+    ],
+    architectureBlueprint: [
+      {
+        title: "Semantic Schema Graph & JSON-LD Engine",
+        description: "Connected entity graph interlinking Organization, Services, Breadcrumbs, and FAQs to maximize Knowledge Graph prominence.",
+        techHighlights: ["Schema.org Standards", "JSON-LD Graph", "Google Rich Results QA", "TypeScript"]
+      },
+      {
+        title: "Edge-Cached Dynamic XML Sitemaps",
+        description: "High-performance sitemap generators with automated lastmod calculation, separating core authoritative hubs from draft pages.",
+        techHighlights: ["Next.js Sitemap API", "Hourly Edge Cache", "IndexNow Ping Worker"]
+      },
+      {
+        title: "AI Extraction & Answer-First Layouts",
+        description: "Answer Engine Optimization (AEO) formatting designed for direct citation by Perplexity, ChatGPT Search, and Google AI Overviews.",
+        techHighlights: ["/llms.txt Standard", "/llms-full.txt Feed", "Markdown Transpilation"]
+      },
+      {
+        title: "Crawl Budget & Hydration Optimization",
+        description: "Pruning low-value query parameters, consolidating canonical targets, and eliminating client-side JavaScript hydration lag.",
+        techHighlights: ["Robots.txt Directives", "Canonical Normalization", "Server Component Pre-rendering"]
+      }
+    ],
+    deliveryPhases: [
+      {
+        phase: "Phase 1: Technical Crawl & Indexation Hygiene Audit",
+        duration: "Week 1–2",
+        focus: "Auditing sitemap health, server headers, canonical loops, duplicate content shingles, and mobile Core Web Vitals.",
+        deliverables: ["Full crawl health scorecard", "Canonical & redirect cleanup plan", "Core Web Vitals remediation"]
+      },
+      {
+        phase: "Phase 2: Schema Entity Graphs & Answer Engine Optimization",
+        duration: "Week 3–4",
+        focus: "Implementing rich JSON-LD graph architecture, adding /llms.txt endpoints, and structuring answer-first FAQ blocks.",
+        deliverables: ["Validated Schema.org graph", "/llms.txt machine-readable feeds", "Answer-first heading structure"]
+      },
+      {
+        phase: "Phase 3: Programmatic Architecture & Landing Page Templates",
+        duration: "Week 5–7",
+        focus: "Designing high-intent commercial landing page systems with strict quality controls and unique localized proof.",
+        deliverables: ["Quality-filtered programmatic engine", "Automated metadata generator", "Conversion-focused CTA integration"]
+      },
+      {
+        phase: "Phase 4: Search Console Monitoring & Compounding Growth",
+        duration: "Week 8+",
+        focus: "Tracking impression velocity, crawl frequency in server logs, non-branded keyword positions, and commercial conversion lift.",
+        deliverables: ["Monthly Search Console reporting", "Continuous technical crawl audits", "Keyword expansion roadmap"]
+      }
+    ],
     faqs: [
       {
         q: "What is Answer Engine Optimization (AEO) and how does it help us?",
@@ -438,6 +714,14 @@ export const services: Service[] = [
       {
         q: "How long does technical SEO take to deliver measurable ROI?",
         a: "Technical crawl and performance fixes often show indexing improvements within 2 to 4 weeks, with compounding organic ranking and inquiry growth occurring over 3 to 6 months.",
+      },
+      {
+        q: "How do you avoid programmatic SEO penalties?",
+        a: "We enforce strict programmatic SEO quality gates: pruning low-value permutation pages, injecting unique client and workflow proof into every template, and only indexing pages with demonstrated commercial demand.",
+      },
+      {
+        q: "Do you fix Core Web Vitals issues directly in the code?",
+        a: "Yes. Unlike consulting agencies that only deliver PDF recommendations, our software engineering team writes the actual code to fix layout shifts (CLS), optimize bundle sizes (INP), and accelerate page paints (LCP).",
       },
     ],
   },
