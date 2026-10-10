@@ -175,6 +175,23 @@ export default async function BlogPostDetailPage({ params }: Props) {
 
   const postUrl = `${SITE_URL}/blog/${post.slug}`;
 
+  const absoluteCoverImage = post.cover_image
+    ? post.cover_image.startsWith('http')
+      ? post.cover_image
+      : `${SITE_URL}${post.cover_image.startsWith('/') ? '' : '/'}${post.cover_image}`
+    : `${SITE_URL}/og-image.png`;
+
+  const authorSchema = post.author && post.author !== 'The Digital Dude Team' && post.author !== 'The Digital Dude'
+    ? {
+        '@type': 'Person',
+        name: post.author,
+      }
+    : {
+        '@type': 'Organization',
+        name: 'The Digital Dude',
+        url: SITE_URL,
+      };
+
   // Schema.org BlogPosting & BreadcrumbList Structured Data
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -188,13 +205,10 @@ export default async function BlogPostDetailPage({ params }: Props) {
         },
         headline: post.title,
         description: post.meta_description || post.excerpt,
-        image: post.cover_image ? [post.cover_image] : [`${SITE_URL}/og-image.png`],
+        image: [absoluteCoverImage],
         datePublished: post.published_at,
         dateModified: post.updated_at || post.published_at,
-        author: {
-          '@type': 'Person',
-          name: post.author || 'The Digital Dude Team',
-        },
+        author: authorSchema,
         publisher: {
           '@type': 'Organization',
           name: 'The Digital Dude',

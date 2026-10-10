@@ -45,26 +45,6 @@ const contactJsonLd = {
         },
       ],
     },
-    {
-      "@type": "ProfessionalService",
-      "@id": `${SITE_URL}#service`,
-      name: "The Digital Dude",
-      url: SITE_URL,
-      email: "info@digitaldude.co.uk",
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "Discovery Consultations & Client Enquiries",
-        email: "info@digitaldude.co.uk",
-        url: `${SITE_URL}/contact`,
-        availableLanguage: ["English"],
-        hoursAvailable: {
-          "@type": "OpeningHoursSpecification",
-          dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-          opens: "08:00",
-          closes: "18:00",
-        },
-      },
-    },
   ],
 };
 

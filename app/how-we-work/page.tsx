@@ -86,14 +86,14 @@ const howWeWorkJsonLd = {
       ],
     },
     {
-      "@type": "HowTo",
+      "@type": "ItemList",
       name: "How Custom Software Is Engineered & Delivered at The Digital Dude",
       description: "A disciplined 6-step engineering framework ensuring high software quality, bi-weekly demos, and seamless production handover.",
-      step: steps.map((s, idx) => ({
-        "@type": "HowToStep",
+      itemListElement: steps.map((s, idx) => ({
+        "@type": "ListItem",
         position: idx + 1,
         name: s.step,
-        text: `${s.happens}. Key Deliverable: ${s.get}`,
+        description: `${s.happens}. Key Deliverable: ${s.get}`,
       })),
     },
   ],

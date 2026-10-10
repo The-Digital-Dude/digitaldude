@@ -87,12 +87,20 @@ const rootJsonLd = {
         "@type": "ImageObject",
         url: `${SITE_URL}/logo-full-color.png`,
       },
+      image: `${SITE_URL}/og-image.png`,
+      description: "Bespoke CRM, SaaS, and internal tooling engineering studio delivering custom software systems for scaling businesses in the UK & Australia.",
       email: "info@digitaldude.co.uk",
       foundingDate: "2020",
       sameAs: [
         "https://www.linkedin.com/company/td-dude",
         "https://www.facebook.com/td.dude/",
         "https://www.instagram.com/td.dude",
+      ],
+      areaServed: [
+        { "@type": "Country", name: "United Kingdom" },
+        { "@type": "Country", name: "Australia" },
+        { "@type": "Country", name: "United States" },
+        { "@type": "AdministrativeArea", name: "Global" },
       ],
       contactPoint: [
         {
@@ -104,28 +112,6 @@ const rootJsonLd = {
           areaServed: ["GB", "AU", "US", "Global"],
         },
       ],
-    },
-    {
-      "@type": "ProfessionalService",
-      "@id": `${SITE_URL}#service`,
-      name: "The Digital Dude",
-      url: SITE_URL,
-      image: `${SITE_URL}/og-image.png`,
-      priceRange: "£££",
-      currenciesAccepted: "GBP, AUD, USD",
-      paymentAccepted: "Bank Transfer, Credit Card, Stripe",
-      areaServed: [
-        { "@type": "Country", name: "United Kingdom" },
-        { "@type": "Country", name: "Australia" },
-        { "@type": "Country", name: "United States" },
-        { "@type": "AdministrativeArea", name: "Global" },
-      ],
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "London",
-        addressCountry: "GB",
-      },
-      description: "Bespoke CRM, SaaS, and internal tooling engineering studio delivering custom software systems for scaling businesses.",
       hasOfferCatalog: {
         "@type": "OfferCatalog",
         name: "Custom Software Engineering Services",

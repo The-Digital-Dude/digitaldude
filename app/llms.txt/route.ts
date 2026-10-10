@@ -65,7 +65,7 @@ ${caseStudies
   )
   .join("\n")}
 
-## Published Research & Technical Insights
+## Guides and Technical Insights
 ${blogPosts
   .map(
     (b) => `- [${b.title}](${SITE_URL}/blog/${b.slug}): ${b.excerpt || "Read full technical breakdown and architectural blueprints."}`

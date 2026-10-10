@@ -10,44 +10,39 @@ import { getAllPseoSlugs } from "@/lib/pseo/engine";
 export const revalidate = 3600; // Cache and revalidate sitemap every hour for instant edge delivery
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
+  // Use a stable content release date for core static architecture rather than current timestamp
+  const releaseDate = new Date("2026-04-01T00:00:00Z");
 
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}`, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
-    { url: `${SITE_URL}/work`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${SITE_URL}/services`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${SITE_URL}/solutions`, lastModified: now, changeFrequency: "weekly", priority: 0.85 },
-    { url: `${SITE_URL}/locations`, lastModified: now, changeFrequency: "weekly", priority: 0.85 },
-    { url: `${SITE_URL}/compare`, lastModified: now, changeFrequency: "weekly", priority: 0.85 },
-    { url: `${SITE_URL}/how-we-work`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "daily", priority: 0.85 },
-    { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.7 },
-    { url: `${SITE_URL}/careers`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
-    { url: `${SITE_URL}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE_URL}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE_URL}`, lastModified: releaseDate },
+    { url: `${SITE_URL}/work`, lastModified: releaseDate },
+    { url: `${SITE_URL}/services`, lastModified: releaseDate },
+    { url: `${SITE_URL}/solutions`, lastModified: releaseDate },
+    { url: `${SITE_URL}/locations`, lastModified: releaseDate },
+    { url: `${SITE_URL}/compare`, lastModified: releaseDate },
+    { url: `${SITE_URL}/how-we-work`, lastModified: releaseDate },
+    { url: `${SITE_URL}/blog`, lastModified: releaseDate },
+    { url: `${SITE_URL}/about`, lastModified: releaseDate },
+    { url: `${SITE_URL}/contact`, lastModified: releaseDate },
+    { url: `${SITE_URL}/careers`, lastModified: releaseDate },
+    { url: `${SITE_URL}/privacy`, lastModified: releaseDate },
+    { url: `${SITE_URL}/terms`, lastModified: releaseDate },
   ];
 
   const allCaseStudies = await getCaseStudies();
   const caseStudyPages: MetadataRoute.Sitemap = allCaseStudies.map((c) => ({
     url: `${SITE_URL}/work/${c.slug}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.75,
+    lastModified: releaseDate,
   }));
 
   const servicePages: MetadataRoute.Sitemap = services.map((s) => ({
     url: `${SITE_URL}/services/${s.slug}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.7,
+    lastModified: releaseDate,
   }));
 
   const industryPages: MetadataRoute.Sitemap = industries.map((i) => ({
     url: `${SITE_URL}/industries/${i.slug}`,
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.7,
+    lastModified: releaseDate,
   }));
 
   let jobPages: MetadataRoute.Sitemap = [];
@@ -61,9 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       jobPages = (data || []).map((job) => ({
         url: `${SITE_URL}/careers/${job.slug}`,
-        lastModified: new Date(job.updated_at || now),
-        changeFrequency: "weekly",
-        priority: 0.6,
+        lastModified: job.updated_at ? new Date(job.updated_at) : releaseDate,
       }));
     }
   } catch {}
@@ -80,9 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (data && data.length > 0) {
         blogPages = data.map((post) => ({
           url: `${SITE_URL}/blog/${post.slug}`,
-          lastModified: new Date(post.updated_at || post.published_at || now),
-          changeFrequency: "weekly",
-          priority: 0.8,
+          lastModified: new Date(post.updated_at || post.published_at || releaseDate),
         }));
       }
     }
@@ -93,9 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const slugs = await getAllPseoSlugs();
     pseoPages = slugs.map((slug) => ({
       url: `${SITE_URL}/${slug}`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.75,
+      lastModified: releaseDate,
     }));
   } catch {}
 

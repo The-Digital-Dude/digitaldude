@@ -191,7 +191,7 @@ export default async function LocationServicePage({ params }: PageProps) {
                 Local Ecosystem & Districts
               </div>
               <h3 className="text-xl font-bold text-navy">
-                Partnering with High-Velocity Businesses in Greater {locationData.region}
+                Partnering with High-Velocity Businesses in {locationData.region.startsWith("Greater ") ? locationData.region : `Greater ${locationData.region}`}
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
                 {locationData.localIntro}

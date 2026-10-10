@@ -22,8 +22,8 @@ export function buildLocationServicePage(location: PseoLocation, service: PseoSe
       a: `We build bespoke systems tailored 100% to your operational reality. Unlike off-the-shelf software with recurring per-seat fees, our platforms are owned entirely by you, deployed on modern serverless architecture, and supported in your local timezone (${location.timezone}).`
     },
     {
-      q: `Do you work with businesses across ${location.suburbsAndAreas.slice(0, 4).join(", ")} and Greater ${location.region}?`,
-      a: `Yes. We partner with fast-growing service enterprises, property agencies, logistics operators, and scaleups across all districts of ${location.city} and the wider ${location.region}.`
+      q: `Do you work with businesses across ${location.suburbsAndAreas.slice(0, 4).join(", ")} and ${location.region.startsWith("Greater ") ? location.region : `Greater ${location.region}`}?`,
+      a: `Yes. We partner with fast-growing service enterprises, property agencies, logistics operators, and scaleups across all districts of ${location.city} and ${location.region.startsWith("Greater ") ? location.region : `the wider ${location.region}`}.`
     },
     {
       q: `What is the delivery timeline for a custom ${service.navLabel.toLowerCase()} project?`,

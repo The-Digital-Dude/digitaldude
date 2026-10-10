@@ -112,7 +112,7 @@ ${caseStudyDetails}
 
 ---
 
-## 4. Published Technical Articles & Research
+## 4. Guides & Technical Insights
 
 ${blogDetails || "No additional articles published."}
 

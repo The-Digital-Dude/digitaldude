@@ -11,7 +11,7 @@ export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "Article",
+        "@type": "CreativeWork",
         headline: project.headline,
         name: project.title,
         description: project.pageSummary,

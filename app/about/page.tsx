@@ -132,22 +132,63 @@ export default function AboutPage() {
 
       <section className="mx-auto max-w-content px-6 py-10">
         <h2 className="text-xl font-bold text-navy">The team</h2>
-        <p className="mt-4 max-w-2xl text-sm text-navy/50">
-          [Photos and first names with roles, e.g. Senior Developer, Developer, Digital Marketing
-          Manager.]
-        </p>
-        <p className="mt-4 max-w-2xl text-navy/70">
-          We bring in trusted specialists for projects that need extra hands, managed by the same
-          core team from start to finish.
-        </p>
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <div className="rounded-2xl border border-tint bg-white p-6 shadow-xs">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Engineering Leadership</span>
+            <h3 className="mt-2 text-lg font-bold text-navy">Solutions Architecture & Technical Direction</h3>
+            <p className="mt-2 text-sm text-navy/70 leading-relaxed">
+              Every client system is scoped and architected by our founder. We define data schemas, API contracts, security policies, and performance baselines before a single line of code is written.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-tint bg-white p-6 shadow-xs">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Core Engineering</span>
+            <h3 className="mt-2 text-lg font-bold text-navy">In-House Full-Stack Development</h3>
+            <p className="mt-2 text-sm text-navy/70 leading-relaxed">
+              Our dedicated engineering studio specializes in Next.js, TypeScript, Supabase PostgreSQL, and Stripe integration. We do not outsource to unvetted freelancers.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-tint bg-white p-6 shadow-xs">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Product & Interface</span>
+            <h3 className="mt-2 text-lg font-bold text-navy">UI/UX Design Systems</h3>
+            <p className="mt-2 text-sm text-navy/70 leading-relaxed">
+              High-converting, role-based interfaces designed in Figma with comprehensive clickable prototypes so your operational team approves every workflow upfront.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-tint bg-white p-6 shadow-xs">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Delivery & Reliability</span>
+            <h3 className="mt-2 text-lg font-bold text-navy">QA, Data Migration & Support</h3>
+            <p className="mt-2 text-sm text-navy/70 leading-relaxed">
+              Rigorous test automation, secure spreadsheet-to-PostgreSQL data migrations, and continuous monitoring to ensure zero production disruptions.
+            </p>
+          </div>
+        </div>
       </section>
 
-      <section className="mx-auto max-w-content px-6 pb-10 pt-2">
+      <section className="mx-auto max-w-content px-6 pb-12 pt-4">
         <h2 className="text-xl font-bold text-navy">Where we are</h2>
-        <p className="mt-4 max-w-3xl text-navy/70">
-          UK-registered company · Team based in Dhaka, Bangladesh · Working with clients in
-          Australia, the UK and Bangladesh
-        </p>
+        <div className="mt-6 grid gap-6 sm:grid-cols-3">
+          <div className="rounded-2xl bg-lavender p-6">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Registered Entity</span>
+            <h3 className="mt-2 font-bold text-navy">United Kingdom</h3>
+            <p className="mt-2 text-xs text-navy/70 leading-relaxed">
+              The Digital Dude Ltd is registered in England &amp; Wales, operating under UK corporate, contract, and data protection laws (GDPR).
+            </p>
+          </div>
+          <div className="rounded-2xl bg-lavender p-6">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Delivery Hub</span>
+            <h3 className="mt-2 font-bold text-navy">Dhaka Engineering Hub</h3>
+            <p className="mt-2 text-xs text-navy/70 leading-relaxed">
+              Our central software engineering studio is located in Dhaka, Bangladesh, housing our full-time developers and technical delivery team.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-lavender p-6">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple">Client Service Areas</span>
+            <h3 className="mt-2 font-bold text-navy">UK &amp; Australia Coverage</h3>
+            <p className="mt-2 text-xs text-navy/70 leading-relaxed">
+              We partner with high-growth enterprises across London, Manchester, Sydney, Melbourne, Brisbane, and internationally with localized timezone overlap.
+            </p>
+          </div>
+        </div>
       </section>
 
       <div className="mx-auto max-w-content px-6 pb-16 text-center">
