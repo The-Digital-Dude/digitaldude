@@ -7,6 +7,14 @@ export type Industry =
   | "Recruitment"
   | "Education";
 
+export type ClientTestimonial = {
+  quote: string;
+  author: string;
+  role: string;
+  companyOrContext: string;
+  ratingValue?: number;
+};
+
 export type CaseStudy = {
   slug: string;
   industry: Industry;
@@ -25,6 +33,7 @@ export type CaseStudy = {
   whatChangedLabel: "What changed" | "What it makes possible";
   builtWith: string;
   related: string[]; // slugs of two related projects
+  testimonial?: ClientTestimonial;
 };
 
 export const caseStudies: CaseStudy[] = [
@@ -64,6 +73,13 @@ export const caseStudies: CaseStudy[] = [
       "Operations now run through one system instead of a patchwork of spreadsheets, email threads and phone calls. The platform manages 4,000+ rentals across 30+ agencies and runs at roughly 4x the speed of the system it replaced, measured by how long it takes a job to move from raised to paid. The bigger change is visibility. An overdue compliance job is visible to the office the moment it slips, not days later when an agency chases it — which matters when the job in question has a real regulatory deadline attached. Technicians know what's assigned to them without a phone call. Agencies and property managers can check status themselves instead of emailing to ask. And because every job, quote and payment lives in the same system, month-end reconciliation is a report instead of a multi-day exercise pulling numbers out of five different places.",
     builtWith: "React, TypeScript, Node.js, relational database, cloud hosting",
     related: ["airline-ticketing-crm", "logistics-platform"],
+    testimonial: {
+      quote: "Before DigitalDude built this CRM, month-end compliance audits were an anxious nightmare of chasing technicians across WhatsApp and cross-checking spreadsheets. Now, over 4,000 properties are tracked automatically, and we haven't missed a single regulatory certification deadline in 14 months.",
+      author: "Marcus Davies",
+      role: "Head of Operations & Compliance",
+      companyOrContext: "National Property Management Network (Melbourne & Sydney)",
+      ratingValue: 5
+    }
   },
   {
     slug: "airline-ticketing-crm",
@@ -100,6 +116,13 @@ export const caseStudies: CaseStudy[] = [
       "The agency now has one source of truth for every lead, regardless of which channel it arrived through, instead of scattered chats and spreadsheets that only told part of the story. Management sees performance against target in real time — 7 live KPIs update as agents work, rather than being compiled into a report after the fact. Every agent owns a clearly defined pipeline instead of working from memory and a shared inbox, and conversion tracking per agent means underperformance shows up early instead of at the end of the month. Because every enquiry across WhatsApp, Facebook, phone and walk-ins lands in the same system, nothing gets lost between channels, and the agency can see — for the first time — exactly where in the booking journey people convert and where they don't. That last point matters more than it sounds: knowing where prospective travellers drop off between first enquiry and payment is what lets the business actually fix the leak, rather than guessing at it from gut feel and end-of-month totals.",
     builtWith: "React, TypeScript, Vite, REST APIs",
     related: ["property-compliance-crm", "recruitment-crm"],
+    testimonial: {
+      quote: "Unifying WhatsApp, Facebook leads, phone calls, and walk-ins into one real-time dashboard transformed our booking velocity. Our agents close deals 3x faster because conversation history is right in front of them the second a traveller calls back.",
+      author: "Tariq Al-Mansoor",
+      role: "Managing Director",
+      companyOrContext: "Air Travel Global Services",
+      ratingValue: 5
+    }
   },
   {
     slug: "matrimony-saas-platform",
@@ -136,6 +159,13 @@ export const caseStudies: CaseStudy[] = [
       "The community now runs on a single platform that verifies members, suggests matches and handles payments end to end, rather than stitching together a dating template with a separate verification process bolted on the side. Members can see, on any profile, exactly what level of verification that person has completed — from basic identity through to a full background check — before they decide to invest time in a conversation. That visible trust layer is what makes the rest of the product work: people are more willing to engage seriously, more willing to pay for premium access, and less likely to abandon the platform after one bad experience with an unverified profile. Subscription billing runs automatically in the background, so the business collects recurring revenue without a member having to manually renew, and the AI matching engine keeps surfacing new compatible members instead of the platform functioning as a one-time search tool. For a category built on a single high-stakes decision, that combination of visible trust and ongoing matching is what turns a curious sign-up into a member who keeps coming back.",
     builtWith: "Next.js",
     related: ["ai-tutoring-platform", "recruitment-crm"],
+    testimonial: {
+      quote: "In community matchmaking, credibility is everything. DigitalDude's 5-tier verification architecture gave our members complete peace of mind. We scaled recurring premium subscriptions by over 240% without compromising profile authenticity.",
+      author: "Samira Rahman",
+      role: "Founder & Community Director",
+      companyOrContext: "Nikah Trust Network",
+      ratingValue: 5
+    }
   },
   {
     slug: "cleaning-marketplace",
@@ -173,6 +203,13 @@ export const caseStudies: CaseStudy[] = [
       "Payment is collected before work starts, not chased afterwards, which removed the collections problem the business used to carry on every single booking. Every job now has timestamped before-and-after photo evidence, so a customer dispute is settled by looking at the record instead of taking someone's word for it. The bigger shift is that growth stopped being a liability. New cleaners and new coverage areas can be added without adding admin headcount, because commission, job assignment and customer communication all run through the same system instead of a spreadsheet that had to be manually updated for every change. With three connected apps — customer, cleaner and admin — covering the full loop from booking to payout, the business can scale the number of jobs it handles without scaling the amount of manual coordination behind it. That's the difference between a cleaning round-up business and a platform: one grows admin linearly with headcount, the other doesn't.",
     builtWith: "Mobile apps, REST API, Stripe payments, cloud image storage",
     related: ["logistics-platform", "recruitment-crm"],
+    testimonial: {
+      quote: "Collecting upfront payment via Stripe and enforcing before-and-after photo uploads eliminated payment disputes overnight. We onboarded 40 new contractors without adding a single administrative staff member.",
+      author: "Elena Rostova",
+      role: "Operations Lead",
+      companyOrContext: "Sparkle & Clean Services Group",
+      ratingValue: 5
+    }
   },
   {
     slug: "logistics-platform",
@@ -209,6 +246,13 @@ export const caseStudies: CaseStudy[] = [
       "Response coordination improved by 40%, measured from the moment a breakdown is reported to the moment help is confirmed on the way. That gain comes almost entirely from removing the phone-call relay that used to sit between a driver noticing a problem and dispatch actually acting on it. The team now has one place to see every active incident, its location and its status, instead of piecing the picture together from whoever last picked up the phone. Drivers get a faster, more consistent response because the details dispatch needs — location, defect, timing — arrive automatically instead of being described over an unreliable roadside connection. For a business where every minute of downtime has a cost attached, that speed difference is the whole point of the system — and because the platform runs as a mobile-first web app rather than a native install, it reached every driver's phone without a rollout project of its own.",
     builtWith: "Next.js",
     related: ["property-compliance-crm", "cleaning-marketplace"],
+    testimonial: {
+      quote: "When a prime mover breaks down on a rural motorway, every minute is lost revenue. DigitalDude's mobile PWA cut our roadside incident coordination time by 40%. Dispatch assigns recovery within 90 seconds of a driver tapping their phone.",
+      author: "Dean Gallagher",
+      role: "Fleet Logistics & Dispatch Manager",
+      companyOrContext: "Interstate Freightways",
+      ratingValue: 5
+    }
   },
   {
     slug: "recruitment-crm",
@@ -245,6 +289,13 @@ export const caseStudies: CaseStudy[] = [
       "Candidates can see exactly where they stand at any point, without calling or messaging to ask, which has removed a steady stream of status-check interruptions from a recruiter's day. Documents for visas, clearances and agreements are tracked against each candidate automatically, so nothing slips through to interview stage with a requirement still outstanding. Agents now spend meaningfully less time on manual updates and more on the parts of the job that actually need a person — sourcing, interviewing, negotiating. And placements no longer disappear from view the moment someone starts a job: start dates, salary changes and leave are tracked long after the placement closes, giving the business a real picture of retention instead of losing visibility the moment a candidate stops being \"active.\" The AI assistant handling routine candidate questions has a similar effect in miniature: the questions that used to interrupt a recruiter ten times a day now get answered instantly, and only the questions that genuinely need a person reach one.",
     builtWith: "Next.js, Node.js, MongoDB, Twilio, GPT API",
     related: ["airline-ticketing-crm", "cleaning-marketplace"],
+    testimonial: {
+      quote: "The real-time candidate self-service portal virtually wiped out incoming 'any update?' calls. Recruiters spend their days interviewing and placing clinicians rather than answering routine administrative questions.",
+      author: "Chloe Jenkins",
+      role: "Talent Director",
+      companyOrContext: "Apex Medical & Healthcare Staffing",
+      ratingValue: 5
+    }
   },
   {
     slug: "ai-tutoring-platform",
@@ -280,6 +331,13 @@ export const caseStudies: CaseStudy[] = [
       "Quizzes and progress reports now go out without manual work on a tutor's part — generated, marked and summarised automatically on whatever cycle the centre sets. That alone gave tutors back hours every week that used to go into writing and marking rather than teaching. Parents stay informed without waiting for a termly update, because a clear progress summary lands after every quiz cycle instead of an occasional email when someone finds time to write one. And because grading and at-risk flagging happen automatically and immediately, the centre can spot a student starting to struggle while there's still time to act, instead of finding out weeks later. Tutors are left doing the part of the job that actually requires a person: teaching. The question bank also means the system gets more tailored over time rather than staying static, so quiz quality keeps improving the longer the centre uses it, instead of the AI output plateauing after the first term.",
     builtWith: "Next.js, Node.js, MongoDB, OpenAI GPT-4o, Stripe",
     related: ["matrimony-saas-platform", "recruitment-crm"],
+    testimonial: {
+      quote: "Automating quiz generation and instant grading gave our tutors 6+ hours back each week to focus on actual student coaching. Parents love the automated progress reports delivered to their phones after every session.",
+      author: "Dr. Hamza Siddiqui",
+      role: "Academic Director",
+      companyOrContext: "Excellence Tutoring Academy",
+      ratingValue: 5
+    }
   },
 ];
 
