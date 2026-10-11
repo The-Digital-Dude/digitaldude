@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SITE_URL } from "@/lib/utils";
 import { FaqAccordion } from "@/components/FaqAccordion";
 import { HubSpotCompareInteractive } from "@/components/compare/HubSpotCompareInteractive";
+import { ComparisonJumpBar } from "@/components/compare/ComparisonJumpBar";
 import { 
   Scale, 
   CheckCircle2, 
@@ -193,8 +194,8 @@ export default function CustomCrmVsHubspotPage() {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "WebPage",
-        "@id": `${pageUrl}#webpage`,
+        "@type": "TechArticle",
+        "@id": `${pageUrl}#article`,
         url: pageUrl,
         name: "Custom CRM vs HubSpot: Which Should You Choose? (2026)",
         headline: "Custom CRM vs HubSpot: Which Should You Choose?",
@@ -223,6 +224,20 @@ export default function CustomCrmVsHubspotPage() {
             url: `${SITE_URL}/logo-full-color.png`,
           },
         },
+        about: [
+          {
+            "@type": "SoftwareApplication",
+            name: "HubSpot Sales Hub",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Cloud, Web, Mobile",
+          },
+          {
+            "@type": "SoftwareApplication",
+            name: "Bespoke Custom CRM by The Digital Dude",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Cloud, Web, Mobile (iOS/Android)",
+          },
+        ],
       },
       {
         "@type": "BreadcrumbList",
@@ -324,8 +339,11 @@ export default function CustomCrmVsHubspotPage() {
             </div>
           </header>
 
+          {/* Sticky Long-Form Jump Navigation Bar */}
+          <ComparisonJumpBar />
+
           {/* Above-the-Fold Verdict / The Short Answer */}
-          <section className="my-10 rounded-3xl bg-white p-8 border border-slate-200 shadow-sm space-y-6">
+          <section id="overview" className="my-10 rounded-3xl bg-white p-8 border border-slate-200 shadow-sm space-y-6">
             <h2 className="text-2xl font-bold text-navy flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple" />
               The Short Answer
@@ -386,7 +404,7 @@ export default function CustomCrmVsHubspotPage() {
           </section>
 
           {/* Comprehensive Comparison Table */}
-          <section className="my-12 rounded-3xl bg-white p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
+          <section id="matrix" className="my-12 rounded-3xl bg-white p-6 md:p-8 border border-slate-200 shadow-sm space-y-4">
             <div className="border-b border-slate-100 pb-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h2 className="text-2xl font-bold text-navy">
@@ -556,8 +574,10 @@ export default function CustomCrmVsHubspotPage() {
           </section>
 
           {/* Interactive Tool: Decision Checklist & TCO */}
-          <section id="decision-checklist" className="my-12">
-            <HubSpotCompareInteractive />
+          <section id="tco-simulator" className="my-12 scroll-mt-24">
+            <div id="decision-checklist">
+              <HubSpotCompareInteractive />
+            </div>
           </section>
 
           {/* Detailed 3-Year Cost Examples */}
@@ -673,7 +693,7 @@ export default function CustomCrmVsHubspotPage() {
           </section>
 
           {/* FAQs */}
-          <section className="my-12 space-y-4">
+          <section id="faqs" className="my-12 space-y-4 scroll-mt-24">
             <div className="text-center max-w-2xl mx-auto mb-6">
               <span className="text-xs font-bold uppercase tracking-wider text-purple">Common Inquiries</span>
               <h2 className="text-2xl font-bold text-navy mt-1">Frequently Asked Questions</h2>
@@ -706,7 +726,7 @@ export default function CustomCrmVsHubspotPage() {
           </section>
 
           {/* Final Soft Conversion Callout */}
-          <section className="my-12 rounded-3xl bg-[#0F0F2D] text-white p-8 md:p-12 relative overflow-hidden text-center space-y-4">
+          <section id="booking" className="my-12 rounded-3xl bg-[#0F0F2D] text-white p-8 md:p-12 relative overflow-hidden text-center space-y-4 scroll-mt-24">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1 text-xs font-semibold text-slate-300">
               <Sparkles className="h-3.5 w-3.5 text-accent-primary" /> Unbiased Architecture Review
             </span>

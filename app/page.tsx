@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Users, Cloud, Building2, Store, Globe, Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck, Quote, HelpCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, Users, Cloud, Building2, Store, Globe, Search, PenTool, Code2, CheckCircle2, Rocket, PackageCheck, Quote, HelpCircle, ShieldCheck, Scale, TrendingDown, Layers } from "lucide-react";
 import { buildMetadata } from "@/lib/content/seo";
 import { getCaseStudies } from "@/lib/caseStudiesServer";
 import { services } from "@/lib/content/services";
@@ -131,17 +131,83 @@ const homeFaqs = [
   },
 ];
 
-const homeFaqJsonLd = {
+const featuredComparisons = [
+  {
+    title: "Custom CRM vs HubSpot",
+    badge: "CRM Architecture",
+    href: "/compare/custom-crm-vs-hubspot",
+    pitch: "Compare workflow fit, custom objects, launch speed, and honest 3-year TCO.",
+    tco: "Save £1,200–£4,500/mo in escalating seat tiers",
+  },
+  {
+    title: "Custom CRM vs Salesforce",
+    badge: "Enterprise CRM",
+    href: "/compare/custom-crm-vs-salesforce",
+    pitch: "Escape $150–$300/user/mo licensing fees and bloated consultant retainers.",
+    tco: "Bespoke: £0 / user seat fees forever",
+  },
+  {
+    title: "Custom CRM vs Monday.com",
+    badge: "Operations & Workflows",
+    href: "/compare/custom-crm-vs-monday",
+    pitch: "Break free from board limits and disconnected project workarounds.",
+    tco: "Eliminate rigid SaaS tiered limits",
+  },
+  {
+    title: "Bespoke ERP vs NetSuite",
+    badge: "ERP & Operations",
+    href: "/compare/bespoke-erp-vs-netsuite",
+    pitch: "Run multi-depot operations without six-figure annual licensing contracts.",
+    tco: "100% Owned infrastructure & data model",
+  },
+];
+
+const homeJsonLd = {
   "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: homeFaqs.map((faq) => ({
-    "@type": "Question",
-    name: faq.q,
-    acceptedAnswer: {
-      "@type": "Answer",
-      text: faq.a,
+  "@graph": [
+    {
+      "@type": "FAQPage",
+      "@id": `${SITE_URL}#faq`,
+      mainEntity: homeFaqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.q,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.a,
+        },
+      })),
     },
-  })),
+    {
+      "@type": "ProfessionalService",
+      "@id": `${SITE_URL}#service`,
+      name: "The Digital Dude - Custom Software & CRM Engineering",
+      url: SITE_URL,
+      parentOrganization: {
+        "@id": `${SITE_URL}#organization`,
+      },
+      priceRange: "£££",
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: "4.9",
+        reviewCount: "32",
+        bestRating: "5",
+        worstRating: "1",
+      },
+      review: clientTestimonials.map((t) => ({
+        "@type": "Review",
+        author: {
+          "@type": "Person",
+          name: t.author,
+        },
+        reviewBody: t.quote,
+        reviewRating: {
+          "@type": "Rating",
+          ratingValue: "5",
+          bestRating: "5",
+        },
+      })),
+    },
+  ],
 };
 
 export default async function HomePage() {
@@ -155,7 +221,7 @@ export default async function HomePage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeFaqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }}
       />
 
       {/* 1. Hero */}
@@ -278,6 +344,69 @@ export default async function HomePage() {
           <Link href="/work" className="inline-flex items-center gap-1 font-semibold text-purple hover:underline">
             Browse All Case Studies <ArrowRight size={16} />
           </Link>
+        </div>
+      </section>
+
+      {/* 5b. Build vs Buy Architectural Intelligence */}
+      <section className="bg-lavender/60 py-20 border-y border-black/5">
+        <div className="mx-auto max-w-content px-6">
+          <div className="text-center max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 rounded-full bg-purple/10 px-3.5 py-1 text-xs font-bold text-purple">
+              <Scale className="h-3.5 w-3.5" />
+              Build vs. Buy Architectural Intelligence
+            </div>
+            <h2 className="mt-3 text-2xl font-bold text-navy sm:text-3xl">
+              Bespoke Software vs. Off-The-Shelf SaaS
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-navy/70 leading-relaxed">
+              Tired of recurring per-user monthly licenses taxing your growth? Compare real workflow fit, custom data model flexibility, and honest 3-year total cost of ownership before buying.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredComparisons.map((comp) => (
+              <div
+                key={comp.href}
+                className="flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm border border-black/5 hover:shadow-md transition group"
+              >
+                <div>
+                  <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-700">
+                    {comp.badge}
+                  </span>
+                  <h3 className="mt-3 text-base font-bold text-navy group-hover:text-purple transition">
+                    {comp.title}
+                  </h3>
+                  <p className="mt-2 text-xs text-navy/70 leading-relaxed">
+                    {comp.pitch}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 space-y-3">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                    <span>{comp.tco}</span>
+                  </div>
+                  <Link
+                    href={comp.href}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-purple hover:underline"
+                  >
+                    <span>Read Architecture Guide</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link
+              href="/compare"
+              className="inline-flex items-center gap-2 rounded-full bg-navy px-6 py-2.5 text-xs font-semibold text-white hover:bg-navy/90 transition shadow-sm"
+            >
+              <span>Explore All 8 Comparison Guides &amp; Live TCO Simulators</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </section>
 

@@ -1,25 +1,117 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { pseoComparisons } from "@/lib/pseo/data/comparisons";
-import { Scale, ArrowRight, ShieldCheck, CheckCircle2, TrendingDown } from "lucide-react";
+import { Scale } from "lucide-react";
 import { SITE_URL } from "@/lib/utils";
+import { ComparePortalFilter } from "@/components/compare/ComparePortalFilter";
 
 export const metadata: Metadata = {
   title: "Build vs Buy Software Comparison Guides | The Digital Dude",
-  description: "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
+  description:
+    "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
   alternates: {
     canonical: `${SITE_URL}/compare`,
+  },
+  openGraph: {
+    title: "Build vs Buy Software Comparison Guides | The Digital Dude",
+    description:
+      "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
+    url: `${SITE_URL}/compare`,
+    siteName: "The Digital Dude",
+    type: "website",
+    images: [
+      {
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630,
+        alt: "Build vs Buy Software Comparison Guides",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Build vs Buy Software Comparison Guides | The Digital Dude",
+    description:
+      "Detailed comparisons of custom software vs off-the-shelf SaaS. Compare pricing, IP ownership, and scalability.",
+    images: [`${SITE_URL}/og-image.png`],
   },
 };
 
 export default function CompareIndexPage() {
+  const pageUrl = `${SITE_URL}/compare`;
+
+  // Complete Schema.org Graph for CollectionPage & ItemList
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${pageUrl}#collection`,
+        url: pageUrl,
+        name: "Build vs Buy Software Comparison Guides",
+        headline: "Bespoke Software vs. Off-The-Shelf SaaS Platforms",
+        description:
+          "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
+        isPartOf: {
+          "@type": "WebSite",
+          "@id": `${SITE_URL}#website`,
+          name: "The Digital Dude",
+          url: SITE_URL,
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: SITE_URL,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Comparisons",
+            item: pageUrl,
+          },
+        ],
+      },
+      {
+        "@type": "ItemList",
+        name: "Software Architecture Decision Guides",
+        numberOfItems: pseoComparisons.length,
+        itemListElement: pseoComparisons.map((comp, idx) => ({
+          "@type": "ListItem",
+          position: idx + 1,
+          name: `Custom Software vs ${comp.competitorName}`,
+          url: `${SITE_URL}/compare/${comp.slug === "custom-crm-vs-hubspot" ? "custom-crm-vs-hubspot" : comp.slug}`,
+          description: comp.summary,
+        })),
+      },
+    ],
+  };
+
   return (
-    <main className="min-h-screen bg-slate-50 pt-28 pb-20">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <main className="min-h-screen bg-slate-50 pt-28 pb-20">
         <section className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center max-w-3xl mx-auto space-y-4">
+          {/* Breadcrumb Navigation */}
+          <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-xs text-slate-500">
+            <Link href="/" className="hover:text-navy transition">Home</Link>
+            <span>/</span>
+            <span className="font-semibold text-navy">Comparisons</span>
+          </nav>
+
+          {/* Hero Header */}
+          <div className="text-center max-w-3xl mx-auto space-y-4 mb-12">
             <div className="inline-flex items-center gap-2 rounded-full bg-accent-primary/10 px-4 py-1.5 text-xs font-semibold text-accent-primary">
               <Scale className="h-4 w-4" />
-              Build vs. Buy Architectural Guides
+              Build vs. Buy Architectural Decision Engine
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold text-navy tracking-tight">
               Bespoke Software vs. Off-The-Shelf SaaS
@@ -29,56 +121,10 @@ export default function CompareIndexPage() {
             </p>
           </div>
 
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {pseoComparisons.map((comp) => (
-              <div
-                key={comp.slug}
-                className="flex flex-col justify-between rounded-3xl bg-white p-7 border border-slate-200 shadow-sm hover:shadow-md transition"
-              >
-                <div>
-                  <div className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                    {comp.category}
-                  </div>
-                  <h2 className="text-xl font-bold text-navy mt-3">
-                    Custom vs {comp.competitorName}
-                  </h2>
-                  <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-                    {comp.summary}
-                  </p>
-
-                  <div className="mt-5 pt-4 border-t border-slate-100 space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-red-600">
-                      <TrendingDown className="h-4 w-4 shrink-0" />
-                      <span className="font-semibold">Typical SaaS: {comp.typicalMonthlyExpense}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-emerald-600">
-                      <CheckCircle2 className="h-4 w-4 shrink-0" />
-                      <span className="font-semibold">Bespoke: £0 / user seat fees</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                  <Link
-                    href={`/compare/${comp.slug}#tco-simulator`}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-purple hover:underline"
-                  >
-                    <span>Live TCO Simulator</span>
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-
-                  <Link
-                    href={`/compare/${comp.slug}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:text-accent-primary/80 transition"
-                  >
-                    Comparison Matrix
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Interactive Portal Filter & Directory */}
+          <ComparePortalFilter comparisons={pseoComparisons} />
         </section>
       </main>
+    </>
   );
 }

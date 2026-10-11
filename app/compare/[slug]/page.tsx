@@ -5,6 +5,7 @@ import { pseoComparisons } from "@/lib/pseo/data/comparisons";
 import { getPseoPage } from "@/lib/pseo/engine";
 import { PseoBreadcrumbs } from "@/components/pseo/PseoBreadcrumbs";
 import { CompetitorCompareInteractive } from "@/components/compare/CompetitorCompareInteractive";
+import { ComparisonJumpBar } from "@/components/compare/ComparisonJumpBar";
 import { PseoRoiCalculator } from "@/components/pseo/PseoRoiCalculator";
 import { PseoCaseStudyBridge } from "@/components/pseo/PseoCaseStudyBridge";
 import { PseoBookingCta } from "@/components/pseo/PseoBookingCta";
@@ -99,7 +100,7 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
           <PseoBreadcrumbs items={page.breadcrumbs} />
 
           {/* Hero Section */}
-          <section className="rounded-3xl bg-white p-8 md:p-12 border border-slate-200 shadow-sm relative overflow-hidden">
+          <section id="overview" className="rounded-3xl bg-white p-8 md:p-12 border border-slate-200 shadow-sm relative overflow-hidden">
             <div className="max-w-3xl space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full bg-accent-primary/10 px-3.5 py-1 text-xs font-bold text-accent-primary">
                 <Scale className="h-3.5 w-3.5" />
@@ -147,6 +148,9 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
             )}
           </section>
 
+          {/* Sticky Long-Form Jump Navigation Bar */}
+          <ComparisonJumpBar />
+
           {/* Editorial Integrity & Commercial Bias Disclosure */}
           <section className="my-8 rounded-2xl bg-amber-50/70 p-6 border border-amber-200/80 shadow-sm">
             <div className="flex items-start gap-3">
@@ -160,7 +164,7 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
 
           {/* Head-to-Head Comparison Matrix Table */}
           {page.comparisonMatrix && page.comparisonMatrix.length > 0 && (
-            <section className="my-12 rounded-3xl bg-white p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
+            <section id="matrix" className="my-12 rounded-3xl bg-white p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
               <div className="border-b border-slate-100 pb-4">
                 <h2 className="text-2xl font-bold text-navy">
                   Head-to-Head Feature & Cost Breakdown
@@ -212,7 +216,7 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
           )}
 
           {/* Interactive Decision Tool & 3/5-Year TCO Simulator */}
-          <section className="my-12">
+          <section id="tco-simulator" className="my-12 scroll-mt-24">
             <CompetitorCompareInteractive
               competitorName={compData?.competitorName || page.competitorName || "Off-the-shelf SaaS"}
               slug={slug}
@@ -486,7 +490,7 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
 
           {/* FAQs */}
           {page.faqs && page.faqs.length > 0 && (
-            <section className="my-12 space-y-4">
+            <section id="faqs" className="my-12 space-y-4 scroll-mt-24">
               <div className="text-center max-w-2xl mx-auto mb-6">
                 <h2 className="text-2xl font-bold text-navy">Migration & Comparison FAQs</h2>
                 <p className="text-xs text-slate-500 mt-1">
@@ -517,7 +521,9 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
           </section>
 
           {/* Booking CTA */}
-          <PseoBookingCta serviceName={`Software Alternative to ${page.competitorName}`} />
+          <div id="booking" className="scroll-mt-24">
+            <PseoBookingCta serviceName={`Software Alternative to ${page.competitorName}`} />
+          </div>
         </div>
       </main>
     </>

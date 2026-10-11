@@ -20,13 +20,13 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
     })),
   };
 
-  // 2. Main Entity Schema (WebPage with author for comparison guides, Service for commercial hubs)
+  // 2. Main Entity Schema (TechArticle with author for comparison guides, Service for commercial hubs)
   const mainEntitySchema =
     page.category === "comparison"
       ? {
           "@context": "https://schema.org",
-          "@type": "WebPage",
-          "@id": `${pageUrl}#webpage`,
+          "@type": "TechArticle",
+          "@id": `${pageUrl}#article`,
           url: pageUrl,
           name: page.title,
           headline: page.heroHeadline,
@@ -54,6 +54,18 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
               url: `${SITE_URL}/logo-full-color.png`,
             },
           },
+          about: [
+            {
+              "@type": "SoftwareApplication",
+              name: page.competitorName,
+              applicationCategory: "BusinessApplication",
+            },
+            {
+              "@type": "SoftwareApplication",
+              name: "Bespoke Custom Software Architecture",
+              applicationCategory: "BusinessApplication",
+            },
+          ],
         }
       : {
           "@context": "https://schema.org",
@@ -111,12 +123,12 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
       : null;
 
   const softwareAppSchema =
-    page.category === "solution"
+    page.category === "solution" || page.category === "comparison"
       ? {
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
           "@id": `${pageUrl}#software`,
-          name: page.heroHeadline,
+          name: page.category === "comparison" ? `Bespoke Software Architecture (vs ${page.competitorName})` : page.heroHeadline,
           applicationCategory: "BusinessApplication",
           operatingSystem: "Cloud, Web, Mobile (iOS/Android)",
           description: page.metaDescription,
