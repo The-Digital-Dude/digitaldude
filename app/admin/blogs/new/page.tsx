@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { ImageUploader } from '@/components/admin/ImageUploader';
 import { MarkdownToolbar } from '@/components/admin/MarkdownToolbar';
 import { SeoInspector } from '@/components/admin/SeoInspector';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { AiBlogGeneratorModal } from '@/components/admin/blogs/AiBlogGeneratorModal';
 import { 
   ArrowLeft, 
   Save, 
@@ -33,6 +34,7 @@ export default function NewBlogPostPage() {
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [focusKeyword, setFocusKeyword] = useState('');
   const [showMediaModal, setShowMediaModal] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,6 +50,35 @@ export default function NewBlogPostPage() {
     meta_title: '',
     meta_description: ''
   });
+
+  // Check for AI draft hydration from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedDraft = sessionStorage.getItem('tdd_ai_draft');
+      if (savedDraft) {
+        try {
+          const parsed = JSON.parse(savedDraft);
+          setFormData(prev => ({
+            ...prev,
+            title: parsed.title || prev.title,
+            slug: parsed.slug || prev.slug,
+            excerpt: parsed.excerpt || prev.excerpt,
+            content: parsed.content || prev.content,
+            category: parsed.category || prev.category,
+            meta_title: parsed.meta_title || prev.meta_title,
+            meta_description: parsed.meta_description || prev.meta_description,
+          }));
+          if (parsed.focusKeyword) {
+            setFocusKeyword(parsed.focusKeyword);
+          }
+          sessionStorage.removeItem('tdd_ai_draft');
+          setSuccessNotice('AI Article draft hydrated successfully into editor!');
+        } catch (err) {
+          console.error('Failed to parse AI draft from sessionStorage:', err);
+        }
+      }
+    }
+  }, []);
 
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [categories, setCategories] = useState<string[]>([
@@ -250,6 +281,16 @@ export default function NewBlogPostPage() {
                 SEO Engine
               </button>
             </div>
+
+            {/* AI Architect Button */}
+            <button
+              type="button"
+              onClick={() => setShowAiModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-lavender text-purple border border-purple/20 hover:bg-purple/15 transition shadow-2xs"
+            >
+              <Sparkles size={13} className="text-purple animate-pulse" />
+              AI Architect
+            </button>
 
             <button
               type="button"
@@ -556,6 +597,14 @@ export default function NewBlogPostPage() {
               author={formData.author}
               focusKeyword={focusKeyword}
               onFocusKeywordChange={setFocusKeyword}
+              onApplyMeta={(metaTitle, metaDescription) => {
+                setFormData(prev => ({
+                  ...prev,
+                  meta_title: metaTitle,
+                  meta_description: metaDescription
+                }));
+                setSuccessNotice("Optimized meta tags applied to article settings!");
+              }}
             />
 
             {/* Custom Meta Tag Overrides */}
@@ -634,6 +683,29 @@ export default function NewBlogPostPage() {
             </div>
           </div>
         )}
+
+        {/* AI Article Architect Modal */}
+        <AiBlogGeneratorModal
+          isOpen={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          onApply={(art) => {
+            setFormData(prev => ({
+              ...prev,
+              title: art.title,
+              slug: art.slug,
+              excerpt: art.excerpt,
+              content: art.content,
+              category: art.category,
+              meta_title: art.meta_title || art.metaTitle || '',
+              meta_description: art.meta_description || art.metaDescription || '',
+            }));
+            if (art.focusKeyword) {
+              setFocusKeyword(art.focusKeyword);
+            }
+            setShowAiModal(false);
+            setSuccessNotice(`AI Article "${art.title}" generated and applied to editor!`);
+          }}
+        />
       </div>
     </AdminLayout>
   );

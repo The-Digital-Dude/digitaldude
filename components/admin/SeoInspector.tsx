@@ -12,6 +12,11 @@ import {
   Search,
   Sparkles,
   Info,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  BookOpen,
+  Zap,
+  RefreshCw,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/utils";
 
@@ -27,6 +32,7 @@ interface SeoInspectorProps {
   author?: string;
   focusKeyword?: string;
   onFocusKeywordChange?: (keyword: string) => void;
+  onApplyMeta?: (metaTitle: string, metaDescription: string) => void;
 }
 
 export function SeoInspector({
@@ -41,9 +47,11 @@ export function SeoInspector({
   author = "The Digital Dude",
   focusKeyword = "",
   onFocusKeywordChange,
+  onApplyMeta,
 }: SeoInspectorProps) {
   const [devicePreview, setDevicePreview] = useState<"desktop" | "mobile">("desktop");
   const [socialPreview, setSocialPreview] = useState<"google" | "social">("google");
+  const [optimizing, setOptimizing] = useState(false);
 
   const displayTitle = (metaTitle || title || "Untitled Article").trim();
   const displayDesc = (
@@ -52,7 +60,6 @@ export function SeoInspector({
     "Discover actionable insights, architecture breakdowns, and tech strategies on The Digital Dude blog."
   ).trim();
   const displaySlug = slug || "article-slug";
-  const fullUrl = `${SITE_URL}/blog/${displaySlug}`;
 
   // Word count & calculations
   const words = content.trim().split(/\s+/).filter(Boolean).length;
@@ -79,46 +86,107 @@ export function SeoInspector({
 
   // Focus keyword metrics
   const kw = focusKeyword.trim().toLowerCase();
+  const kwTokens = kw.split(/\s+/).filter(Boolean);
   const kwInTitle = kw ? displayTitle.toLowerCase().includes(kw) : false;
   const kwInDesc = kw ? displayDesc.toLowerCase().includes(kw) : false;
   const kwInSlug = kw ? displaySlug.toLowerCase().includes(kw.replace(/\s+/g, "-")) : false;
-  const kwInContentCount = kw
-    ? (content.toLowerCase().match(new RegExp(kw, "g")) || []).length
+
+  const kwOccurrences = kw
+    ? (content.toLowerCase().match(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) || []).length
     : 0;
 
-  // SEO Score calculation (0 - 100)
+  // Keyword density
+  const kwWordCount = kwTokens.length || 1;
+  const kwDensityPercent = words > 0 ? ((kwOccurrences * kwWordCount) / words) * 100 : 0;
+  const densityStatus: "good" | "low" | "high" =
+    kwDensityPercent >= 0.7 && kwDensityPercent <= 2.2
+      ? "good"
+      : kwDensityPercent < 0.7
+      ? "low"
+      : "high";
+
+  // Internal & External links analysis
+  const internalLinkMatches = content.match(/\[.*?\]\((\/.*?|https:\/\/.*?digitaldude\.co\.uk.*?)\)/g) || [];
+  const internalLinkCount = internalLinkMatches.length;
+
+  const externalLinkMatches = content.match(/\[.*?\]\((https?:\/\/(?!.*?digitaldude\.co\.uk).*?)\)/g) || [];
+  const externalLinkCount = externalLinkMatches.length;
+
+  // Image audit
+  const inlineImages = content.match(/!\[(.*?)\]\((.*?)\)/g) || [];
+  const missingAltCount = inlineImages.filter((img) => img.startsWith("![](")).length;
+
+  // Surfer-Style SEO Score Calculation (0 - 100)
   let score = 0;
-  if (titleLen >= 30) score += 15;
-  if (titleStatus === "good") score += 10;
-  if (descLen >= 80) score += 15;
-  if (descStatus === "good") score += 10;
+  if (titleLen >= 35 && titleLen <= 65) score += 15;
+  else if (titleLen >= 20) score += 8;
+
+  if (descLen >= 115 && descLen <= 165) score += 15;
+  else if (descLen >= 70) score += 8;
+
   if (slug && /^[a-z0-9-]+$/.test(slug)) score += 10;
-  if (coverImage) score += 15;
-  if (h2Count >= 2) score += 10;
-  if (words >= 300) score += 15;
+  if (coverImage) score += 10;
+  if (h2Count >= 3) score += 10;
+  else if (h2Count >= 1) score += 5;
+
+  if (words >= 1200) score += 15;
+  else if (words >= 600) score += 10;
+  else if (words >= 300) score += 5;
+
+  if (kwInTitle) score += 8;
+  if (kwInDesc) score += 7;
+  if (densityStatus === "good") score += 5;
+  if (internalLinkCount >= 3) score += 5;
+
+  score = Math.min(100, Math.max(0, score));
+
+  async function handleAutoTuneMeta() {
+    if (!onApplyMeta) return;
+    setOptimizing(true);
+    try {
+      const res = await fetch("/api/admin/blogs/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "optimize_meta",
+          title,
+          content,
+          focusKeyword,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.metaTitle && data.metaDescription) {
+        onApplyMeta(data.metaTitle, data.metaDescription);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setOptimizing(false);
+    }
+  }
 
   return (
-    <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-      {/* Header with SEO Score */}
+    <div className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
+      {/* Header with Surfer-Style Health Score */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
           <h3 className="text-base font-bold text-navy flex items-center gap-2">
             <Search size={18} className="text-purple" />
-            SEO & Social Preview Engine
+            Live On-Page SEO Auditor &amp; SERP Engine
           </h3>
           <p className="text-xs text-navy/60 mt-0.5">
-            Optimize meta tags, search snippet appearance, and keyword ranking potential.
+            Real-time keyword density, search snippet preview, and content optimization score.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-xs font-medium text-navy/60">SEO Health Score</div>
+            <div className="text-xs font-semibold text-slate-500">SEO Health Score</div>
             <div
-              className={`text-lg font-extrabold ${
+              className={`text-xl font-extrabold ${
                 score >= 80
                   ? "text-emerald-600"
-                  : score >= 50
+                  : score >= 55
                   ? "text-amber-600"
                   : "text-red-500"
               }`}
@@ -126,58 +194,98 @@ export function SeoInspector({
               {score}/100
             </div>
           </div>
-          <div className="h-10 w-10 rounded-full border-4 flex items-center justify-center font-bold text-xs border-purple/20 bg-lavender text-purple">
+          <div
+            className={`h-11 w-11 rounded-2xl flex items-center justify-center font-bold text-xs shadow-xs border ${
+              score >= 80
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : score >= 55
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-red-50 text-red-700 border-red-200"
+            }`}
+          >
             {score}%
           </div>
         </div>
       </div>
 
-      {/* Focus Keyword Input */}
-      {onFocusKeywordChange && (
-        <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200">
-          <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <Sparkles size={13} className="text-purple" />
-            Target Focus Keyword (Optional)
+      {/* Focus Keyword & Density Bar */}
+      <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <label className="text-xs font-bold text-navy uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles size={14} className="text-purple" />
+            Target Focus Keyword
           </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={focusKeyword}
-              onChange={(e) => onFocusKeywordChange(e.target.value)}
-              placeholder="e.g. custom CRM development"
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-navy placeholder-slate-400 outline-none focus:border-purple focus:ring-1 focus:ring-purple"
-            />
-          </div>
-          {kw && (
-            <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <div
-                className={`rounded-md p-1.5 text-center font-medium ${
-                  kwInTitle ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-                }`}
-              >
-                {kwInTitle ? "✓ In Title" : "✗ Missing in Title"}
-              </div>
-              <div
-                className={`rounded-md p-1.5 text-center font-medium ${
-                  kwInDesc ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-                }`}
-              >
-                {kwInDesc ? "✓ In Excerpt" : "✗ Missing in Excerpt"}
-              </div>
-              <div
-                className={`rounded-md p-1.5 text-center font-medium ${
-                  kwInSlug ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-                }`}
-              >
-                {kwInSlug ? "✓ In URL Slug" : "✗ Missing in Slug"}
-              </div>
-              <div className="rounded-md bg-purple/10 text-purple p-1.5 text-center font-medium">
-                {kwInContentCount}x in body
-              </div>
-            </div>
+          {onApplyMeta && (
+            <button
+              type="button"
+              onClick={handleAutoTuneMeta}
+              disabled={optimizing}
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-purple hover:underline disabled:opacity-50"
+            >
+              <Zap size={12} className={optimizing ? "animate-spin" : ""} />
+              {optimizing ? "Tuning with AI..." : "1-Click Auto-Tune Meta Tags"}
+            </button>
           )}
         </div>
-      )}
+
+        {onFocusKeywordChange ? (
+          <input
+            type="text"
+            value={focusKeyword}
+            onChange={(e) => onFocusKeywordChange(e.target.value)}
+            placeholder="e.g. crm switch, custom software development cost"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-navy placeholder-slate-400 outline-none focus:border-purple focus:ring-1 focus:ring-purple"
+          />
+        ) : (
+          <div className="text-xs font-bold text-navy">{focusKeyword || "None set"}</div>
+        )}
+
+        {kw ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+            <div
+              className={`rounded-xl p-2 text-center font-bold border ${
+                kwInTitle
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  : "bg-red-50 text-red-700 border-red-200"
+              }`}
+            >
+              {kwInTitle ? "✓ In Title" : "✗ Missing in Title"}
+            </div>
+            <div
+              className={`rounded-xl p-2 text-center font-bold border ${
+                kwInDesc
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  : "bg-red-50 text-red-700 border-red-200"
+              }`}
+            >
+              {kwInDesc ? "✓ In Description" : "✗ Missing in Meta"}
+            </div>
+            <div
+              className={`rounded-xl p-2 text-center font-bold border ${
+                kwInSlug
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  : "bg-red-50 text-red-700 border-red-200"
+              }`}
+            >
+              {kwInSlug ? "✓ In URL Slug" : "✗ Missing in Slug"}
+            </div>
+            <div
+              className={`rounded-xl p-2 text-center font-bold border ${
+                densityStatus === "good"
+                  ? "bg-purple/10 text-purple border-purple/20"
+                  : "bg-amber-50 text-amber-800 border-amber-200"
+              }`}
+              title="Target density: 0.8% - 2.0%"
+            >
+              {kwOccurrences}x ({kwDensityPercent.toFixed(1)}% density)
+            </div>
+          </div>
+        ) : (
+          <div className="text-[11px] text-slate-500">
+            Enter a target keyword above to verify placement in Title, Slug, Description, and body frequency.
+          </div>
+        )}
+      </div>
 
       {/* Preview Selector Tabs */}
       <div>
@@ -186,10 +294,10 @@ export function SeoInspector({
             <button
               type="button"
               onClick={() => setSocialPreview("google")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                 socialPreview === "google"
                   ? "bg-purple text-white shadow-xs"
-                  : "text-navy/70 hover:bg-slate-100"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
               <Globe size={14} /> Google SERP Snippet
@@ -197,10 +305,10 @@ export function SeoInspector({
             <button
               type="button"
               onClick={() => setSocialPreview("social")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                 socialPreview === "social"
                   ? "bg-purple text-white shadow-xs"
-                  : "text-navy/70 hover:bg-slate-100"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
               <Share2 size={14} /> Social Share Card (OG)
@@ -239,24 +347,24 @@ export function SeoInspector({
 
         {/* Google SERP Preview */}
         {socialPreview === "google" && (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 space-y-1.5">
             <div className="flex items-center gap-2 text-xs text-slate-700">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-purple text-[10px] font-bold text-white">
                 D
               </div>
               <div className="flex flex-col">
                 <span className="font-semibold text-slate-900 leading-tight">The Digital Dude</span>
-                <span className="text-[11px] text-slate-500 truncate max-w-[320px]">
+                <span className="text-[11px] text-slate-500 truncate max-w-[340px]">
                   https://www.digitaldude.co.uk › blog › {displaySlug}
                 </span>
               </div>
             </div>
 
-            <h4 className="mt-2 text-lg font-medium text-[#1a0dab] hover:underline cursor-pointer leading-snug line-clamp-2">
-              {displayTitle} | The Digital Dude
+            <h4 className="text-lg font-medium text-[#1a0dab] hover:underline cursor-pointer leading-snug line-clamp-2">
+              {displayTitle}
             </h4>
 
-            <p className="mt-1 text-sm text-[#4d5156] leading-relaxed line-clamp-2">
+            <p className="text-xs text-[#4d5156] leading-relaxed line-clamp-2">
               {displayDesc}
             </p>
           </div>
@@ -264,7 +372,7 @@ export function SeoInspector({
 
         {/* Social Card Preview */}
         {socialPreview === "social" && (
-          <div className="mt-4 max-w-lg rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+          <div className="mt-4 max-w-lg rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
             <div className="aspect-video w-full bg-slate-100 overflow-hidden relative">
               {coverImage ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
@@ -295,14 +403,14 @@ export function SeoInspector({
         )}
       </div>
 
-      {/* SEO Character and Content Metrics */}
+      {/* Length Indicators */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
-        {/* Title Length Indicator */}
-        <div className="rounded-xl border border-slate-200 p-3.5 space-y-1.5">
+        {/* Title Length */}
+        <div className="rounded-2xl border border-slate-200 p-3.5 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-navy">Title Length</span>
+            <span className="font-bold text-navy">Title Length</span>
             <span
-              className={`font-bold ${
+              className={`font-mono font-bold ${
                 titleStatus === "good"
                   ? "text-emerald-600"
                   : titleStatus === "warn"
@@ -325,21 +433,21 @@ export function SeoInspector({
               style={{ width: `${Math.min(100, (titleLen / 60) * 100)}%` }}
             />
           </div>
-          <p className="text-[11px] text-navy/50">
+          <p className="text-[11px] text-slate-500">
             {titleStatus === "good"
-              ? "Ideal length for Google desktop & mobile SERP."
+              ? "Optimal length for desktop & mobile search snippets."
               : titleLen > 60
-              ? "Title may be truncated with ellipsis in Google results."
-              : "Too short. Aim for 45-60 characters for higher click-through."}
+              ? "Over 60 characters: likely truncated with ellipsis (...)."
+              : "Too short. Aim for 45–60 chars with target keyword."}
           </p>
         </div>
 
-        {/* Description Length Indicator */}
-        <div className="rounded-xl border border-slate-200 p-3.5 space-y-1.5">
+        {/* Description Length */}
+        <div className="rounded-2xl border border-slate-200 p-3.5 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-navy">Meta Description Length</span>
+            <span className="font-bold text-navy">Meta Description Length</span>
             <span
-              className={`font-bold ${
+              className={`font-mono font-bold ${
                 descStatus === "good"
                   ? "text-emerald-600"
                   : descStatus === "warn"
@@ -362,55 +470,88 @@ export function SeoInspector({
               style={{ width: `${Math.min(100, (descLen / 160) * 100)}%` }}
             />
           </div>
-          <p className="text-[11px] text-navy/50">
+          <p className="text-[11px] text-slate-500">
             {descStatus === "good"
-              ? "Optimal length for rich search engine snippets."
+              ? "Optimal length for rich search engine click-through."
               : descLen > 160
-              ? "Over 160 characters. Mobile devices may cut this off."
-              : "Add more details to increase organic search click-through."}
+              ? "Over 160 characters: mobile results will truncate."
+              : "Add compelling details to drive search click-through."}
           </p>
         </div>
       </div>
 
-      {/* SEO Checklist */}
-      <div className="border-t border-slate-100 pt-4 space-y-2">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-navy/70 mb-2">
-          SEO Technical Audit
+      {/* Surfer-Style Technical Content Audit Checklist */}
+      <div className="border-t border-slate-100 pt-4 space-y-3">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-navy/70">
+          Content &amp; Linking Health Checklist
         </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-          <div className="flex items-center gap-2 text-navy/80">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+          <div className="flex items-center gap-2 text-slate-700">
+            {words >= 1200 ? (
+              <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+            ) : words >= 600 ? (
+              <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+            ) : (
+              <XCircle size={15} className="text-red-400 shrink-0" />
+            )}
+            <span>
+              Article Depth: <strong>{words} words</strong> (Target: 1,200+ words)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-slate-700">
+            {h2Count >= 3 ? (
+              <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+            ) : (
+              <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+            )}
+            <span>
+              Headings Hierarchy: <strong>{h2Count} H2s, {h3Count} H3s</strong>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-slate-700">
+            {internalLinkCount >= 3 ? (
+              <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+            ) : (
+              <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+            )}
+            <span>
+              Internal Links: <strong>{internalLinkCount} links</strong> (Target: 3+ internal links)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-slate-700">
+            {missingAltCount === 0 ? (
+              <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+            ) : (
+              <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+            )}
+            <span>
+              Image Alt Tags:{" "}
+              {missingAltCount === 0
+                ? "All images verified"
+                : `${missingAltCount} image(s) missing alt text`}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-slate-700">
             {coverImage ? (
-              <CheckCircle2 size={15} className="text-emerald-500" />
+              <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
             ) : (
-              <XCircle size={15} className="text-red-400" />
+              <XCircle size={15} className="text-red-400 shrink-0" />
             )}
-            <span>Cover image configured for OG Card & Rich Snippets</span>
+            <span>Cover image configured for OpenGraph and SERP</span>
           </div>
 
-          <div className="flex items-center gap-2 text-navy/80">
-            {h2Count >= 2 ? (
-              <CheckCircle2 size={15} className="text-emerald-500" />
-            ) : (
-              <AlertTriangle size={15} className="text-amber-500" />
-            )}
-            <span>Content Headings: {h2Count} H2s, {h3Count} H3s structured</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-navy/80">
-            {words >= 300 ? (
-              <CheckCircle2 size={15} className="text-emerald-500" />
-            ) : (
-              <AlertTriangle size={15} className="text-amber-500" />
-            )}
-            <span>Article length: {words} words (~{Math.max(1, Math.ceil(words / 200))} min read)</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-navy/80">
-            <CheckCircle2 size={15} className="text-emerald-500" />
-            <span>Schema.org <code>Article</code> JSON-LD automated</span>
+          <div className="flex items-center gap-2 text-slate-700">
+            <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+            <span>Automated <code>BlogPosting</code> &amp; <code>FAQPage</code> schema enabled</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default SeoInspector;

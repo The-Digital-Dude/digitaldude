@@ -4,6 +4,7 @@ import Link from "next/link";
 import { pseoComparisons } from "@/lib/pseo/data/comparisons";
 import { getPseoPage } from "@/lib/pseo/engine";
 import { PseoBreadcrumbs } from "@/components/pseo/PseoBreadcrumbs";
+import { CompetitorCompareInteractive } from "@/components/compare/CompetitorCompareInteractive";
 import { PseoRoiCalculator } from "@/components/pseo/PseoRoiCalculator";
 import { PseoCaseStudyBridge } from "@/components/pseo/PseoCaseStudyBridge";
 import { PseoBookingCta } from "@/components/pseo/PseoBookingCta";
@@ -209,6 +210,16 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
               </div>
             </section>
           )}
+
+          {/* Interactive Decision Tool & 3/5-Year TCO Simulator */}
+          <section className="my-12">
+            <CompetitorCompareInteractive
+              competitorName={compData?.competitorName || page.competitorName || "Off-the-shelf SaaS"}
+              slug={slug}
+              config={compData?.calculatorConfig}
+              checklistItems={compData?.checklistItems}
+            />
+          </section>
 
           {/* 3-Year & 5-Year Total Cost of Ownership (TCO) Breakdown */}
           {page.tcoModels && page.tcoModels.length > 0 && (
@@ -466,12 +477,6 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
               </div>
             </div>
           )}
-
-          {/* Interactive ROI Calculator */}
-          <PseoRoiCalculator
-            serviceName={`Custom Alternative to ${page.competitorName}`}
-            currencySymbol="$"
-          />
 
           {/* Case Study Bridge */}
           <PseoCaseStudyBridge

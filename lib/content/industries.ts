@@ -25,63 +25,63 @@ export const industries: IndustryPage[] = [
   {
     slug: "property",
     navLabel: "Property",
-    displayLabel: "Property, Real Estate & Compliance",
-    headline: "Custom Multi-Portal CRMs for Property Management & Compliance Inspection Agencies",
+    displayLabel: "Property, Real Estate & Deeds Management",
+    headline: "Deeds Management Software & Custom Multi-Portal Property CRMs",
     intro:
-      "Property management and compliance companies operate in high-complexity environments: coordinating hundreds of real estate agencies, thousands of rental properties, field technicians, landlords, and tenants across tight statutory deadlines. We build bespoke multi-portal CRMs that automate work order dispatch, mobile inspection checklists, photo-verified compliance certificates, and instant agency billing.",
+      "For real estate professionals, conveyancing practices, and agency networks, managing title deeds, lease contracts, and statutory compliance across large portfolios creates critical bottlenecks. We engineer secure deeds management software, document management software, and bespoke property CRMs that automate deed processing, reduce manual data entry, streamline search and retrieval, and deliver encrypted document workflows.",
     painPoints: [
-      "Fragmented Communications: Agencies, property managers, field inspectors, and central operations communicating through unlinked email chains, WhatsApp groups, and spreadsheets.",
-      "Compliance Bottlenecks: Safety inspections (smoke alarms, gas safety, electrical checks) slipping past statutory deadlines due to lack of a unified real-time tracking matrix.",
-      "Delayed Certificate Delivery: Taking 3 to 7 business days to manually type up, verify, and email safety certificates and invoices to real estate property managers.",
-      "Lack of Regional Ops Visibility: Leadership unable to assess inspector efficiency, job turnaround times, or gross margin per agency without hours of manual report compilation.",
+      "Fragmented Deed Document Workflows: Real estate professionals managing title deeds, conveyancing records, and lease covenants across disconnected physical folders and email chains.",
+      "Manual Data Entry & Filing Errors: Operations staff wasting dozens of hours re-keying financial data and deed processing records, increasing the risk of boundary or title errors.",
+      "Slow Search and Retrieval: Taking hours or days to locate deed documents, land records management history, and compliance certificates during urgent transactions.",
+      "Lack of Multi-Agency Management Support: Inability for external law firms, conveyancers, and property managers to collaborate securely within a unified management platform.",
     ],
     whatWeBuild: [
-      "Agency Self-Service Portal: Real estate property managers log in, submit new properties, view live compliance statuses, and download safety certificates on demand.",
-      "Field Inspector Mobile App: Turn-by-turn route optimization, mandatory digital checklists, required photo proof of serial numbers, and digital on-site signatures.",
-      "Operations Dispatch Command Center: Central dispatcher assigns jobs with location-based grouping, monitors delayed tasks, and reviews inspector submissions in real time.",
-      "Automated Certificate & Invoicing Engine: Safety certificates and invoices are generated and emailed automatically within seconds of inspection sign-off.",
-      "Automated Tenant & Landlord SMS Notification Flow: Interactive booking confirmations with self-service reschedule links to eliminate missed technician visits.",
+      "Deeds Management Software & Document Workflow Hub: AI-powered search and retrieval for title deeds, mortgage records, and covenant restrictions with instant OCR indexing.",
+      "Agency & Landlord Self-Service Portal: Real estate professionals and landlords log in, review deed document status, and download certificates from secure storage.",
+      "Automated Deed Processing & Compliance Tracking: Automated land records management validation reducing manual admin and eliminating statutory compliance lapses.",
+      "Mobile Field Inspection & Condition App: Inspectors record property condition, capture photo evidence, and link reports directly to deed records.",
+      "Secure Financial Data & Accounting Integration: Direct software integrate pipelines connecting property registers with Xero, QuickBooks, and client billing.",
     ],
     caseStudySlug: "property-compliance-crm",
     relatedServiceSlugs: ["crm-development", "erp-hrm-systems"],
     stats: [
-      { metric: "4,000+", label: "Rental Properties", detail: "Actively managed on a single multi-tenant compliance platform." },
-      { metric: "30+", label: "Real Estate Agencies", detail: "Self-servicing certificate downloads with zero phone calls to admin." },
-      { metric: "4x", label: "Faster Turnaround", detail: "From booking to issued certificate in under 48 hours." }
+      { metric: "4,000+", label: "Rental & Deed Records", detail: "Actively managed with instant search and retrieval." },
+      { metric: "30+", label: "Real Estate Agencies", detail: "Self-servicing title deeds and certificates securely." },
+      { metric: "4x", label: "Faster Turnaround", detail: "Automated document workflows cut turnaround to under 48 hours." }
     ],
     comparison: [
       {
-        dimension: "Agency Experience",
-        bespokeSolution: "Dedicated branded agency portal where property managers download certificates anytime without emailing you.",
-        genericOrSpreadsheet: "Constant phone calls and emails asking 'what is the status of property X?'."
+        dimension: "Deed & Document Storage",
+        bespokeSolution: "Cloud-native deeds management software with encrypted secure storage and instant keyword search.",
+        genericOrSpreadsheet: "Unsecured file shares or physical deed cabinets with painful manual retrieval."
       },
       {
-        dimension: "Field Tech Dispatch",
-        bespokeSolution: "Mobile web app with digital checklists and mandatory photo proof before completing a job.",
-        genericOrSpreadsheet: "Paper job sheets or messy WhatsApp photos with no timestamp audit trail."
+        dimension: "Data Entry & Filing",
+        bespokeSolution: "AI-powered optical recognition auto-extracting deed processing details with zero duplicate work.",
+        genericOrSpreadsheet: "Hundreds of hours spent on manual data entry across multiple unlinked spreadsheets."
       },
       {
-        dimension: "Certificate Issuance",
-        bespokeSolution: "Instant automated PDF generation and email delivery upon inspector sign-off.",
-        genericOrSpreadsheet: "Days of manual Word/PDF drafting by central office staff."
+        dimension: "Stakeholder Collaboration",
+        bespokeSolution: "Role-based portals where conveyancers, agents, and landlords access verified records in real time.",
+        genericOrSpreadsheet: "Endless email attachments and unencrypted files prone to security vulnerabilities."
       }
     ],
     faqs: [
       {
-        q: "Can this system handle multiple real estate agency branches and separate portfolios?",
-        a: "Yes. Our architecture utilizes strict multi-tenant data isolation. Each real estate agency and individual property manager logs into their own portal view, seeing only their designated rental portfolio, active work orders, and historical certificates.",
+        q: "What is deeds management software and how does it integrate with our existing property systems?",
+        a: "Deeds management software is a specialized document management software solution that digitizes title deeds, property covenants, and conveyancing contracts. Our software integrate capabilities connect directly with your existing property management tools and accounting software, reducing the risk of compliance errors.",
       },
       {
-        q: "How does the mobile app work for field inspectors in areas with poor reception?",
-        a: "We engineer Progressive Web Applications (PWAs) with local caching. Inspectors can complete digital inspection checklists, capture mandatory photos, and collect signatures offline; the data automatically syncs once connection is restored.",
+        q: "How does AI-powered deed processing reduce manual data entry?",
+        a: "Our management platform uses AI-powered optical character recognition to extract deed document boundaries, registration IDs, and financial data automatically, slashing manual data entry by over 80% and ensuring secure storage.",
       },
       {
-        q: "Can it replace our spreadsheets, WhatsApp groups, and invoicing software?",
-        a: "Yes. The custom CRM serves as your single operational source of truth, automating communication, dispatch, photo storage, and invoicing.",
+        q: "How secure is client and landlord access to title deeds?",
+        a: "We engineer bank-grade encryption with granular role-based permissions. Real estate professionals, solicitors, and property managers only access documents authorized for their specific agency or portfolio.",
       },
       {
-        q: "How long does a property compliance CRM take to build and deploy?",
-        a: "A multi-portal property CRM (covering Agency Portal, Mobile Inspector App, and Ops Dashboard) is typically delivered in 8 to 12 weeks with phased sprint milestones.",
+        q: "What is the typical timeline to deploy a deeds management platform?",
+        a: "A full deeds management software deployment—including legacy document migration, custom portals, and automated document workflow rules—typically launches within 8 to 12 weeks.",
       },
     ],
   },
@@ -179,35 +179,63 @@ export const industries: IndustryPage[] = [
   {
     slug: "logistics",
     navLabel: "Logistics",
-    displayLabel: "Transport, Fleet & Logistics",
-    headline: "Mobile-First Fleet Coordination & Incident Breakdown Management Platforms",
+    displayLabel: "Transport, Fleets & Dispatch",
+    headline: "Fleet Manager Dispatch Software & Real-Time Logistics Coordination Systems",
     intro:
-      "In commercial transport and logistics, fleet breakdowns and roadside incidents cost thousands per hour in lost driver productivity and delivery penalties. We engineer mobile-first breakdown management and fleet dispatch systems that connect drivers, dispatchers, and recovery technicians in real time.",
+      "In commercial road haulage, incident recovery, and multi-depot transport, dispatchers and fleet managers operate under relentless margin pressure. We engineer bespoke fleet manager dispatch software, truck dispatch software, and transportation management systems that empower dispatchers to assign drivers, monitor GPS tracking on mobile devices, optimize routes, and provide clients with accurate ETAs and instant digital proof of delivery (POD).",
     painPoints: [
-      "Protracted Phone Call Coordination: Dispatchers spending 30+ minutes collecting basic vehicle breakdown details over unstable phone calls.",
-      "No Central Visibility: Management having no live map view of disabled vehicles, tow truck ETAs, or delayed cargo.",
-      "Inaccurate Location Reporting: Drivers struggling to convey exact motorway marker posts or depot locations.",
+      "Fragmented Fleet Dispatch & Driver Assignment: Fleet manager dispatch teams wasting hours coordinating load information and drivers assign routines over unstable phone calls and messaging chats.",
+      "Inaccurate ETAs & Blind Spots: Dispatchers having zero live map visibility of fleet tracking, vehicle breakdown status, or delivery status across regional routes.",
+      "Paper-Based Proof of Delivery & Slow Driver Pay: Field drivers carrying physical paper manifests, causing 5-day invoice delays and dispute friction over driver pay calculations.",
+      "Disconnected Accounting Software: Double-entry between transport dispatch boards, fuel card logs, and accounting software packages like Xero or Sage.",
     ],
     whatWeBuild: [
-      "Driver Incident Mobile Interface: 1-click GPS location sharing, vehicle defect photo capture, and instant ticket logging.",
-      "Dispatcher Incident Matrix: Real-time map view of disabled units, nearby certified recovery partners, and live status progress.",
-      "Automated SLA & Cargo Delay Alerts: Instant automated notifications to client logistics managers regarding revised delivery estimates.",
+      "Fleet Manager Dispatch Software Console: High-density interactive matrix to assign drivers, balance load information, and review real time status updates on one screen.",
+      "Driver Mobile App & Digital Proof of Delivery: Mobile web application with turn-by-turn route optimization, one-tap GPS tracking, barcode scanning, and instant photo proof of delivery.",
+      "Real-Time Fleet Tracking & Incident Management: Live telemetry showing vehicle status, tow truck coordination, and automated customer notifications with accurate ETAs.",
+      "Automated Driver Pay & Billing Engine: Automated rate calculation factoring mileage, waiting time, and load weight, generating instant invoices for accounting software sync.",
+      "Client Self-Service Tracking Portal: Shippers and freight customers track delivery status and download signed proof of delivery certificates without calling dispatch.",
     ],
     caseStudySlug: "logistics-platform",
     relatedServiceSlugs: ["erp-hrm-systems", "marketplace-development"],
     stats: [
-      { metric: "40%", label: "Faster Coordination", detail: "Cut driver roadside incident turnaround from 90 to 54 minutes." },
-      { metric: "GPS", label: "Pinpoint Dispatch", detail: "Instant location capture eliminates driver positioning errors." },
-      { metric: "Live", label: "Status Telemetry", detail: "Real-time visibility across all active fleet breakdowns." }
+      { metric: "40%", label: "Faster Coordination", detail: "Cut roadside dispatch turnaround from 90 to 54 minutes." },
+      { metric: "100%", label: "Digital PODs", detail: "Instant photo proof of delivery captured on driver mobile devices." },
+      { metric: "Live", label: "Fleet Tracking", detail: "Real time status updates and route optimization across all units." }
+    ],
+    comparison: [
+      {
+        dimension: "Fleet Dispatch Board",
+        bespokeSolution: "Bespoke fleet manager dispatch software tailored to your specific fleet types, trailers, and driver rosters.",
+        genericOrSpreadsheet: "Static whiteboards, clunky generic tools, or chaotic spreadsheets requiring manual refreshing."
+      },
+      {
+        dimension: "Driver Communication",
+        bespokeSolution: "Mobile web interface with one-tap job acceptance, route optimization, and digital proof of delivery.",
+        genericOrSpreadsheet: "Endless telephone calls, messy text messages, and lost paper delivery slips."
+      },
+      {
+        dimension: "Delivery Status & Invoicing",
+        bespokeSolution: "Real time status updates with automated invoicing directly synced to your accounting software.",
+        genericOrSpreadsheet: "Days of manual administrative delay verifying paperwork before invoices can be sent."
+      }
     ],
     faqs: [
       {
-        q: "Can drivers submit breakdown reports without installing a native app store app?",
-        a: "Yes. We build Progressive Web Applications (PWAs) that drivers open instantly in their mobile browser with 1-click GPS sharing and photo upload capabilities.",
+        q: "What is fleet manager dispatch software and how does it optimize transportation operations?",
+        a: "Fleet manager dispatch software is an operational software solution and transportation management system designed to assign drivers, monitor GPS tracking on mobile devices, balance load information, and automate route optimization. It cuts fuel costs and provides customers with accurate ETAs.",
       },
       {
-        q: "Can this system integrate with our existing telematics or ERP software?",
-        a: "Yes. We build RESTful API and webhook synchronizations with fleet telematics, fuel card systems, and ERP accounting software.",
+        q: "How does digital proof of delivery work on driver mobile devices?",
+        a: "Drivers open our mobile application without app store friction, navigate via built-in GPS routing, capture customer signatures and photo verification on site, and instantly trigger digital proof of delivery (POD) back to dispatch.",
+      },
+      {
+        q: "Can the fleet dispatch software calculate driver pay and integrate with accounting software?",
+        a: "Yes. Our software calculates driver pay automatically based on completed routes, tonnage, and hours, feeding clean transaction batches directly into your accounting software (Xero, QuickBooks, or custom ERP).",
+      },
+      {
+        q: "Can this system coordinate both standard truck dispatch and emergency breakdown incidents?",
+        a: "Yes. Our architecture supports dual dispatch modes: scheduled freight load logistics and urgent on-demand breakdown recovery with live partner map clustering.",
       },
     ],
   },

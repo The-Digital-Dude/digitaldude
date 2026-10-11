@@ -158,29 +158,63 @@ export function HubSpotCompareInteractive() {
             })}
           </div>
 
-          {/* Dynamic Recommendation Box */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Dynamic Scorecard & Recommendation Box */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Current Match Assessment:
+                  Decision Scorecard
                 </div>
-                <div className="mt-1 text-base font-bold text-navy">
-                  {hubspotScore === 0 && customScore === 0 && "Select your operational constraints above"}
-                  {hubspotScore > customScore && "Leaning HubSpot: Your process aligns with standard sales pipeline strengths"}
-                  {customScore > hubspotScore && "Leaning Custom CRM: Operational workflows & data models justify an owned system"}
-                  {hubspotScore > 0 && customScore > 0 && hubspotScore === customScore && "Hybrid Architecture Recommended: Keep HubSpot for sales/marketing & build a bespoke operational portal"}
-                </div>
-                <p className="mt-1 text-xs text-slate-600">
-                  Selected: {hubspotScore} HubSpot factors · {customScore} Custom CRM factors
-                </p>
+                <h5 className="text-base font-extrabold text-navy mt-0.5">
+                  {hubspotScore === 0 && customScore === 0
+                    ? "Select constraints above to calculate live architectural fit"
+                    : customScore > hubspotScore
+                    ? `${Math.round((customScore / (hubspotScore + customScore)) * 100)}% Match for Bespoke Custom CRM`
+                    : hubspotScore > customScore
+                    ? `${Math.round((hubspotScore / (hubspotScore + customScore)) * 100)}% Match for HubSpot Sales Suite`
+                    : "50/50 Hybrid Fit: Both Options Address Valid Constraints"}
+                </h5>
               </div>
 
+              {(hubspotScore > 0 || customScore > 0) && (
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1">
+                    Bespoke: {Math.round((customScore / (hubspotScore + customScore)) * 100)}%
+                  </span>
+                  <span className="rounded-full bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1">
+                    HubSpot: {Math.round((hubspotScore / (hubspotScore + customScore)) * 100)}%
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Visual Score Meter Bar */}
+            {(hubspotScore > 0 || customScore > 0) && (
+              <div className="h-3.5 w-full bg-amber-200 rounded-full overflow-hidden flex shadow-inner">
+                <div
+                  className="bg-emerald-500 transition-all duration-500 rounded-l-full"
+                  style={{ width: `${Math.round((customScore / (hubspotScore + customScore)) * 100)}%` }}
+                />
+                <div
+                  className="bg-amber-400 transition-all duration-500 rounded-r-full"
+                  style={{ width: `${Math.round((hubspotScore / (hubspotScore + customScore)) * 100)}%` }}
+                />
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <p className="text-xs text-slate-600 leading-relaxed">
+                {hubspotScore === 0 && customScore === 0 && "Select criteria that reflect your operational realities to calculate recommendation."}
+                {customScore > hubspotScore && "Your operational workflows, client portal needs, and licensing constraints make bespoke software the highest-ROI corporate investment."}
+                {hubspotScore > customScore && "HubSpot provides standard off-the-shelf velocity if your workflow fits standard lead-to-deal funnels and launch speed is #1 priority."}
+                {hubspotScore > 0 && customScore > 0 && hubspotScore === customScore && "A hybrid approach often works best: utilize HubSpot for marketing/leads, and build a bespoke operational portal for field fulfillment."}
+              </p>
+
               <Link
-                href="/contact"
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-purple px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:brightness-110 transition"
+                href={`/contact?ref=custom-crm-vs-hubspot&competitor=HubSpot&customScore=${customScore}&hubspotScore=${hubspotScore}&source=tco-simulator`}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:brightness-110 transition"
               >
-                Discuss Your Requirements
+                Discuss Scored Architecture
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>

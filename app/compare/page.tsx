@@ -6,7 +6,7 @@ import { SITE_URL } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Build vs Buy Software Comparison Guides | The Digital Dude",
-  description: "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
+  description: "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
   alternates: {
     canonical: `${SITE_URL}/compare`,
   },
@@ -58,12 +58,20 @@ export default function CompareIndexPage() {
                   </div>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                  <Link
+                    href={`/compare/${comp.slug}#tco-simulator`}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-purple hover:underline"
+                  >
+                    <span>Live TCO Simulator</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Link>
+
                   <Link
                     href={`/compare/${comp.slug}`}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:text-accent-primary/80 transition"
                   >
-                    Read Full Comparison Matrix
+                    Comparison Matrix
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>

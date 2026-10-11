@@ -6,6 +6,7 @@ import { pseoServices } from "@/lib/pseo/data/services";
 import { getPseoPage } from "@/lib/pseo/engine";
 import { PseoBreadcrumbs } from "@/components/pseo/PseoBreadcrumbs";
 import { PseoRoiCalculator } from "@/components/pseo/PseoRoiCalculator";
+import { PseoComparisonBridge } from "@/components/pseo/PseoComparisonBridge";
 import { PseoCaseStudyBridge } from "@/components/pseo/PseoCaseStudyBridge";
 import { PseoArchitectureDiagram } from "@/components/pseo/PseoArchitectureDiagram";
 import { PseoBookingCta } from "@/components/pseo/PseoBookingCta";
@@ -158,6 +159,14 @@ export default async function IndustrySolutionPage({ params }: PageProps) {
               </div>
             </section>
           )}
+
+          {/* Build vs Buy Competitor Comparison Bridge */}
+          <PseoComparisonBridge
+            industrySlug={industry}
+            serviceSlug={service}
+            industryName={page.industryName || industryData?.name || "Industry"}
+            serviceName={page.serviceName || "Custom Software"}
+          />
 
           {/* Interactive ROI Calculator */}
           <PseoRoiCalculator

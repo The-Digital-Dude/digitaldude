@@ -94,6 +94,41 @@ export interface ArchitectureBlueprint {
   integrations: string[];
 }
 
+export interface ComparisonChecklistItem {
+  id: string;
+  question: string;
+  target: "competitor" | "bespoke";
+  description: string;
+}
+
+export interface ComparisonTier {
+  name: string;
+  monthlyPerSeat: number;
+  description: string;
+}
+
+export interface ComparisonCalculatorConfig {
+  mode: "seats" | "gmv";
+  currencySymbol: string;
+  // Seat mode settings
+  defaultSeats?: number;
+  minSeats?: number;
+  maxSeats?: number;
+  tiers?: ComparisonTier[];
+  competitorBaseMonthly?: number;
+  competitorOnboardingFee?: number;
+  competitorSupportAnnual?: number;
+  bespokeBuildCost: number;
+  bespokeMonthlyHosting: number;
+  bespokeAnnualMaintenance: number;
+  // GMV mode settings
+  defaultGmv?: number;
+  minGmv?: number;
+  maxGmv?: number;
+  competitorTakeRatePercent?: number;
+  competitorMonthlyBasePlan?: number;
+}
+
 export interface PseoComparison {
   slug: string;
   competitorName: string;
@@ -112,6 +147,8 @@ export interface PseoComparison {
   whenToChoose?: WhenToChooseItem[];
   migrationRoadmap?: MigrationPhase[];
   architectureBlueprint?: ArchitectureBlueprint;
+  checklistItems?: ComparisonChecklistItem[];
+  calculatorConfig?: ComparisonCalculatorConfig;
 }
 
 export interface PseoPageData {
@@ -148,4 +185,6 @@ export interface PseoPageData {
   whenToChoose?: WhenToChooseItem[];
   migrationRoadmap?: MigrationPhase[];
   architectureBlueprint?: ArchitectureBlueprint;
+  checklistItems?: ComparisonChecklistItem[];
+  calculatorConfig?: ComparisonCalculatorConfig;
 }

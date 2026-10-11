@@ -17,7 +17,8 @@ import {
 interface PseoBulkImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImported: () => void;
+  onImported?: () => void;
+  onSuccess?: () => void;
 }
 
 type ImportType = "smart" | "locations" | "solutions" | "comparisons";
@@ -26,6 +27,7 @@ export function PseoBulkImportModal({
   isOpen,
   onClose,
   onImported,
+  onSuccess,
 }: PseoBulkImportModalProps) {
   const [importType, setImportType] = useState<ImportType>("smart");
   const [rawText, setRawText] = useState("");
@@ -192,7 +194,8 @@ custom-portal-vs-sharepoint,Microsoft SharePoint,Operations,Custom Portal vs Mic
       }
 
       setImportResult({ count: data.count || parsedRows.length });
-      onImported();
+      onImported?.();
+      onSuccess?.();
     } catch (err: any) {
       setParsingError(err.message || "Failed to process bulk import.");
     } finally {

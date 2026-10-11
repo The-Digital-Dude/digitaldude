@@ -9,7 +9,8 @@ interface PseoEditModalProps {
   page: PseoPageData | null;
   isOpen: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved?: () => void;
+  onSuccess?: () => void;
 }
 
 export function PseoEditModal({
@@ -17,6 +18,7 @@ export function PseoEditModal({
   isOpen,
   onClose,
   onSaved,
+  onSuccess,
 }: PseoEditModalProps) {
   const [category, setCategory] = useState<"location" | "solution" | "comparison" | "custom">("location");
   const [slug, setSlug] = useState("");
@@ -104,7 +106,8 @@ export function PseoEditModal({
         throw new Error(data.error || "Failed to save page override");
       }
 
-      onSaved();
+      onSaved?.();
+      onSuccess?.();
       onClose();
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to save.");

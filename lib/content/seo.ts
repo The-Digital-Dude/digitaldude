@@ -176,14 +176,15 @@ export const seo: Record<string, SeoEntry> = {
     description: "The operational terms that govern client agreements, IP ownership, and project warranties.",
   },
   "industries/property": {
-    title: "Property & Real Estate CRM Software | Digital Dude",
+    title: "Deeds Management Software & Property CRM Systems | Digital Dude",
     description:
-      "Bespoke multi-portal software for real estate agencies, property managers, and field compliance technicians. 4,000+ rental properties actively managed.",
+      "Bespoke deeds management software and multi-portal property CRMs for real estate professionals, conveyancers, and property managers. Secure deed document workflows.",
     keywords: [
+      "deeds management software",
       "property management CRM",
-      "real estate compliance software",
-      "smoke alarm inspection software Australia",
-      "field technician property app"
+      "document management software property",
+      "title deeds management",
+      "real estate compliance software"
     ],
   },
   "industries/travel": {
@@ -208,13 +209,15 @@ export const seo: Record<string, SeoEntry> = {
     ],
   },
   "industries/logistics": {
-    title: "Logistics & Fleet Dispatch Software | Digital Dude",
+    title: "Fleet Manager Dispatch Software & Transport Logistics | Digital Dude",
     description:
-      "Mobile-first fleet breakdown management, real-time driver routing, and automated dispatcher coordination systems that cut response times by 40%.",
+      "Custom fleet manager dispatch software and real-time coordination systems for UK fleet operators. Real-time GPS tracking, driver dispatch, route optimization, and digital PODs.",
     keywords: [
-      "logistics coordination software",
-      "fleet dispatch app",
-      "breakdown management system"
+      "fleet manager dispatch software",
+      "truck dispatch software",
+      "fleet management software",
+      "transportation management system",
+      "proof of delivery software"
     ],
   },
   "industries/recruitment": {
@@ -280,6 +283,83 @@ export function buildMetadata(key: keyof typeof seo, path: string): Metadata {
       card: "summary_large_image",
       title: entry.title,
       description: entry.description,
+      images: [ogImageUrl],
+    },
+  };
+}
+
+import { getSupabaseServerClient } from "@/lib/supabaseClient";
+import { getMemoryPageOverrides } from "@/lib/seo/auditStore";
+
+export async function getPageOverride(path: string) {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+
+  // 1. Check in-memory store
+  const memoryList = getMemoryPageOverrides();
+  const memFound = memoryList.find((o) => o.pathname === normalized && o.status === "published");
+  if (memFound) return memFound;
+
+  // 2. Check Supabase
+  try {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data } = await supabase
+        .from("seo_page_overrides")
+        .select("*")
+        .eq("pathname", normalized)
+        .eq("status", "published")
+        .single();
+
+      if (data) return data;
+    }
+  } catch {}
+
+  return null;
+}
+
+export async function buildUniversalMetadata(
+  keyOrPath: string,
+  path: string,
+  baseMeta?: Metadata
+): Promise<Metadata> {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const override = await getPageOverride(normalized);
+
+  const fallbackMeta = (seo as any)[keyOrPath]
+    ? buildMetadata(keyOrPath as any, path)
+    : baseMeta || {
+        title: "The Digital Dude | Software Engineering Studio",
+        description: "Bespoke software engineering, custom CRMs, and SaaS platforms.",
+      };
+
+  if (!override) return fallbackMeta;
+
+  const canonicalUrl = override.canonical_url || `${SITE_URL}${normalized}`;
+  const title = override.title || (fallbackMeta.title as string) || "";
+  const description = override.meta_description || (fallbackMeta.description as string) || "";
+  const ogImageUrl = override.og_image || `${SITE_URL}/api/og?title=${encodeURIComponent(title)}&tag=${encodeURIComponent(description.slice(0, 90))}&category=SEO`;
+
+  return {
+    ...fallbackMeta,
+    title,
+    description,
+    keywords: override.semantic_keywords?.length
+      ? override.semantic_keywords
+      : (fallbackMeta.keywords as string[] | undefined),
+    robots: override.noindex ? { index: false, follow: true } : fallbackMeta.robots,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      siteName: "The Digital Dude",
+      type: "website",
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
       images: [ogImageUrl],
     },
   };

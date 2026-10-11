@@ -122,6 +122,10 @@ export function ContactForm() {
     location?: string;
     service?: string;
     country?: string;
+    competitor?: string;
+    seats?: string;
+    savings?: string;
+    gmv?: string;
   } | null>(null);
 
   // Detect user's timezone & pSEO parameters on mount
@@ -144,16 +148,54 @@ export function ContactForm() {
       const srv = params.get("service");
       const cntry = params.get("country");
       const src = params.get("source");
+      const comp = params.get("competitor");
+      const seatsParam = params.get("seats");
+      const savingsParam = params.get("savings");
+      const gmvParam = params.get("gmv");
+      const refParam = params.get("ref");
 
-      if (loc || srv || src === "pseo") {
+      if (loc || srv || comp || refParam || src === "pseo") {
         setPseoContext({
           location: loc || undefined,
           service: srv || undefined,
           country: cntry || undefined,
+          competitor: comp || undefined,
+          seats: seatsParam || undefined,
+          savings: savingsParam || undefined,
+          gmv: gmvParam || undefined,
         });
 
         if (cntry && countries.includes(cntry)) {
           setCountry(cntry);
+        }
+
+        if (seatsParam) {
+          const numSeats = parseInt(seatsParam, 10);
+          if (numSeats <= 4) setTeamSize("1 to 4 people");
+          else if (numSeats <= 20) setTeamSize("5 to 20 people");
+          else if (numSeats <= 50) setTeamSize("21 to 50 people");
+          else if (numSeats <= 200) setTeamSize("51 to 200 people");
+          else setTeamSize("200+ people");
+        }
+
+        if (comp) {
+          const lowerComp = comp.toLowerCase();
+          if (lowerComp.includes("salesforce") || lowerComp.includes("hubspot") || lowerComp.includes("crm")) {
+            setSystemType("crm");
+          } else if (lowerComp.includes("netsuite") || lowerComp.includes("erp")) {
+            setSystemType("erp");
+          } else if (lowerComp.includes("sharetribe") || lowerComp.includes("market")) {
+            setSystemType("marketplace");
+          } else if (lowerComp.includes("bubble") || lowerComp.includes("no-code")) {
+            setSystemType("saas");
+          }
+
+          const seatText = seatsParam ? `${seatsParam} seats` : "";
+          const savingsText = savingsParam ? `projected savings: £${Number(savingsParam).toLocaleString()}` : "";
+          const details = [seatText, savingsText].filter(Boolean).join(", ");
+          setMessage(
+            `Inquiry regarding transitioning from ${comp} to a bespoke software system${details ? ` (${details})` : ""}. Interested in reviewing architecture and break-even timeline.`
+          );
         }
 
         if (srv) {
@@ -547,9 +589,20 @@ export function ContactForm() {
           <div className="flex items-center gap-2.5">
             <Sparkles className="h-4 w-4 shrink-0 text-purple" />
             <span>
-              Personalized Discovery for{" "}
-              <strong className="text-navy">{pseoContext.service || "Bespoke System"}</strong>
-              {pseoContext.location ? ` in ${pseoContext.location}` : ""}
+              {pseoContext.competitor ? (
+                <>
+                  Evaluating Bespoke Alternative to{" "}
+                  <strong className="text-navy">{pseoContext.competitor}</strong>
+                  {pseoContext.seats ? ` for ${pseoContext.seats} seats` : ""}
+                  {pseoContext.savings ? ` (Projected Savings: £${Number(pseoContext.savings).toLocaleString()})` : ""}
+                </>
+              ) : (
+                <>
+                  Personalized Discovery for{" "}
+                  <strong className="text-navy">{pseoContext.service || "Bespoke System"}</strong>
+                  {pseoContext.location ? ` in ${pseoContext.location}` : ""}
+                </>
+              )}
             </span>
           </div>
           <span className="hidden sm:inline-block rounded-md bg-white/60 px-2 py-0.5 text-[10px] uppercase tracking-wider text-purple font-bold">

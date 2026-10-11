@@ -96,7 +96,7 @@ export default function LocationsIndexPage() {
                         Available Services:
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {pseoServices.slice(0, 3).map((srv) => (
+                        {pseoServices.map((srv) => (
                           <Link
                             key={srv.slug}
                             href={`/locations/${loc.slug}/${srv.slug}`}

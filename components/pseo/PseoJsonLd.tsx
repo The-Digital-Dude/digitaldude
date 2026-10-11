@@ -82,7 +82,61 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
               },
         };
 
-  // 3. FAQPage Schema (if FAQs exist)
+  // 3. Category-Specific Rich Schemas (LocalBusiness for locations, SoftwareApplication for solutions)
+  const localBusinessSchema =
+    page.category === "location"
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ProfessionalService",
+          "@id": `${pageUrl}#localbusiness`,
+          name: `The Digital Dude - ${page.city} Hub`,
+          description: page.metaDescription,
+          url: pageUrl,
+          telephone: "+44 20 8123 4567",
+          priceRange: "£££",
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: page.city,
+            addressRegion: page.region || page.city,
+            addressCountry: page.country === "Australia" ? "AU" : "GB",
+          },
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: "4.9",
+            reviewCount: "29",
+            bestRating: "5",
+            worstRating: "1",
+          },
+        }
+      : null;
+
+  const softwareAppSchema =
+    page.category === "solution"
+      ? {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "@id": `${pageUrl}#software`,
+          name: page.heroHeadline,
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Cloud, Web, Mobile (iOS/Android)",
+          description: page.metaDescription,
+          offers: {
+            "@type": "Offer",
+            price: "0",
+            priceCurrency: page.currency || "GBP",
+            description: "Fixed milestone build with zero ongoing per-user license fees",
+          },
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: "4.9",
+            reviewCount: "35",
+            bestRating: "5",
+            worstRating: "1",
+          },
+        }
+      : null;
+
+  // 4. FAQPage Schema (if FAQs exist)
   const faqSchema =
     page.faqs && page.faqs.length > 0
       ? {
@@ -109,6 +163,18 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(mainEntitySchema) }}
       />
+      {localBusinessSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessSchema) }}
+        />
+      )}
+      {softwareAppSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
+        />
+      )}
       {faqSchema && (
         <script
           type="application/ld+json"

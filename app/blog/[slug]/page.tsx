@@ -6,99 +6,93 @@ import { getSupabaseServerClient } from '@/lib/supabaseClient';
 import { SITE_URL } from '@/lib/utils';
 import { TableOfContents } from '@/components/TableOfContents';
 import { AiSummaryBox } from '@/components/AiSummaryBox';
-import { Clock, ArrowLeft, Share2, Sparkles, Calendar, User, ArrowRight } from 'lucide-react';
+import { Clock, ArrowLeft, Share2, Sparkles, Calendar, User, ArrowRight, ShieldCheck, Award, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-interface Article {
-  id?: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  cover_image: string | null;
-  read_time: string;
-  published_at: string;
-  updated_at?: string;
-  author: string;
-  meta_title?: string;
-  meta_description?: string;
+import { staticBlogArticles, getStaticBlogArticle, getAllStaticBlogArticles, BlogArticle } from '@/lib/content/blogArticles';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+
+interface Article extends BlogArticle {}
+
+interface FaqItem {
+  question: string;
+  answer: string;
 }
 
-const fallbackArticles: Record<string, Article> = {
-  'scaled-ecommerce-organic-revenue-340-percent': {
-    title: 'How We Scaled E-Commerce Organic Revenue by 340% in 90 Days',
-    slug: 'scaled-ecommerce-organic-revenue-340-percent',
-    excerpt: 'A step-by-step breakdown of fixing technical crawl bloat, optimizing category facet indexing, and implementing programmatic landing pages.',
-    content: `## The Challenge
+function extractFaqsFromMarkdown(content: string): FaqItem[] {
+  const faqs: FaqItem[] = [];
+  if (!content) return faqs;
 
-Our client, a multi-brand DTC retail platform with over 15,000 SKUs, was experiencing severe organic traffic stagnation. Despite heavy investments in content marketing, search engine crawlers were failing to discover new inventory, and page load speeds on mobile exceeded 4.2 seconds.
+  // Check if there is an explicit FAQ section
+  const faqSectionRegex = /##+\s*(?:Frequently Asked Questions|FAQ[s]?)\s*\n([\s\S]*?)(?=\n##\s+[^\n#]|$)/i;
+  const sectionMatch = content.match(faqSectionRegex);
+  const targetText = sectionMatch ? sectionMatch[1] : content;
 
-### Root Cause Audit
-When we performed our deep technical crawl audit, we identified three major bottlenecks:
-
-1. **Faceted Navigation Crawl Traps:** Over 120,000 parameter URLs were indexable, creating immense duplicate content signals and exhausting Googlebot's crawl budget.
-2. **Client-Side Hydration Delays:** Product listing pages were loading a heavy 2.8MB JavaScript bundle before rendering primary HTML elements.
-3. **Missing Canonical & Structured Data:** Product variants lacked proper schema markup, resulting in lost rich snippet opportunities.
-
----
-
-## The Strategic Solution
-
-We executed a comprehensive 3-phase technical overhaul over 60 days:
-
-### 1. Programmatic Crawl Budget Cleanup
-We implemented strict robots.txt directives and dynamic canonical rules to consolidate URL parameters. We mapped out clean static filter URLs for high-volume search queries like \`/womens/sneakers/white\` while adding \`noindex,follow\` to low-value multi-filter permutations.
-
-### 2. Migration to Next.js Incremental Static Regeneration (ISR)
-We rebuilt the storefront frontend with Next.js ISR. Category pages now render as pure, lightning-fast static HTML with sub-200ms TTFB (Time to First Byte). Real-time pricing and inventory availability are hydrated via lightweight micro-APIs.
-
-### 3. Comprehensive JSON-LD Product & Merchant Schema
-We embedded rich structured data across all product and category views, delivering price, availability, aggregate rating, and return policy signals directly to search engine results.
-
-\`\`\`json
-{
-  "@context": "https://schema.org/",
-  "@type": "Product",
-  "name": "Performance Running Shoes",
-  "image": "https://example.com/shoes.jpg",
-  "offers": {
-    "@type": "Offer",
-    "priceCurrency": "USD",
-    "price": "145.00",
-    "availability": "https://schema.org/InStock"
+  // Match ### Q: Question? OR ### Question?
+  const itemRegex = /###\s*(?:Q:\s*)?([^\n]+?\?)\s*\n+([\s\S]*?)(?=\n###|\n##|$)/gi;
+  let match;
+  while ((match = itemRegex.exec(targetText)) !== null) {
+    const question = match[1].replace(/^Q:\s*/i, '').trim();
+    const rawAnswer = match[2].trim();
+    if (question && rawAnswer) {
+      const cleanAnswer = rawAnswer
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // remove markdown links
+        .replace(/[*_#`]/g, '') // remove markdown asterisks/formatting
+        .replace(/\n+/g, ' ')
+        .trim();
+      if (cleanAnswer.length > 10) {
+        faqs.push({ question, answer: cleanAnswer });
+      }
+    }
   }
+
+  // Fallback: if no section match but there are ### Q: throughout
+  if (faqs.length === 0 && !sectionMatch) {
+    const explicitQRegex = /###\s*Q:\s*([^\n]+)\s*\n+([\s\S]*?)(?=\n###|\n##|$)/gi;
+    let qMatch;
+    while ((qMatch = explicitQRegex.exec(content)) !== null) {
+      const question = qMatch[1].trim();
+      const rawAnswer = qMatch[2].trim();
+      if (question && rawAnswer) {
+        const cleanAnswer = rawAnswer
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+          .replace(/[*_#`]/g, '')
+          .replace(/\n+/g, ' ')
+          .trim();
+        faqs.push({ question, answer: cleanAnswer });
+      }
+    }
+  }
+
+  return faqs.slice(0, 10);
 }
-\`\`\`
 
----
+export async function generateStaticParams() {
+  const staticSlugs = getAllStaticBlogArticles().map((article) => ({ slug: article.slug }));
+  try {
+    const supabase = getSupabaseServerClient();
+    if (supabase) {
+      const { data } = await supabase
+        .from('posts')
+        .select('slug')
+        .eq('status', 'published');
 
-## The Measurable Results
+      if (data && data.length > 0) {
+        const uniqueSlugs = new Set([
+          ...staticSlugs.map((s) => s.slug),
+          ...data.map((p) => p.slug),
+        ]);
+        return Array.from(uniqueSlugs).map((slug) => ({ slug }));
+      }
+    }
+  } catch {}
+  return staticSlugs;
+}
 
-Within 90 days of deploying the new architecture:
-
-- **Organic Revenue:** Increased by +340% YoY
-- **Average Page Load Time (LCP):** Reduced from 4.2s to 1.1s (99% passing Core Web Vitals)
-- **Indexed Clean Pages:** Increased by 220% with zero duplicate crawl errors
-- **Non-Branded Keyword Rankings:** 48 new top-3 organic rankings for high-intent category terms
-
----
-
-## Conclusion & Next Steps
-
-Scaling e-commerce revenue requires treating performance engineering as a primary marketing lever. When your site is blazingly fast and architecturally clean, search engines reward you with authority and users convert at significantly higher rates.`,
-    category: 'E-Commerce Growth',
-    cover_image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
-    read_time: '6 min read',
-    published_at: '2026-03-15T00:00:00Z',
-    author: 'The Digital Dude Team'
-  }
-};
-
-async function getPost(slug: string) {
+async function getPost(slug: string): Promise<Article | null> {
   try {
     const supabase = getSupabaseServerClient();
     if (supabase) {
@@ -118,11 +112,10 @@ async function getPost(slug: string) {
     }
   } catch {}
 
-  if (fallbackArticles[slug]) return fallbackArticles[slug];
+  const fallback = getStaticBlogArticle(slug);
+  if (fallback) return fallback;
   return null;
 }
-
-import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -246,6 +239,22 @@ export default async function BlogPostDetailPage({ params }: Props) {
     ],
   };
 
+  const faqs = extractFaqsFromMarkdown(post.content);
+  if (faqs.length > 0) {
+    (jsonLd['@graph'] as any[]).push({
+      '@type': 'FAQPage',
+      '@id': `${postUrl}#faq`,
+      mainEntity: faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: f.answer,
+        },
+      })),
+    });
+  }
+
   return (
     <div className="min-h-screen bg-sand text-navy">
       {/* Article JSON-LD Structured Data */}
@@ -341,6 +350,76 @@ export default async function BlogPostDetailPage({ params }: Props) {
 
         <div className="prose prose-lg prose-indigo max-w-none text-navy/85 leading-relaxed font-sans">
           <MarkdownRenderer content={post.content} />
+        </div>
+
+        {/* Author E-E-A-T & Editorial Integrity Card */}
+        <div className="mt-12 rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm flex-shrink-0">
+              {post.author ? post.author.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'DD'}
+            </div>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-bold text-navy">
+                  {post.author || 'The Digital Dude Engineering Team'}
+                </h3>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                  Verified Author
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-lavender px-2 py-0.5 text-[11px] font-semibold text-purple">
+                  <Award className="w-3 h-3" />
+                  Technical Lead
+                </span>
+              </div>
+              <p className="mt-1 text-xs sm:text-sm text-navy/70 leading-relaxed">
+                Authored and reviewed by senior engineering practitioners at The Digital Dude. Specializing in high-performance web architecture, scalable databases, programmatic SEO, and enterprise conversion systems.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-y-1 gap-x-4 text-[11px] text-navy/50 font-medium">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Fact-Checked & Peer Reviewed
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-purple" /> Tested in Production Deployments
+                </span>
+                <span>Category: {post.category}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contextual Service Conversion Banner */}
+        <div className="mt-6 rounded-2xl bg-gradient-to-br from-navy to-purple/95 p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
+          <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-purple/30 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="max-w-xl">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-purple-200 bg-white/10 px-2.5 py-1 rounded-full mb-2.5 backdrop-blur-xs">
+                <Sparkles className="w-3 h-3 text-yellow-300" />
+                Custom Solutions for Your Tech Stack
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                Need expert execution for {post.category}?
+              </h3>
+              <p className="mt-1.5 text-xs sm:text-sm text-white/80 leading-relaxed">
+                Whether you are migrating from legacy tooling or architecting custom infrastructure, our UK-based engineers will design a high-converting solution tailored to your workflow.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto flex-shrink-0">
+              <Link
+                href="/calculator"
+                className="inline-flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2.5 text-xs font-bold text-white transition text-center"
+              >
+                Instant Quote
+              </Link>
+              <Link
+                href="/contact"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-navy hover:bg-white/95 transition shadow-sm text-center"
+              >
+                Talk to an Engineer
+                <ArrowRight className="w-3.5 h-3.5 text-purple" />
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Share & Feedback */}

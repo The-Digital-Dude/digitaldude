@@ -7,6 +7,8 @@ import { getCaseStudies } from "@/lib/caseStudiesServer";
 
 import { getIndexablePseoSlugs } from "@/lib/pseo/engine";
 
+import { getAllStaticBlogArticles } from "@/lib/content/blogArticles";
+
 export const revalidate = 3600; // Cache and revalidate sitemap every hour for instant edge delivery
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -61,7 +63,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch {}
 
-  let blogPages: MetadataRoute.Sitemap = [];
+  const blogUrlMap = new Map<string, { url: string; lastModified: Date }>();
+  for (const staticPost of getAllStaticBlogArticles()) {
+    blogUrlMap.set(staticPost.slug, {
+      url: `${SITE_URL}/blog/${staticPost.slug}`,
+      lastModified: new Date(staticPost.updated_at || staticPost.published_at || recentAuditUpdate),
+    });
+  }
+
   try {
     const supabase = getSupabaseServerClient();
     if (supabase) {
@@ -71,13 +80,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .eq("status", "published");
 
       if (data && data.length > 0) {
-        blogPages = data.map((post) => ({
-          url: `${SITE_URL}/blog/${post.slug}`,
-          lastModified: new Date(post.updated_at || post.published_at || baseReleaseDate),
-        }));
+        for (const post of data) {
+          blogUrlMap.set(post.slug, {
+            url: `${SITE_URL}/blog/${post.slug}`,
+            lastModified: new Date(post.updated_at || post.published_at || baseReleaseDate),
+          });
+        }
       }
     }
   } catch {}
+
+  const blogPages: MetadataRoute.Sitemap = Array.from(blogUrlMap.values());
 
   let pseoPages: MetadataRoute.Sitemap = [];
   try {

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Plus, Edit, Trash2, ExternalLink, RefreshCw, Eye, Search } from "lucide-react";
+import { Plus, Edit, Trash2, ExternalLink, RefreshCw, Eye, Search, Sparkles } from "lucide-react";
 import { Pagination } from "@/components/admin/Pagination";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
+import { AiBlogGeneratorModal } from "@/components/admin/blogs/AiBlogGeneratorModal";
 
 interface Post {
   id: string;
@@ -26,6 +27,7 @@ export default function AdminBlogsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [totalCount, setTotalCount] = useState(0);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   async function fetchPosts() {
     setLoading(true);
@@ -93,6 +95,13 @@ export default function AdminBlogsPage() {
               <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
               Refresh
             </button>
+            <button
+              onClick={() => setIsAiModalOpen(true)}
+              className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 shadow-xs cursor-pointer"
+            >
+              <Sparkles size={16} className="text-purple-300" />
+              Draft with AI
+            </button>
             <Link
               href="/admin/blogs/new"
               className="flex items-center gap-2 rounded-xl bg-purple px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
@@ -102,6 +111,17 @@ export default function AdminBlogsPage() {
             </Link>
           </div>
         </div>
+
+        <AiBlogGeneratorModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          onApply={(article) => {
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("tdd_ai_draft", JSON.stringify(article));
+              window.location.href = "/admin/blogs/new";
+            }
+          }}
+        />
 
         {/* Search */}
         <div className="relative">
