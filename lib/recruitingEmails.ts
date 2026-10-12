@@ -148,9 +148,16 @@ export async function sendApplicationStatusEmail(params: {
 
   const subject = params.customSubject || defaults.subject;
   const heading = params.customHeading || defaults.heading;
-  const bodyText = params.customMessage || defaults.body;
-  const ctaUrl = params.interviewBookingUrl || defaults.ctaUrl;
-  const ctaText = defaults.ctaText || "Schedule Interview →";
+  let bodyText = params.customMessage || defaults.body;
+  // A custom message replaces the template body, so make sure the Meet link still reaches the candidate.
+  if (params.meetingLink && !bodyText.includes(params.meetingLink)) {
+    bodyText = `${bodyText}\n\nMeeting link: ${params.meetingLink}`;
+  }
+  const ctaUrl = params.interviewBookingUrl || defaults.ctaUrl || params.meetingLink;
+  const ctaText =
+    !params.interviewBookingUrl && !defaults.ctaUrl && params.meetingLink
+      ? "Join Google Meet →"
+      : defaults.ctaText || "Schedule Interview →";
 
   const formattedBody = bodyText
     .split("\n\n")
