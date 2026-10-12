@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { getAuthenticatedRep, getOnboardedRep } from "@/lib/repAuth";
-import { assertCanEmail, loadSenderIdentity, OutreachBlockedError, repFooterHtml, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
+import { assertCanEmail, assertPoolContactAllowed, loadSenderIdentity, OutreachBlockedError, repFooterHtml, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
 import { sendBrevoEmail, wrapInEmailTemplate } from "@/lib/emailBrevo";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { SITE_URL } from "@/lib/utils";
@@ -79,6 +79,7 @@ export async function POST(request: Request) {
     // One shared do-not-contact list (unsubscribes, bounces, complaints, whole-domain opt-outs).
     try {
       await assertCanEmail(supabase, cleanRecipientEmail);
+      await assertPoolContactAllowed(supabase, cleanRecipientEmail, repSession.id);
     } catch (e) {
       if (e instanceof OutreachBlockedError) {
         return NextResponse.json({ ok: false, error: e.message, blocked: e.reason }, { status: 403 });
@@ -226,6 +227,16 @@ export async function POST(request: Request) {
 
     if (logError) {
       log("warn", { message: "Could not save rep outreach log", error: logError });
+    }
+
+    // A first email to a pool contact moves their company on to "contacted".
+    try {
+      const { data: poolContact } = await supabase.from("acq_contacts").select("company_id").eq("email_normalized", cleanRecipientEmail).maybeSingle();
+      if (poolContact?.company_id) {
+        await supabase.from("acq_companies").update({ pool_status: "contacted" }).eq("id", poolContact.company_id).eq("owner_employee_id", employee.id).in("pool_status", ["assigned", "needs_contact"]);
+      }
+    } catch (e) {
+      log("warn", { message: "could not update pool status after send", error: e });
     }
 
     // Record in global Rep Audit Logs

@@ -7,7 +7,7 @@ import { log } from "@/lib/logger";
 type Db = SupabaseClient;
 
 export class OutreachBlockedError extends Error {
-  constructor(readonly reason: "suppressed" | "legacy_unsubscribed", message: string) {
+  constructor(readonly reason: "suppressed" | "legacy_unsubscribed" | "pool_not_allowed", message: string) {
     super(message);
     this.name = "OutreachBlockedError";
   }
@@ -32,6 +32,31 @@ export async function assertCanEmail(db: Db, email: string): Promise<void> {
   if ((legacy.data ?? []).length > 0) {
     throw new OutreachBlockedError("legacy_unsubscribed", `${clean} has unsubscribed and cannot be contacted.`);
   }
+}
+
+const POOL_REASONS: Record<string, string> = {
+  not_your_company: "This contact belongs to a company you do not own.",
+  contact_not_eligible: "This contact has no valid recorded lawful basis yet.",
+  consent_invalid: "The recorded lawful basis is missing, expired or withdrawn.",
+  country_blocked: "Outreach to this company's country is not enabled. Ask the admin.",
+  company_archived: "This company is archived.",
+  suppressed: "This address is on the do-not-contact list.",
+};
+
+/**
+ * Extra rule for contacts that live in the lead pool: the rep must own the company, the contact must be
+ * eligible with a valid recorded basis, and the company's country must be enabled. Addresses that are not
+ * in the pool (a rep's own personal prospects) are unaffected.
+ */
+export async function assertPoolContactAllowed(db: Db, email: string, repId: string): Promise<void> {
+  const clean = email.trim().toLowerCase();
+  const { data: contact, error } = await db.from("acq_contacts").select("id").eq("email_normalized", clean).maybeSingle();
+  if (error) throw new Error(`pool contact lookup failed: ${error.message}`);
+  if (!contact) return;
+  const res = await db.rpc("acq_rep_can_email", { p_contact_id: contact.id, p_employee: repId });
+  if (res.error) throw new Error(`pool gate failed: ${res.error.message}`);
+  const row = (Array.isArray(res.data) ? res.data[0] : res.data) as { ok: boolean; reason: string | null } | undefined;
+  if (!row?.ok) throw new OutreachBlockedError("pool_not_allowed", POOL_REASONS[row?.reason ?? ""] ?? "You are not cleared to email this contact.");
 }
 
 export interface SenderIdentity {

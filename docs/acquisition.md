@@ -1,0 +1,174 @@
+# AI Client Acquisition System
+
+Private tooling at `/admin/acquisition` for researching Australian property managers, recording a
+documented basis for contacting them, drafting evidence-based emails and approving campaigns.
+It is built into the existing site; there is no separate app. Everything is prefixed `acq_`
+(tables) or `acquisition` (routes) because `jobs` and `contacts` already mean other things here.
+
+## Status of the build
+
+| Blueprint phase | State |
+| --- | --- |
+| 1. Foundation: schema, RLS, auth, CRUD, audit | Done |
+| 2. Research: import, dedupe, scoring, AI research, consent review | Done |
+| 3. Campaigns: AI drafts, approval locking, eligibility, suppression | Done |
+| 4. Automation: durable jobs, webhooks, reply classification | Done, **except the sender** |
+| 4. Automation: initial-email sending via Brevo | Done (`lib/acquisition/queue/send.ts`); sending starts **paused** |
+| 4. Automation: follow-up scheduling | **Deliberately not built** |
+| 6. Global lead pool: markets, countries, duplicates, assignment, rep portal | Done (see below) |
+| 5. Pilot: end-to-end tests, deliverability, launch | Not started |
+
+Sending: each worker tick (`enqueueDueSends`) turns approved initial messages of **active** campaigns into `send_email` jobs
+(staggered 2-10 minutes, capped by the campaign's remaining daily allowance). The handler (`sendMessage`) refuses non-allowlisted
+recipients, then **always** calls `reserveSend()` before the provider. It never auto-retries an ambiguous provider outcome (the message
+stays `sending` and you get an alert). `schedule_follow_up` is intentionally unregistered, so an attempt fails loudly.
+
+### Brevo setup
+1. Create a sending subdomain (e.g. `mail.digitaldude.co.uk`), add it in Brevo (Senders & IP > Domains) and publish the SPF/DKIM/DMARC
+   records Brevo gives you. Add a sender like `hello@mail.digitaldude.co.uk`.
+2. Env: `ACQ_BREVO_SENDER_EMAIL`, `ACQ_WEBHOOK_SECRET` (>= 16 chars), existing `BREVO_API_KEY`. For the first tests set
+   `ACQ_SEND_ALLOWLIST=you@yourdomain.com` so nothing can reach a real prospect.
+3. Brevo > Transactional > Settings > Outbound webhook: URL `https://www.digitaldude.co.uk/api/acquisition/webhooks/email?token=<ACQ_WEBHOOK_SECRET>`,
+   events: delivered, hard bounce, soft bounce, blocked, invalid, spam, unsubscribed.
+4. Replies go to the campaign's reply-to mailbox (not parsed automatically); log them in the Inbox. Keep the daily cap low while the
+   subdomain warms up. Brevo's terms require permission-based sending: only email contacts with a recorded consent basis.
+
+## Where the rules are enforced
+
+The compliance rules are enforced in Postgres (`supabase/migrations/0022_acquisition_system.sql`),
+not just in the app, so no code path can skip them:
+
+| Rule | Mechanism |
+| --- | --- |
+| Unverified contacts cannot be eligible | trigger `acq_contacts_guard` + `acq_contact_consent_ok()` (latest record must be a reviewed, evidenced, unexpired, human-reviewed basis) |
+| Only eligible contacts can join a campaign | trigger `acq_campaign_leads_guard` |
+| AI/system can't approve or review | CHECK constraints on `approved_by` / `reviewed_by`; no AI code path to those routes |
+| Approval freezes content | trigger `acq_campaigns_guard` (content columns immutable once past `draft`/`rejected`) + `acq_messages_guard` |
+| Approve exactly what was previewed | `acq_approve_campaign(id, seen_hash, actor)` refuses if `acq_campaign_content_hash()` changed |
+| Legal status transitions only | state machine in `acq_campaigns_guard` |
+| Suppression is permanent | update/delete blocked by trigger; no removal code exists |
+| Opt-out stops everything immediately | trigger `acq_suppression_apply` cancels drafts, jobs and sequences |
+| Re-imported lead stays suppressed | `acq_contacts_guard` on insert; suppression has no FK to contacts |
+| Suppression checked at send time | `acq_reserve_send()`: one transaction checks global pause, campaign active, approval hash, message hash, contact eligibility, suppression, consent, follow-up rules, daily cap, then marks the message `sending` |
+| Audit trail | triggers on campaign status, consent and suppressions; append-only |
+| RLS | enabled on every table with **no policies**; only the server's service-role key can read or write |
+
+Sending starts **paused** (`acq_settings.sending_paused = true`) and fails closed.
+
+## Setup
+
+1. Apply `supabase/migrations/0022_acquisition_system.sql` in the Supabase SQL editor.
+2. Copy the new block of `.env.example` into your environment. Required: `ACQ_UNSUBSCRIBE_SECRET`
+   (>= 32 chars; **never change it after sending**, it signs every unsubscribe link).
+   Optional: `AI_*` (any OpenAI-compatible endpoint; blank = manual research), `TELEGRAM_*`, `ACQ_BOOKING_URL`.
+3. Sign in at `/admin/login`, open **Client Acquisition**, and check **Safety & settings** for config status.
+4. For background jobs, either press **Run worker now**, or call `GET/POST /api/acquisition/cron/worker`
+   with `Authorization: Bearer $CRON_SECRET` on a schedule (Vercel Cron or the existing pg_cron pattern).
+
+## AI provider key (Safety & settings)
+
+Instead of the `AI_*` environment variables you can enter the base URL, model and API key under **Safety & settings > AI provider**.
+Use **Test connection** to check the key before relying on it (one tiny request; it explains a bad key, model or quota). A saved key is
+encrypted (AES-256-GCM, derived from `ACQ_UNSUBSCRIBE_SECRET`), never shown again, and overrides the environment variables. Base URLs must be
+public https endpoints. Changing `ACQ_UNSUBSCRIBE_SECRET` makes a saved key unreadable (re-enter it).
+
+## Automatic daily discovery and research (opt-in)
+
+Switch on at **Safety & settings > Automatic discovery & research** (default OFF). Needs the AI key; discovery also needs
+`BRAVE_SEARCH_API_KEY`. The worker (run every 10 minutes by pg_cron, migration `0024_acquisition_cron.sql`) each Sydney day:
+1. runs up to `ACQ_DAILY_SEARCH_QUERIES` web searches spread over the enabled markets (rotating daily), keeps unique business sites allowed by
+   the market (portals, social networks and directories excluded), skips known and suppressed domains, and adds up to
+   `ACQ_DAILY_NEW_COMPANIES` as "AI discovered" companies;
+2. researches new companies and any not researched in 30 days (up to `ACQ_DAILY_RESEARCH_LIMIT`), verifying every claim against the page;
+   discovered companies with no verified proof they are the right kind of business are set to *deprioritized*, not deleted;
+3. saves **suggested addresses**: emails literally published on the company's own website (own domain only; free-mail, placeholder and
+   suppressed addresses excluded), with the source and a quote.
+
+Nothing is emailed automatically. A suggestion is **not a contact**; accepting one creates a `needs_review` contact that still needs a
+recorded lawful basis.
+
+**Legal risk, your decision:** the Spam Act 2003 (Cth) prohibits supplying or using *address-harvesting software* and harvested-address lists to
+send commercial email. Automatically collecting addresses from websites is the activity that rule targets. This feature collects only addresses
+a business publishes on its own site and requires human review, but whether that is compliant for your use is a question for a lawyer. To avoid
+it, leave auto research off or remove `saveContactSuggestions` from `research/pipeline.ts`.
+
+## Global lead pool
+
+- **One do-not-contact list.** Rep emails (one-off and drip) pass `lib/outreachGate.ts`: the shared `acq_suppressions` list (email and
+  whole-domain) plus legacy `rep_unsubscribes`, failing closed on lookup errors. Rep emails carry a sender-identity footer (Safety & settings >
+  Sender identity) and a signed one-click unsubscribe link. Migration `0025` enables RLS on the rep tables and copies old rep opt-outs into the
+  shared list. Rep sessions have no built-in secret (set `REP_AUTH_SECRET` or `ADMIN_PASSWORD`); sending and campaign enrolment need completed onboarding.
+- **Markets** (`/admin/acquisition/markets`): an industry in a country with its own search phrases, places, allowed site endings and a "what a
+  good fit looks like" text that guides the AI. Migration `0026` seeds "Property management - Australia" and backfills existing companies to it.
+- **Country rules:** a country must have an enabled rule before any contact at a company there can be emailed. AU, GB and US are seeded as allowed;
+  everything else is blocked until you enable it (`acq_reserve_send` returns `country_blocked`; a company with no country is blocked too). The
+  notes are starting points, not legal advice.
+- **Near-duplicates:** companies with the same normalised name (case, punctuation, legal suffixes ignored) and country but a different website are
+  flagged. Review on the Companies page: merge (contacts, research and suggestions move to the original; the duplicate is archived, never deleted) or
+  "not a duplicate". Nothing merges automatically.
+- **Lead pool** (Companies page): filterable, server-paginated list of every company. Select several and assign to a rep, unassign, set status,
+  change market, run research, apply rules, archive, or export CSV (formula-injection safe, max 5,000 rows). One owner per company is enforced in the database.
+- **Claiming and rules** (Markets page): reps may claim unowned companies only from markets you grant them, up to a cap on open companies.
+  Auto-assignment rules (market, country, minimum fit score -> rep; lowest priority number first) run after research scores a new unowned company.
+  Offboarding or deleting a rep returns their open companies to the pool (history kept in `acq_assignment_log`).
+- **Rep portal "Lead Pool" tab:** "My companies" and "Available to claim" (granted markets only). Each company has ready-made LinkedIn/Google search
+  links that open in the rep's own browser (nothing is scraped), a field for the company's LinkedIn address, the AI research evidence, suggested
+  addresses, contact entry and **a lawful-basis form the rep completes themselves** (recorded under their name; visible in the audit log). A contact
+  becomes eligible only when the database accepts the basis, and then appears in the rep's Leads CRM (source "Lead pool") so templates, drips and
+  one-off email work as before.
+- **Send gate for pool contacts:** rep emails and drip steps to an address in the pool require that the rep owns the company, the contact is
+  eligible with a valid basis, the address is not suppressed and the company's country is enabled (`acq_rep_can_email`). A first email moves the
+  company to "contacted". A rep's own non-pool prospects behave as before.
+
+**Migrations, in order:** `0022`, `0023`, `0024` (cron; replace `<CRON_SECRET>`, never commit the real value), `0025`, `0026`, `0027`, `0029`.
+
+## Daily flow
+
+Import companies → run research (or add sourced notes) → add a contact → **record your consent review**
+→ create a campaign → add eligible contacts (drafts are generated) → edit drafts → submit →
+**Approvals**: approve the frozen version → launch.
+
+## API
+
+All under `/api/acquisition`. Admin routes require the admin session cookie, a same-origin
+`Content-Type: application/json` request, and Zod validation. Public: `unsubscribe` and `webhooks/email`.
+
+| Route | Purpose |
+| --- | --- |
+| `POST research` | enqueue a research job (one per company per day) |
+| `GET/POST companies` | list / bulk import with dedupe |
+| `POST companies/:id/research-notes` | manual sourced evidence; rescoring |
+| `POST contacts`, `POST contacts/:id/consent` | add contact / record a human consent review |
+| `GET/POST campaigns`, `PATCH campaigns/:id` | list, create, edit drafts |
+| `POST campaigns/:id/leads`, `PATCH messages/:id` | add recipients + drafts; edit a draft |
+| `POST campaigns/:id/status` | submit, revoke, launch, pause, resume, complete |
+| `POST approvals` | approve (bound to a content hash) or reject |
+| `PATCH replies/:id`, `POST meetings` | human classification; offer booking link |
+| `GET/POST suppressions`, `POST settings` | suppress; emergency pause |
+| `GET/POST unsubscribe` | confirmation page (GET never mutates); apply opt-out (also RFC 8058 one-click) |
+| `POST webhooks/email` | HMAC-verified provider events; idempotent |
+
+## Webhook format
+
+`POST /api/acquisition/webhooks/email` with headers `x-acq-timestamp` (unix seconds, +/-5 min) and
+`x-acq-signature: sha256=HMAC_SHA256(ACQ_WEBHOOK_SECRET, "<timestamp>.<raw body>")`, body
+`{"events":[{"id","type":"delivered|bounced|complained|replied|unsubscribed","email","providerMessageId?","bounceType?","body?"}]}`.
+Brevo uses its own payloads authenticated by `ACQ_WEBHOOK_SECRET` (bearer header or `?token=`), see `BrevoProvider`; the HMAC format above is the generic fallback used when Brevo isn't configured.
+
+## Tests
+
+`npm test` runs 130+ tests. The integration tests boot an in-process Postgres (PGlite), apply the real
+migration, and exercise the triggers and `acq_reserve_send()` directly (approval locking, suppression,
+follow-up rules, daily cap, job queue).
+
+## Known limitations
+
+- **Single shared admin login.** The audit trail records `ACQ_OPERATOR_NAME`, not an individual. The blueprint
+  names Supabase Auth; the site's existing admin cookie was reused to avoid a second auth system.
+- **Not legal advice.** The consent checklist encodes the blueprint's reading of the Spam Act; have it reviewed,
+  along with privacy and cross-border obligations for Bangladesh -> Australia.
+- **Race window:** a suppression arriving between `acq_reserve_send()` and the provider call cannot be recalled.
+- **Free-tier note:** Supabase Free has no automatic backups and pauses on inactivity; the suppression list is the
+  one table you must never lose, so export it regularly.
+- Scoring weights are hypotheses. The AI never sets `fit_score`; it is computed from verified evidence.
+- Removing an erroneous suppression requires a manual SQL change with the trigger disabled, by design.

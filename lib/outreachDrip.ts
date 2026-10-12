@@ -2,7 +2,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { sendBrevoEmail } from "@/lib/emailBrevo";
 import { SITE_URL } from "@/lib/utils";
 import { logRepActivity } from "@/lib/repAudit";
-import { assertCanEmail, loadSenderIdentity, OutreachBlockedError, repFooterHtml, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
+import { assertCanEmail, assertPoolContactAllowed, loadSenderIdentity, OutreachBlockedError, repFooterHtml, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
 
 export interface MergeTagsContext {
   firstName: string;
@@ -59,9 +59,10 @@ export async function enrollLeadInCampaign(params: {
 
   try {
     await assertCanEmail(supabase, leadData.email);
+    await assertPoolContactAllowed(supabase, leadData.email, params.repId);
   } catch (e) {
     if (e instanceof OutreachBlockedError) {
-      throw new Error(`Lead (${leadData.email}) is on the global Do-Not-Contact / Unsubscribed list.`);
+      throw new Error(e.reason === "pool_not_allowed" ? e.message : `Lead (${leadData.email}) is on the global Do-Not-Contact / Unsubscribed list.`);
     }
     throw e;
   }
@@ -263,11 +264,12 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
     // Shared do-not-contact gate (suppression list incl. domains + legacy unsubscribes). Fails closed.
     try {
       await assertCanEmail(supabase, lead.email);
+      await assertPoolContactAllowed(supabase, lead.email, job.rep_id);
     } catch (e) {
       if (e instanceof OutreachBlockedError) {
         await supabase
           .from("rep_campaign_queue")
-          .update({ status: "cancelled", error_message: "Lead unsubscribed or suppressed" })
+          .update({ status: "cancelled", error_message: e.reason === "pool_not_allowed" ? e.message : "Lead unsubscribed or suppressed" })
           .eq("id", job.id);
         continue;
       }
