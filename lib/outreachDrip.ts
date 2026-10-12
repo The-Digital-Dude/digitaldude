@@ -204,7 +204,8 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
         full_name,
         email,
         assigned_outreach_email,
-        outreach_display_name
+        outreach_display_name,
+        status
       ),
       rep_campaign_steps (
         id,
@@ -243,6 +244,15 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
       await supabase
         .from("rep_campaign_queue")
         .update({ status: "failed", error_message: "Missing lead, rep, or step relation" })
+        .eq("id", job.id);
+      continue;
+    }
+
+    // An offboarded rep sends nothing (the offboarding trigger already cancels their queue; this is a second guard).
+    if (rep.status === "offboarded") {
+      await supabase
+        .from("rep_campaign_queue")
+        .update({ status: "cancelled", error_message: "Rep offboarded" })
         .eq("id", job.id);
       continue;
     }

@@ -118,6 +118,22 @@ export async function POST(request: Request) {
     }
   }
 
+  // No referral link: credit the rep who owns this prospect's company in the lead pool (exact contact-email match).
+  let poolOwner: { employeeId: string; employeeName: string; companyId: string; companyName: string } | null = null;
+  if (!sourcedByEmployeeId && supabase) {
+    try {
+      const { findPoolOwnerForEmail } = await import("@/lib/acquisition/attribution");
+      poolOwner = await findPoolOwnerForEmail(supabase, String(workEmail));
+      if (poolOwner) {
+        sourcedByEmployeeId = poolOwner.employeeId;
+        matchedEmployeeName = poolOwner.employeeName;
+        log("info", { message: "Attributed booking to pool owner", context: { employeeId: poolOwner.employeeId, companyId: poolOwner.companyId } });
+      }
+    } catch (poolErr) {
+      log("warn", { message: "Pool attribution lookup failed", error: poolErr });
+    }
+  }
+
   const bookingId = crypto.randomUUID();
   const insertPayload: Record<string, unknown> = {
     id: bookingId,
@@ -131,7 +147,7 @@ export async function POST(request: Request) {
     slot_end: end.toISOString(),
     sourced_by_employee_id: sourcedByEmployeeId,
     employee_id: sourcedByEmployeeId,
-    referral_source: refCode || null,
+    referral_source: refCode || (poolOwner ? "lead_pool" : null),
   };
 
   const { error } = await supabase.from("bookings").insert(insertPayload);
@@ -192,7 +208,9 @@ export async function POST(request: Request) {
       await recordRepAuditLog({
         employeeId: sourcedByEmployeeId,
         actionType: "lead_created",
-        description: `Prospect "${name} (${companyName})" booked discovery call via your referral link.`,
+        description: poolOwner
+          ? `Prospect "${name} (${companyName})" from your lead-pool company "${poolOwner.companyName}" booked a discovery call.`
+          : `Prospect "${name} (${companyName})" booked discovery call via your referral link.`,
         targetIdentifier: workEmail,
         metadata: {
           bookingId,
@@ -200,9 +218,14 @@ export async function POST(request: Request) {
           country,
           slotStart: start.toISOString(),
           referralCode: refCode,
+          source: poolOwner ? "lead_pool" : "referral_link",
         },
         ipAddress: ip,
       });
+      if (poolOwner) {
+        const { markPoolMeeting } = await import("@/lib/acquisition/attribution");
+        await markPoolMeeting(supabase, poolOwner.companyId, poolOwner.employeeId);
+      }
     } catch (auditErr) {
       log("warn", { message: "Could not record rep referral booking audit log", error: auditErr });
     }

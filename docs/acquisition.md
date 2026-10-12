@@ -128,7 +128,15 @@ it, leave auto research off or remove `saveContactSuggestions` from `research/pi
 - **API keys in the UI** (Safety & settings > Contact finder & web search keys): Hunter and Brave keys can be saved there (encrypted, never shown
   again, override env vars) with a **Test connection** button (Hunter also shows the plan and monthly searches used).
 
-**Migrations, in order:** `0022`, `0023`, `0024` (cron; replace `<CRON_SECRET>`, never commit the real value), `0025`, `0026`, `0027`, `0029`, `0030`.
+- **Booking credit:** a booking made with no referral link is credited to the rep who owns the company of the booker's email, but only on an exact
+  match to a pool contact's email (never by company domain), and only while that rep is active. The booking is tagged `lead_pool`, the rep's activity
+  log records it, and the company moves to "meeting".
+- **Offboarding:** when a rep is offboarded or deleted, their pool companies return to the pool, their campaigns pause, active drips are cancelled and
+  pending queued emails are cancelled (sent history is kept). The drip sender also refuses to send for an offboarded rep.
+- **Reports** (`/admin/acquisition/reports`): funnel by market, per-rep table (owned, open, needs contact, contacted, meetings, won, cleared contacts,
+  emails sent, bookings), discovery yield per market (30 days), and AI/contact-lookup usage.
+
+**Migrations, in order:** `0022`, `0023`, `0024` (cron; replace `<CRON_SECRET>`, never commit the real value), `0025`, `0026`, `0027`, `0029`, `0030`, `0031`.
 
 ## Daily flow
 
