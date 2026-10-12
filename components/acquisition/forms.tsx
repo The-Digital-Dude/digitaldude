@@ -247,6 +247,7 @@ export function ConsentForm({ contactId }: { contactId: string }) {
 interface CampaignValues {
   name: string; daily_limit: number; sender_name: string; sender_business: string; sender_postal_address: string; sender_email: string;
   subject_template: string; body_template: string; followup_enabled: boolean; followup_delay_business_days: number; followup_body_template: string | null;
+  ai_compose?: boolean;
 }
 
 export function CampaignForm({ campaignId, initial, maxDailyLimit }: { campaignId?: string; initial?: CampaignValues; maxDailyLimit: number }) {
@@ -255,7 +256,7 @@ export function CampaignForm({ campaignId, initial, maxDailyLimit }: { campaignI
   const [f, setF] = useState<CampaignValues>(
     initial ?? {
       name: "", daily_limit: Math.min(5, maxDailyLimit), sender_name: "", sender_business: "The Digital Dude", sender_postal_address: "", sender_email: "",
-      subject_template: STARTER_TEMPLATE.subject, body_template: STARTER_TEMPLATE.body, followup_enabled: true, followup_delay_business_days: 7, followup_body_template: STARTER_TEMPLATE.followup,
+      subject_template: STARTER_TEMPLATE.subject, body_template: STARTER_TEMPLATE.body, followup_enabled: true, followup_delay_business_days: 7, followup_body_template: STARTER_TEMPLATE.followup, ai_compose: false,
     }
   );
   const set = <K extends keyof CampaignValues>(k: K, v: CampaignValues[K]) => setF({ ...f, [k]: v });
@@ -296,6 +297,10 @@ export function CampaignForm({ campaignId, initial, maxDailyLimit }: { campaignI
           <p className="mt-1 text-xs text-navy/50">A drafted starting point. Edit it freely; nothing sends until you approve the campaign.</p>
         </div>
       )}
+      <label className="flex items-start gap-2 rounded-xl border border-slate-200 p-3 text-sm">
+        <input type="checkbox" className="mt-1" checked={!!f.ai_compose} onChange={(e) => set("ai_compose", e.target.checked)} />
+        <span><strong>Write each email with AI from the research</strong> <span className="text-navy/60">(optional). Each contact gets their own email and follow-up, written only from verified facts about their company. If the AI cannot write a safe one, the template below is used. You review every draft in Approvals before anything sends, and the follow-up is approved with the first email.</span></span>
+      </label>
       <div><label className={labelCls}>Subject</label><input className={inputCls} value={f.subject_template} onChange={(e) => set("subject_template", e.target.value)} /></div>
       <div>
         <label className={labelCls}>Initial email body</label>
@@ -739,6 +744,18 @@ export function FindContactsButton({ companyId, enabled }: { companyId: string; 
 
 
 /** Drafts a reply with the AI for a person to review. Nothing is sent from here: copy it into your own mail. */
+/** Admin-only switch: allow more than one contact at this company to be emailed at once (default: one at a time). */
+export function MultiContactToggle({ companyId, allowed }: { companyId: string; allowed: boolean }) {
+  const { run, busy, result } = useAction();
+  return (
+    <div className="text-sm">
+      <p className="text-navy/70">By default only one person at a company is emailed at a time: a colleague is blocked while the first conversation is live (or for 30 days). {allowed ? "This company is allowed to have several contacts emailed at once." : "Allow it for this company only if you are sure it makes sense."}</p>
+      <button className={`${btnGhostCls} mt-2`} disabled={busy} onClick={() => void run(`/api/acquisition/companies/${companyId}/multi-contact`, "PATCH", { allow: !allowed })}>{busy ? "Saving…" : allowed ? "Back to one contact at a time" : "Allow several contacts here"}</button>
+      <Feedback result={result && !result.ok ? result : null} />
+    </div>
+  );
+}
+
 export function SuggestReply({ replyId, classification }: { replyId: string; classification: string }) {
   const [busy, setBusy] = useState(false);
   const [text, setText] = useState<string | null>(null);

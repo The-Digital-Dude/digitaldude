@@ -83,6 +83,7 @@ export const campaignInput = z.object({
   followup_enabled: z.boolean(),
   followup_delay_business_days: z.number().int().min(1).max(30),
   followup_body_template: z.preprocess((v) => (v === "" ? null : v), text(6000).nullable().optional()),
+  ai_compose: z.boolean().optional(),
 });
 export type CampaignInput = z.infer<typeof campaignInput>;
 

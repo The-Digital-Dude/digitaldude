@@ -24,7 +24,7 @@ export default async function ApprovalsPage() {
 
               <h3 className="mb-2 mt-6 text-sm font-bold text-navy">Messages, evidence and basis for each recipient</h3>
               <div className="space-y-4">
-                {leads.map((l: { id: string; contact_id: string; acq_contacts: { name: string | null; email: string; acq_companies: { id: string; name: string } | null }; acq_email_messages: { id: string; kind: string; direction: string; subject: string; body: string }[] }) => {
+                {leads.map((l: { id: string; contact_id: string; followup_body: string | null; followup_subject: string | null; acq_contacts: { name: string | null; email: string; acq_companies: { id: string; name: string } | null }; acq_email_messages: { id: string; kind: string; direction: string; subject: string; body: string }[] }) => {
                   const basis = consent.find((x: { contact_id: string }) => x.contact_id === l.contact_id);
                   const facts = research.filter((r: { company_id: string }) => r.company_id === l.acq_contacts.acq_companies?.id).slice(0, 3);
                   return (
@@ -39,6 +39,9 @@ export default async function ApprovalsPage() {
                       {l.acq_email_messages.filter((m) => m.kind === "initial" && m.direction === "outbound").map((m) => (
                         <div key={m.id} className="mt-3"><p className="text-sm font-semibold">{m.subject}</p><pre className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 font-sans text-sm text-navy/80">{m.body}</pre></div>
                       ))}
+                      {l.followup_body && (
+                        <div className="mt-3"><p className="text-xs font-bold uppercase text-navy/50">Follow-up for this recipient (approved with the first email)</p><p className="mt-1 text-sm font-semibold">{l.followup_subject}</p><pre className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 font-sans text-sm text-navy/80">{l.followup_body}</pre></div>
+                      )}
                     </div>
                   );
                 })}

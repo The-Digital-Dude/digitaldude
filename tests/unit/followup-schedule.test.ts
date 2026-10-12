@@ -10,9 +10,9 @@ const campaign = {
 };
 const contact = { id: "ct1", name: "Dan Lee", email: "dan@plum.com.au", acq_companies: { name: "Plum Property" } };
 
-function setup(created = true) {
+function setup(created = true, lead: Record<string, unknown> | null = null) {
   return fakeDb(
-    { acq_campaigns: [campaign], acq_contacts: [contact], acq_audit_logs: [] },
+    { acq_campaigns: [campaign], acq_contacts: [contact], acq_audit_logs: [], acq_campaign_leads: lead ? [lead] : [] },
     { rpc: { acq_due_followups: () => [{ lead_id: "l1", campaign_id: "camp1", contact_id: "ct1", initial_subject: "Hello Plum" }], acq_create_followup: () => created } }
   );
 }
@@ -41,5 +41,13 @@ describe("scheduleFollowUps", () => {
     const { db, rpcCalls } = setup();
     await expect(scheduleFollowUps(db)).rejects.toThrow();
     expect(rpcCalls.some((c) => c.name === "acq_create_followup")).toBe(false);
+  });
+
+  it("uses the AI follow-up that was approved with the first email, exactly as stored, instead of rendering the template", async () => {
+    vi.stubEnv("ACQ_UNSUBSCRIBE_SECRET", "s".repeat(32));
+    const { db, rpcCalls } = setup(true, { id: "l1", followup_subject: "Following up: Hello Plum", followup_body: "Approved AI follow-up text.\n\n-- footer" });
+    expect(await scheduleFollowUps(db)).toBe(1);
+    const create = rpcCalls.find((c) => c.name === "acq_create_followup")!;
+    expect(create.args).toMatchObject({ p_lead_id: "l1", p_subject: "Following up: Hello Plum", p_body: "Approved AI follow-up text.\n\n-- footer" });
   });
 });

@@ -35,6 +35,18 @@ export async function scheduleFollowUps(db: Db, opts: { now?: Date; limit?: numb
   let created = 0;
   for (const d of due) {
     try {
+      // A follow-up written by the AI at draft time was reviewed and approved with the first email (it is in the approval
+      // hash): use it as is. Otherwise render the approved campaign template as before.
+      const stored = await db.from("acq_campaign_leads").select("followup_subject,followup_body").eq("id", d.lead_id).maybeSingle();
+      const pre = stored.data as { followup_subject: string | null; followup_body: string | null } | null;
+      if (pre?.followup_body) {
+        const ok = must(await db.rpc("acq_create_followup", { p_lead_id: d.lead_id, p_subject: pre.followup_subject || `Following up: ${d.initial_subject}`.slice(0, 200), p_body: pre.followup_body }), "create follow-up");
+        if (ok === true) {
+          created++;
+          await logAudit(db, "followup.scheduled", "campaign", d.campaign_id, { leadId: d.lead_id, aiComposed: true });
+        }
+        continue;
+      }
       const campaign = must(
         await db.from("acq_campaigns").select("sender_name,sender_business,sender_postal_address,sender_email,subject_template,followup_body_template").eq("id", d.campaign_id).single(),
         "load campaign"

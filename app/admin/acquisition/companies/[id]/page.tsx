@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getCompany } from "@/lib/acquisition/queries";
 import { evaluateEligibility, type ConsentRecord } from "@/lib/acquisition/compliance/eligibility";
 import { Card, Empty, PageHeader, StatusBadge, Badge, fmtDate } from "@/components/acquisition/ui";
-import { ConsentForm, ContactForm, FindContactsButton, ResearchControls, ResearchNoteForm, SuggestionControls } from "@/components/acquisition/forms";
+import { ConsentForm, ContactForm, FindContactsButton, MultiContactToggle, ResearchControls, ResearchNoteForm, SuggestionControls } from "@/components/acquisition/forms";
 
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
@@ -18,7 +18,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <p className="mb-2 text-sm"><Link className="text-purple hover:underline" href="/admin/acquisition/companies">← Companies</Link></p>
-      <PageHeader title={company.name} subtitle={[company.website, [company.suburb, company.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ")} action={<div className="flex flex-wrap items-start gap-3"><ResearchControls companyId={company.id} hasWebsite={!!company.website} /><FindContactsButton companyId={company.id} enabled={finderEnabled && !!company.website} /></div>} />
+      <PageHeader title={company.name} subtitle={[company.website, [company.region || company.suburb || company.state, company.country].filter(Boolean).join(", ")].filter(Boolean).join(" · ")} action={<div className="flex flex-wrap items-start gap-3"><ResearchControls companyId={company.id} hasWebsite={!!company.website} /><FindContactsButton companyId={company.id} enabled={finderEnabled && !!company.website} /></div>} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title="Qualification" className="lg:col-span-1">
@@ -69,6 +69,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           </ul>
         </Card>
       )}
+
+      <Card title="Several contacts at this company" className="mt-6">
+        <MultiContactToggle companyId={company.id} allowed={!!company.allow_multiple_contacts} />
+      </Card>
 
       <Card title={`Contacts (${contacts.length})`} className="mt-6">
         {contacts.length === 0 && <Empty>No contacts yet.</Empty>}

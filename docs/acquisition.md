@@ -173,7 +173,7 @@ Brevo uses its own payloads authenticated by `ACQ_WEBHOOK_SECRET` (bearer header
 
 ## Replies, follow-ups, alerts and bulk work (migrations 0032-0035)
 
-**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0036`.
+**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0036, 0037`.
 Run each file whole. A half-applied file (for example only the last statements of `0029`) breaks the rep portal.
 
 **One contact per company at a time.** A first email to a contact is refused while a colleague at the same company has a
@@ -222,6 +222,19 @@ suggestion, opt-outs / bounces / auto-replies get none, only the booking link ma
 Reps use "Use in composer" so the normal send checks (suppression, basis, country, one-contact rule, caps, footer) still run.
 
 **Applicant emails.** Status changes report whether the Brevo email actually went out, instead of silently ignoring a failure.
+
+**AI-written emails (migration 0037).** The AI can write a first email (and a follow-up) for one contact from that company's *verified*
+research only (`lib/acquisition/drafting/compose.ts`). Everything it returns is validated: every claim must trace to a numbered verified
+fact, numbers must appear in those facts, only the booking link may appear (no other links, bare domains or email addresses), no hype
+or guarantees, short length limits, and the booking link must be the ask. If the AI is off, fails or breaks a rule, the normal template is
+used instead. Where it is available:
+- **Rep composer:** "Write with AI" (and "Write email with AI" on a cleared contact in the Lead Pool). A draft for the rep to edit; shows
+  the facts it used or says it had none. The normal send checks still run when the rep sends.
+- **Admin campaigns:** tick "Write each email with AI from the research". Each contact gets their own draft, shown in Approvals. The
+  follow-up text is stored on the lead at draft time and is part of the campaign approval hash, so it is reviewed with the first email and
+  editing it later pauses sending like any other approved content. Existing campaigns keep exactly the hash they had.
+
+**Override of the one-contact rule.** Admin only, per company (company page, "Several contacts at this company"). Audited. Reps cannot set it.
 
 ## Tests
 

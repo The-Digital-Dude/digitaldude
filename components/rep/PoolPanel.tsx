@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, Loader2, Search, ShieldCheck, Sparkles, Undo2 } from "lucide-react";
 import { btn, btnGhost, call, card, input, Msg, type BasisDraft } from "./poolShared";
 import { NeedsBasisPanel } from "./NeedsBasis";
@@ -26,7 +26,7 @@ interface Detail {
 const STATUSES = ["assigned", "needs_contact", "contacted", "replied", "meeting", "won", "lost", "dead"];
 const label = (s: string) => s.replace(/_/g, " ");
 /** "Lead pool" tab: claim companies from your markets, find and record contacts, then email through the normal tools. */
-export function RepPoolPanel({ onUseReply }: { onUseReply?: (r: { email: string; name: string; company: string; message: string }) => void } = {}) {
+export function RepPoolPanel({ onUseReply, onLeadsChanged, onWriteEmail }: { onUseReply?: (r: { email: string; name: string; company: string; message: string }) => void; onLeadsChanged?: () => void; onWriteEmail?: (c: { email: string; name: string; company: string }) => void } = {}) {
   const [view, setView] = useState<"mine" | "available" | "basis" | "replies">("mine");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState("");
@@ -38,14 +38,24 @@ export function RepPoolPanel({ onUseReply }: { onUseReply?: (r: { email: string;
   const [msg, setMsg] = useState<{ error?: string; note?: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const hasRows = useRef(false);
+  useEffect(() => { hasRows.current = companies.length > 0; }, [companies]);
   const load = useCallback(async () => {
-    setLoading(true);
+    // Only show the spinner on the first load: a refresh must not unmount an open workspace and lose what the rep typed.
+    if (!hasRows.current) setLoading(true);
     const r = await call(`/api/rep/pool?view=${view}`, "GET");
     if (r.ok) { setCompanies(r.companies as Company[]); setSummary(r.summary as Summary); setMsg(null); }
     else setMsg({ error: r.error ?? "Could not load the lead pool" });
     setLoading(false);
   }, [view]);
   useEffect(() => { if (view !== "basis" && view !== "replies") void load(); }, [load, view]);
+  // Companies change elsewhere (claimed by someone else, status moved by a reply or a booking): refresh when the tab is visible again.
+  useEffect(() => {
+    const again = () => { if (document.visibilityState === "visible" && view !== "basis" && view !== "replies") void load(); };
+    const t = setInterval(again, 60_000);
+    document.addEventListener("visibilitychange", again);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", again); };
+  }, [load, view]);
 
   const toggleSel = (id: string) => setSelected((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   async function bulk(body: Record<string, unknown>, confirmText?: string) {
@@ -74,7 +84,7 @@ export function RepPoolPanel({ onUseReply }: { onUseReply?: (r: { email: string;
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1.5">
           {(["mine", "available", "basis", "replies"] as const).map((v) => (
-            <button key={v} onClick={() => { setView(v); setOpenId(null); setSelected(new Set()); setMsg(null); }} className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${view === v ? "bg-purple text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>
+            <button key={v} onClick={() => { setView(v); setOpenId(null); setSelected(new Set()); setMsg(null); setCompanies([]); }} className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${view === v ? "bg-purple text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>
               {v === "mine" ? "My companies" : v === "available" ? "Available to claim" : v === "basis" ? "Needs lawful basis" : "Replies"}
             </button>
           ))}
@@ -83,7 +93,7 @@ export function RepPoolPanel({ onUseReply }: { onUseReply?: (r: { email: string;
       </div>
       <Msg error={msg?.error} note={msg?.note} />
 
-      {view === "basis" ? <NeedsBasisPanel onChanged={load} /> : null}
+      {view === "basis" ? <NeedsBasisPanel onChanged={() => { void load(); onLeadsChanged?.(); }} /> : null}
       {view === "replies" ? <RepliesPanel onUseReply={onUseReply} /> : null}
 
       {view === "mine" && companies.length > 0 && (
@@ -127,7 +137,7 @@ export function RepPoolPanel({ onUseReply }: { onUseReply?: (r: { email: string;
                   </div>
                 )}
               </div>
-              {view === "mine" && openId === c.id && <CompanyWorkspace id={c.id} onChanged={load} onReleased={() => { setOpenId(null); void load(); }} />}
+              {view === "mine" && openId === c.id && <CompanyWorkspace id={c.id} onWriteEmail={onWriteEmail} onChanged={() => { void load(); onLeadsChanged?.(); }} onReleased={() => { setOpenId(null); void load(); }} />}
             </li>
           ))}
         </ul>
@@ -136,7 +146,7 @@ export function RepPoolPanel({ onUseReply }: { onUseReply?: (r: { email: string;
   );
 }
 
-function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged: () => void; onReleased: () => void }) {
+function CompanyWorkspace({ id, onChanged, onReleased, onWriteEmail }: { id: string; onChanged: () => void; onReleased: () => void; onWriteEmail?: (c: { email: string; name: string; company: string }) => void }) {
   const [d, setD] = useState<Detail | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [res, setRes] = useState<{ error?: string; note?: string } | null>(null);
@@ -257,7 +267,12 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
                 </div>
               ) : <button className={`${btnGhost} mt-2`} onClick={() => void openBasis(c.id)}>Confirm lawful basis</button>
             )}
-            {c.status === "eligible" && <p className="mt-2 text-slate-500">Find them in your Leads CRM (source “Lead pool”) to send an email or enrol them in a campaign.</p>}
+            {c.status === "eligible" && (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {onWriteEmail && <button className={btn} onClick={() => onWriteEmail({ email: c.email, name: c.name ?? "", company: d.company.name })}><Sparkles size={12} className="mr-1 inline" />Write email with AI</button>}
+                <span className="text-slate-500">Or find them in your Leads CRM (source “Lead pool”) to enrol them in a campaign.</span>
+              </div>
+            )}
           </li>))}
         </ul>
 

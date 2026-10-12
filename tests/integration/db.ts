@@ -11,7 +11,7 @@ export async function createDb() {
   const db = new PGlite();
   // Minimal stand-in for the existing employees table (later migrations reference it).
   await db.exec(`create table public.employees (id uuid primary key default gen_random_uuid(), full_name text, email text, status text not null default 'active', onboarding_completed boolean default false)`);
-  for (const file of ["0022_acquisition_system.sql", "0023_acquisition_autoresearch.sql", "0026_markets_countries_dedupe.sql", "0027_pool_assignment.sql", "0029_rep_pool.sql", "0030_contact_finder.sql", "0031_offboarding_outreach.sql", "0032_claim_cap_all_open.sql", "0033_reserve_send_company_closed.sql", "0034_setup_markets_one_contact_rule.sql", "0035_notifications_followups.sql", "0036_rep_gate_closed_company.sql"]) {
+  for (const file of ["0022_acquisition_system.sql", "0023_acquisition_autoresearch.sql", "0026_markets_countries_dedupe.sql", "0027_pool_assignment.sql", "0029_rep_pool.sql", "0030_contact_finder.sql", "0031_offboarding_outreach.sql", "0032_claim_cap_all_open.sql", "0033_reserve_send_company_closed.sql", "0034_setup_markets_one_contact_rule.sql", "0035_notifications_followups.sql", "0036_rep_gate_closed_company.sql", "0037_ai_compose_override.sql"]) {
     await db.exec(readFileSync(path.resolve(__dirname, "../../supabase/migrations", file), "utf8"));
   }
   return db;

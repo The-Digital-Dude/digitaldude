@@ -101,3 +101,47 @@ describe("creating and sending a follow-up", () => {
     expect(await one<{ ok: boolean }>(db, `select acq_create_followup($1,'subj','body') as ok`, [s.leadId]).then((r) => r.ok)).toBe(false);
   });
 });
+
+describe("AI-written follow-ups are covered by the approval hash (0037)", () => {
+  const hash = async (campaignId: string) => (await one<{ h: string }>(db, `select acq_campaign_content_hash($1) as h`, [campaignId])).h;
+
+  it("a campaign with no per-lead follow-up text keeps exactly the hash it always had", async () => {
+    const s = await sentLead("hash-old", 20);
+    // Recompute the pre-0037 formula by hand and compare: new term is NULL and concat_ws skips it.
+    const old = await one<{ h: string }>(
+      db,
+      `select encode(sha256(convert_to(concat_ws(chr(31), c.market, c.daily_limit::text, c.sender_name, c.sender_business, c.sender_postal_address, c.sender_email, c.subject_template, c.body_template, c.followup_enabled::text, c.followup_delay_business_days::text, coalesce(c.followup_body_template,''),
+         coalesce((select string_agg(m.campaign_lead_id::text || ':' || acq_message_hash(m.subject, m.body), ',' order by m.campaign_lead_id) from acq_email_messages m join acq_campaign_leads l on l.id = m.campaign_lead_id where l.campaign_id = c.id and m.direction='outbound' and m.kind='initial'), '')), 'UTF8')), 'hex') as h
+       from acq_campaigns c where c.id = $1`,
+      [s.campaignId]
+    );
+    expect(await hash(s.campaignId)).toBe(old.h);
+  });
+
+  it("changing a lead's stored follow-up changes the hash, so editing it after approval pauses sending", async () => {
+    const s = await sentLead("hash-new", 20);
+    const before = await hash(s.campaignId);
+    await db.query(`update acq_campaign_leads set followup_subject='Following up: Hi', followup_body='Hello again, no reply needed.' where id=$1`, [s.leadId]);
+    const withText = await hash(s.campaignId);
+    expect(withText).not.toBe(before);
+    await db.query(`update acq_campaign_leads set followup_body='Hello again, SOMETHING ELSE.' where id=$1`, [s.leadId]);
+    expect(await hash(s.campaignId)).not.toBe(withText);
+    // And the send gate notices: the approved hash no longer matches.
+    expect(await one<{ ok: boolean; reason: string | null }>(db, `select * from acq_reserve_send($1)`, [s.initialId])).toMatchObject({ ok: false, reason: "campaign_content_changed" });
+  });
+});
+
+describe("admin override of the one-contact rule (0037)", () => {
+  it("lets a second contact through only for a company the admin has allowed", async () => {
+    const a = await eligibleContact(db, "ovr-a@example.com.au");
+    const b = await eligibleContact(db, "ovr-b@example.com.au");
+    await db.query(`update acq_contacts set company_id = (select company_id from acq_contacts where id=$1) where id=$2`, [a, b]);
+    const camp = await draftCampaign(db, [a, b], { dailyLimit: 10 });
+    await approveAndActivate(db, camp.campaignId);
+    await unpause(db);
+    expect(await reserve(camp.messages[0])).toMatchObject({ ok: true });
+    expect(await reserve(camp.messages[1])).toMatchObject({ ok: false, reason: "company_has_active_contact" });
+    await db.query(`update acq_companies set allow_multiple_contacts=true where id=(select company_id from acq_contacts where id=$1)`, [b]);
+    expect(await reserve(camp.messages[1])).toMatchObject({ ok: true });
+  });
+});

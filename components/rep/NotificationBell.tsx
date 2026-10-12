@@ -55,7 +55,7 @@ export function NotificationBell({ onOpenItem }: { onOpenItem?: (kind: string) =
 
   return (
     <div className="relative" ref={box}>
-      <button onClick={() => setOpen((o) => !o)} className="relative rounded-xl border border-white/[0.08] bg-[#131B2E] p-2 text-slate-300 hover:text-white transition" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} aria-expanded={open}>
+      <button onClick={() => { if (!open) void load(); setOpen((o) => !o); }} className="relative rounded-xl border border-white/[0.08] bg-[#131B2E] p-2 text-slate-300 hover:text-white transition" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`} aria-expanded={open}>
         <Bell size={16} />
         {unread > 0 && <span className="absolute -right-1 -top-1 min-w-[16px] rounded-full bg-rose-500 px-1 text-center text-[9px] font-bold leading-4 text-white">{unread > 9 ? "9+" : unread}</span>}
       </button>

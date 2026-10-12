@@ -2,7 +2,8 @@ import { must, type Db } from "../db";
 import { resolveAiProvider } from "../ai-config";
 import { getBookingUrl } from "../providers/calendar";
 import { firstNameOf, generateObservation } from "./draft";
-import { renderMessage } from "../compliance/templates";
+import { buildFooter, renderMessage } from "../compliance/templates";
+import { composeEmail, loadComposeContext, type ComposedEmail } from "./compose";
 import { createUnsubscribeToken } from "../compliance/unsubscribe-token";
 import { unsubscribeSecret, unsubscribeUrlFor } from "../env";
 import { logAudit } from "../audit";
@@ -15,6 +16,9 @@ interface CampaignRow {
   sender_email: string;
   subject_template: string;
   body_template: string;
+  /** Write each email with the AI from the verified research (a person still reviews and approves every draft). */
+  ai_compose?: boolean;
+  followup_enabled?: boolean;
 }
 
 /**
@@ -43,20 +47,46 @@ export async function buildLeadDraft(db: Db, campaign: CampaignRow, contactId: s
 
   const observation = await generateObservation(await resolveAiProvider(db), companyName, signals, { industry: companyInfo?.industry, country: companyInfo?.country });
   const unsubscribeUrl = unsubscribeUrlFor(createUnsubscribeToken(contact.email, secret));
-  const { subject, body } = renderMessage(
+  const rendered = renderMessage(
     campaign,
     campaign.body_template,
     { first_name: firstNameOf(contact.name), company_name: companyName || "your business", observation, booking_url: getBookingUrl() ?? "" },
     unsubscribeUrl
   );
+  let { subject, body } = rendered;
+
+  // AI-written email (and follow-up) from the contact's verified research. If the AI is off, fails, or breaks a rule, the
+  // normal template above is used, so a draft always exists. The system footer and signed unsubscribe link are appended here.
+  let composed: ComposedEmail | null = null;
+  if (campaign.ai_compose) {
+    const ai = await resolveAiProvider(db);
+    const ctx = await loadComposeContext(db, contactId);
+    composed = ai && ctx ? await composeEmail(ai, ctx, { senderName: campaign.sender_name, bookingUrl: getBookingUrl(), withFollowUp: !!campaign.followup_enabled }) : null;
+    if (composed) {
+      subject = composed.subject;
+      body = `${composed.body}\n\n${buildFooter(campaign, unsubscribeUrl)}`;
+    }
+  }
 
   // The database rejects ineligible/suppressed contacts and non-draft campaigns here.
-  const lead = must(await db.from("acq_campaign_leads").insert({ campaign_id: campaign.id, contact_id: contactId }).select("id").single(), "add lead");
+  const lead = must(
+    await db
+      .from("acq_campaign_leads")
+      .insert({
+        campaign_id: campaign.id,
+        contact_id: contactId,
+        // Reviewed and approved together with the first email (it is part of the campaign approval hash).
+        ...(composed?.followupBody ? { followup_subject: `Following up: ${composed.subject}`.slice(0, 200), followup_body: `${composed.followupBody}\n\n${buildFooter(campaign, unsubscribeUrl)}` } : {}),
+      })
+      .select("id")
+      .single(),
+    "add lead"
+  );
   const msg = await db.from("acq_email_messages").insert({ campaign_lead_id: lead.id, kind: "initial", subject, body }).select("id").single();
   if (msg.error) {
     await db.from("acq_campaign_leads").delete().eq("id", lead.id);
     throw new Error(`create draft: ${msg.error.message}`);
   }
-  await logAudit(db, "draft.created", "campaign", campaign.id, { leadId: lead.id, messageId: msg.data.id, usedAiObservation: observation !== "" });
+  await logAudit(db, "draft.created", "campaign", campaign.id, { leadId: lead.id, messageId: msg.data.id, usedAiObservation: observation !== "", aiComposed: !!composed, aiFollowUp: !!composed?.followupBody });
   return { leadId: lead.id, messageId: msg.data.id };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -276,6 +276,9 @@ export default function RepDashboardPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState("custom_crm");
   // A reply suggestion filled into the composer: kept until the rep picks a template, so the template effect does not overwrite it.
   const replyDraft = useRef<{ subject: string; message: string } | null>(null);
+  // "Write with AI": the AI drafts from the contact's verified research; this holds what it used, so the rep can see the evidence.
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiResult, setAiResult] = useState<{ error?: string; general?: boolean; usedFacts?: { n: number; claim: string; sourceUrl: string }[]; blocked?: string | null } | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -373,6 +376,28 @@ export default function RepDashboardPage() {
     fetchCustomTemplates();
     fetchCampaigns();
     fetchCampaignQueue();
+  }, [router]);
+
+  /**
+   * Quietly re-reads the profile, earnings, bookings and outreach log. Unlike the first load it never touches the payout
+   * form fields or the active tab, so it is safe to run while the rep is typing.
+   */
+  const refreshDashboard = useCallback(async () => {
+    try {
+      const res = await fetch("/api/rep/dashboard");
+      if (res.status === 401) {
+        router.push("/rep/login");
+        return;
+      }
+      const data = await res.json();
+      const repData = data.employee || data.rep;
+      if (data.ok && repData) {
+        setProfile(repData);
+        setCommissionSummary(data.commissionSummary);
+        setBookings(data.bookings || data.sourcedBookings || []);
+        setOutreachLogs(data.outreachLogs || []);
+      }
+    } catch {}
   }, [router]);
 
   async function fetchCampaigns() {
@@ -547,6 +572,65 @@ export default function RepDashboardPage() {
     }
   }, [selectedTemplateId, recipientName, companyName, profile?.referral_code, profile?.outreach_display_name, customTemplates]);
 
+  // ---- Freshness -------------------------------------------------------------------------------------------------
+  // Data is loaded once at start, but it changes elsewhere (the Lead Pool, the drip cron, replies, bookings). So every tab
+  // re-reads what it shows when it is opened, when the browser tab regains focus, and once a minute while it is visible.
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  const refreshTab = useCallback(
+    (tab: string) => {
+      switch (tab) {
+        case "overview":
+          void refreshDashboard();
+          void fetchLeads();
+          break;
+        case "leads":
+          void fetchLeads();
+          break;
+        case "campaigns":
+          void fetchLeads();
+          void fetchCampaigns();
+          void fetchCampaignQueue();
+          break;
+        case "outreach":
+          void refreshDashboard();
+          void fetchLeads();
+          break;
+        case "payouts":
+          void refreshDashboard();
+          break;
+        default:
+          break; // the Lead Pool panel loads its own data
+      }
+    },
+    // The fetchers only set state, so they are stable in effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [refreshDashboard]
+  );
+
+  useEffect(() => {
+    if (!profile) return; // not loaded yet: the first load covers it
+    refreshTab(activeTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") refreshTab(activeTabRef.current);
+    };
+    const timer = setInterval(refreshIfVisible, 60_000);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    window.addEventListener("focus", refreshIfVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+      window.removeEventListener("focus", refreshIfVisible);
+    };
+  }, [refreshTab]);
+
   function handleCopyReferralLink() {
     const link = `${SITE_URL}/contact?ref=${profile?.referral_code || ""}`;
     navigator.clipboard.writeText(link);
@@ -628,6 +712,34 @@ export default function RepDashboardPage() {
         setSelectedLeadIds((prev) => prev.filter((id) => id !== leadId));
       }
     } catch {}
+  }
+
+  async function handleWriteWithAI(emailArg?: string) {
+    const email = (emailArg ?? recipientEmail).trim();
+    if (!email) {
+      setAiResult({ error: "Enter the prospect's email first." });
+      return;
+    }
+    setAiBusy(true);
+    setAiResult(null);
+    try {
+      const res = await fetch("/api/rep/pool/compose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setAiResult({ error: data.error || "The AI could not write this email." });
+        return;
+      }
+      replyDraft.current = { subject: data.subject, message: data.body }; // keep it: the template effect must not overwrite it
+      setEmailSubject(data.subject);
+      setEmailMessage(data.body);
+      if (data.name && !recipientName.trim()) setRecipientName(data.name);
+      if (data.company && !companyName.trim()) setCompanyName(data.company);
+      setAiResult({ general: data.general, usedFacts: data.usedFacts, blocked: data.sendBlocked });
+    } catch {
+      setAiResult({ error: "Network error. Please try again." });
+    } finally {
+      setAiBusy(false);
+    }
   }
 
   function handleEmailLeadShortcut(lead: RepLead) {
@@ -1235,6 +1347,15 @@ export default function RepDashboardPage() {
         {/* ===================================================================== */}
         {activeTab === "pool" && profile.onboarding_completed && (
           <RepPoolPanel
+            onLeadsChanged={() => void fetchLeads()}
+            onWriteEmail={(c) => {
+              replyDraft.current = null;
+              setRecipientName(c.name);
+              setRecipientEmail(c.email);
+              setCompanyName(c.company);
+              setActiveTab("outreach");
+              void handleWriteWithAI(c.email);
+            }}
             onUseReply={(r) => {
               replyDraft.current = { subject: "Re: your reply", message: r.message };
               setRecipientName(r.name);
@@ -1514,12 +1635,46 @@ export default function RepDashboardPage() {
                       {t.name} (Built-in)
                     </option>
                   ))}
+                  {repTemplates().map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
                   {customTemplates.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.template_name} (Custom)
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Write with AI: drafts from this contact's verified research. The rep reads and edits before sending. */}
+              <div className="rounded-xl border border-purple/30 bg-purple/5 p-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button type="button" disabled={aiBusy} onClick={() => void handleWriteWithAI()} className="rounded-xl bg-purple px-3.5 py-2 text-xs font-bold text-white hover:brightness-110 disabled:opacity-50 transition">
+                    {aiBusy ? "Writing from the research…" : "Write with AI"}
+                  </button>
+                  <span className="text-[11px] text-slate-400">Uses only verified facts about this company from your Lead Pool. You can edit everything before sending.</span>
+                </div>
+                {aiResult?.error && <p className="mt-2 rounded-lg bg-rose-500/10 p-2 text-[11px] text-rose-300" role="alert">{aiResult.error}</p>}
+                {aiResult && !aiResult.error && (
+                  <div className="mt-2 space-y-1 text-[11px]">
+                    {aiResult.general ? (
+                      <p className="text-amber-300">No verified facts about this company yet, so the AI wrote a general note and claimed nothing about them.</p>
+                    ) : (
+                      <div className="text-emerald-300">
+                        Based on:
+                        <ul className="mt-1 list-disc space-y-0.5 pl-4 text-slate-300">
+                          {(aiResult.usedFacts ?? []).map((f) => (
+                            <li key={f.n}>{f.claim} <a className="text-purple-300 underline" href={f.sourceUrl} target="_blank" rel="noopener noreferrer">source</a></li>
+                          ))}
+                          {(aiResult.usedFacts ?? []).length === 0 && <li>No specific fact was used.</li>}
+                        </ul>
+                      </div>
+                    )}
+                    {aiResult.blocked && <p className="text-amber-300">Note: you can&apos;t send this yet ({aiResult.blocked.replace(/_/g, " ")}). Fix that first, then send.</p>}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

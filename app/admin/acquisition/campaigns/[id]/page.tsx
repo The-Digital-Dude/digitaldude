@@ -34,7 +34,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
         )}
       </Card>
 
-      {editable && <Card title="Campaign content" className="mb-6"><CampaignForm campaignId={c.id} maxDailyLimit={acqEnv().maxDailyLimit} initial={{ name: c.name, daily_limit: c.daily_limit, sender_name: c.sender_name, sender_business: c.sender_business, sender_postal_address: c.sender_postal_address, sender_email: c.sender_email, subject_template: c.subject_template, body_template: c.body_template, followup_enabled: c.followup_enabled, followup_delay_business_days: c.followup_delay_business_days, followup_body_template: c.followup_body_template }} /></Card>}
+      {editable && <Card title="Campaign content" className="mb-6"><CampaignForm campaignId={c.id} maxDailyLimit={acqEnv().maxDailyLimit} initial={{ name: c.name, daily_limit: c.daily_limit, sender_name: c.sender_name, sender_business: c.sender_business, sender_postal_address: c.sender_postal_address, sender_email: c.sender_email, subject_template: c.subject_template, body_template: c.body_template, followup_enabled: c.followup_enabled, followup_delay_business_days: c.followup_delay_business_days, followup_body_template: c.followup_body_template, ai_compose: c.ai_compose }} /></Card>}
 
       {c.status === "draft" && (
         <Card title="Add recipients" className="mb-6">
