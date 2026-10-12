@@ -581,3 +581,17 @@ export function AiSettingsCard({ status }: { status: { configured: boolean; sour
     </div>
   );
 }
+
+export function SenderIdentityCard({ business, postalAddress }: { business: string; postalAddress: string }) {
+  const { run, busy, result } = useAction();
+  const [b, setB] = useState(business);
+  const [a, setA] = useState(postalAddress);
+  return (
+    <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); void run("/api/acquisition/settings/identity", "POST", { business: b, postalAddress: a }); }}>
+      <p className="text-sm text-navy/70 sm:col-span-2">Shown in the footer of every rep email, next to the unsubscribe link, so recipients know who is sending. Add a real postal address: US law (CAN-SPAM) requires one and the UK and Australia expect clear sender identification.</p>
+      <div><label className={labelCls}>Business name</label><input className={inputCls} value={b} onChange={(e) => setB(e.target.value)} required /></div>
+      <div><label className={labelCls}>Postal address</label><input className={inputCls} value={a} onChange={(e) => setA(e.target.value)} placeholder="Street, city, postcode, country" /></div>
+      <div className="sm:col-span-2"><button className={btnCls} disabled={busy}>{busy ? "Saving…" : "Save identity"}</button><Feedback result={result} /></div>
+    </form>
+  );
+}

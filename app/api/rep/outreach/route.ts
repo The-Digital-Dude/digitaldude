@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
-import { getAuthenticatedRep } from "@/lib/repAuth";
+import { getAuthenticatedRep, getOnboardedRep } from "@/lib/repAuth";
+import { assertCanEmail, loadSenderIdentity, OutreachBlockedError, repFooterHtml, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
 import { sendBrevoEmail, wrapInEmailTemplate } from "@/lib/emailBrevo";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { SITE_URL } from "@/lib/utils";
@@ -40,9 +41,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const repSession = await getAuthenticatedRep(request);
+  const repSession = await getOnboardedRep(request);
   if (!repSession) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: "Unauthorized, or onboarding is not completed yet." }, { status: 401 });
   }
 
   // Rate limit: 30 cold emails per hour per rep to prevent spam/abuse
@@ -73,6 +74,16 @@ export async function POST(request: Request) {
     const cleanRecipientEmail = String(recipientEmail).trim().toLowerCase();
     if (!EMAIL_REGEX.test(cleanRecipientEmail)) {
       return NextResponse.json({ ok: false, error: "Invalid recipient email address." }, { status: 400 });
+    }
+
+    // One shared do-not-contact list (unsubscribes, bounces, complaints, whole-domain opt-outs).
+    try {
+      await assertCanEmail(supabase, cleanRecipientEmail);
+    } catch (e) {
+      if (e instanceof OutreachBlockedError) {
+        return NextResponse.json({ ok: false, error: e.message, blocked: e.reason }, { status: 403 });
+      }
+      throw e;
     }
 
     // Fetch fresh employee data
@@ -141,6 +152,10 @@ export async function POST(request: Request) {
       : `${senderDisplayName} | The Digital Dude`;
     const replyToEmail = "info@digitaldude.co.uk";
 
+    const identity = await loadSenderIdentity(supabase);
+    const unsubscribeUrl = repUnsubscribeUrl(cleanRecipientEmail);
+    const oneClickUrl = repUnsubscribeApiUrl(cleanRecipientEmail);
+
     const formattedBody = message
       .split("\n\n")
       .map(
@@ -175,6 +190,7 @@ export async function POST(request: Request) {
             <a href="${SITE_URL}" style="color: #7b61ff; text-decoration: none; font-weight: 600;">digitaldude.co.uk</a>
           </p>
         </div>
+        <div style="margin-top: 16px; font-size: 11px; color: #94a3b8; line-height: 1.4;">${repFooterHtml(identity, unsubscribeUrl)}</div>
       </div>
     `;
 
@@ -185,6 +201,7 @@ export async function POST(request: Request) {
       replyTo: { email: replyToEmail, name: "The Digital Dude" },
       subject,
       htmlContent: wrapInEmailTemplate(subject, emailHtml),
+      ...(oneClickUrl ? { headers: { "List-Unsubscribe": `<${oneClickUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}),
     });
 
     if (!emailResult.ok) {

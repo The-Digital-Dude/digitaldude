@@ -3,7 +3,12 @@ import { sendBrevoEmail, wrapInEmailTemplate } from "@/lib/emailBrevo";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { log } from "@/lib/logger";
 
-const REP_SECRET = process.env.REP_AUTH_SECRET || process.env.ADMIN_PASSWORD || "digitaldude_rep_secret_key_2026";
+/** Fails closed: there is deliberately no built-in fallback secret. */
+function repSecret(): string {
+  const s = process.env.REP_AUTH_SECRET || process.env.ADMIN_PASSWORD;
+  if (!s) throw new Error("REP_AUTH_SECRET (or ADMIN_PASSWORD) must be set to sign rep sessions");
+  return s;
+}
 const COOKIE_NAME = "tdd_rep_session";
 
 export interface RepSessionPayload {
@@ -21,7 +26,7 @@ export interface RepSessionPayload {
 export function signRepToken(employeeId: string, email: string): string {
   const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
   const data = `${employeeId}:${email}:${expiresAt}`;
-  const signature = crypto.createHmac("sha256", REP_SECRET).update(data).digest("hex");
+  const signature = crypto.createHmac("sha256", repSecret()).update(data).digest("hex");
   return `${Buffer.from(data).toString("base64url")}.${signature}`;
 }
 
@@ -31,7 +36,7 @@ export function verifyRepToken(token: string): { employeeId: string; email: stri
     if (!dataB64 || !signature) return null;
 
     const data = Buffer.from(dataB64, "base64url").toString("utf-8");
-    const expectedSig = crypto.createHmac("sha256", REP_SECRET).update(data).digest("hex");
+    const expectedSig = crypto.createHmac("sha256", repSecret()).update(data).digest("hex");
 
     if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
       const [employeeId, email, expiresStr] = data.split(":");
@@ -66,6 +71,15 @@ export async function getAuthenticatedRep(request: Request): Promise<RepSessionP
   }
 
   return employee as RepSessionPayload;
+}
+
+/**
+ * Reps may log in while onboarding (they need the portal to finish it), but anything that
+ * contacts prospects requires completed onboarding. Returns null when not allowed.
+ */
+export async function getOnboardedRep(request: Request): Promise<RepSessionPayload | null> {
+  const rep = await getAuthenticatedRep(request);
+  return rep && rep.onboarding_completed === true ? rep : null;
 }
 
 export function generate6DigitOtp(): string {

@@ -10,6 +10,7 @@ function UnsubscribeContent() {
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email") || "";
   const leadIdParam = searchParams.get("lead_id") || "";
+  const tokenParam = searchParams.get("t") || "";
 
   const [email, setEmail] = useState(emailParam);
   const [loading, setLoading] = useState(false);
@@ -21,6 +22,15 @@ function UnsubscribeContent() {
       setEmail(emailParam);
     }
   }, [emailParam]);
+
+  // A signed link carries the recipient inside the token; resolve it so the page can show who is opting out.
+  useEffect(() => {
+    if (!tokenParam) return;
+    fetch(`/api/outreach/unsubscribe?t=${encodeURIComponent(tokenParam)}`)
+      .then((r) => r.json())
+      .then((d) => (d.ok ? setEmail(d.email) : setError("This unsubscribe link is invalid. Please reply to the email to opt out.")))
+      .catch(() => setError("Could not load this unsubscribe link. Please reply to the email to opt out."));
+  }, [tokenParam]);
 
   async function handleConfirmUnsubscribe(e?: React.FormEvent) {
     if (e) e.preventDefault();
@@ -35,10 +45,9 @@ function UnsubscribeContent() {
       const res = await fetch("/api/outreach/unsubscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          lead_id: leadIdParam || null,
-        }),
+        body: JSON.stringify(
+          tokenParam ? { t: tokenParam } : { email: email.trim().toLowerCase(), lead_id: leadIdParam || null }
+        ),
       });
 
       const data = await res.json();

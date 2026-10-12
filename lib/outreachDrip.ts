@@ -2,6 +2,7 @@ import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { sendBrevoEmail } from "@/lib/emailBrevo";
 import { SITE_URL } from "@/lib/utils";
 import { logRepActivity } from "@/lib/repAudit";
+import { assertCanEmail, loadSenderIdentity, OutreachBlockedError, repFooterHtml, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
 
 export interface MergeTagsContext {
   firstName: string;
@@ -56,14 +57,13 @@ export async function enrollLeadInCampaign(params: {
 
   if (!leadData) throw new Error("Lead not found");
 
-  const { data: unsubscribed } = await supabase
-    .from("rep_unsubscribes")
-    .select("id")
-    .eq("email", leadData.email.toLowerCase())
-    .single();
-
-  if (unsubscribed) {
-    throw new Error(`Lead (${leadData.email}) is on the global Do-Not-Contact / Unsubscribed list.`);
+  try {
+    await assertCanEmail(supabase, leadData.email);
+  } catch (e) {
+    if (e instanceof OutreachBlockedError) {
+      throw new Error(`Lead (${leadData.email}) is on the global Do-Not-Contact / Unsubscribed list.`);
+    }
+    throw e;
   }
 
   // Cancel any prior active enrollments for this lead
@@ -176,6 +176,7 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
   }
 
   const now = new Date().toISOString();
+  const identity = await loadSenderIdentity(supabase);
 
   // Fetch pending jobs whose scheduled_for <= NOW()
   const { data: dueJobs, error } = await supabase
@@ -259,25 +260,25 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
       continue;
     }
 
-    // Check if lead unsubscribed
-    const { data: isUnsub } = await supabase
-      .from("rep_unsubscribes")
-      .select("id")
-      .eq("email", lead.email.toLowerCase())
-      .single();
-
-    if (isUnsub) {
-      await supabase
-        .from("rep_campaign_queue")
-        .update({ status: "cancelled", error_message: "Lead unsubscribed" })
-        .eq("id", job.id);
-      continue;
+    // Shared do-not-contact gate (suppression list incl. domains + legacy unsubscribes). Fails closed.
+    try {
+      await assertCanEmail(supabase, lead.email);
+    } catch (e) {
+      if (e instanceof OutreachBlockedError) {
+        await supabase
+          .from("rep_campaign_queue")
+          .update({ status: "cancelled", error_message: "Lead unsubscribed or suppressed" })
+          .eq("id", job.id);
+        continue;
+      }
+      throw e;
     }
 
     try {
       const firstName = (lead.full_name || "").trim().split(/\s+/)[0] || "there";
       const lastName = (lead.full_name || "").trim().split(/\s+/).slice(1).join(" ") || "";
-      const unsubUrl = `${SITE_URL}/outreach/unsubscribe?email=${encodeURIComponent(lead.email)}&lead_id=${lead.id}`;
+      const unsubUrl = repUnsubscribeUrl(lead.email, lead.id);
+      const oneClickUrl = repUnsubscribeApiUrl(lead.email);
 
       const repDisplayName = (rep.outreach_display_name || "").trim() || "The Digital Dude Partnerships";
       const repSenderEmail = (rep.assigned_outreach_email || "").trim() || "outreach@digitaldude.co.uk";
@@ -313,9 +314,7 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
               <strong>${repDisplayName}</strong> &bull; The Digital Dude<br />
               <a href="${SITE_URL}" style="color: #7c3aed; text-decoration: none;">digitaldude.co.uk</a>
             </p>
-            <p style="margin: 0;">
-              If you would prefer not to receive further commercial communications, you can <a href="${unsubUrl}" style="color: #94a3b8; text-decoration: underline;">unsubscribe instantly here</a>.
-            </p>
+            ${repFooterHtml(identity, unsubUrl)}
           </div>
         </div>
       `;
@@ -328,6 +327,7 @@ export async function processOutreachQueueBatch(batchSize: number = 25) {
         htmlContent: htmlContent,
         sender: { email: repSenderEmail, name: senderName },
         replyTo: { email: replyToEmail, name: "The Digital Dude" },
+        ...(oneClickUrl ? { headers: { "List-Unsubscribe": `<${oneClickUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}),
       });
 
       // Mark queue job as sent

@@ -1,6 +1,6 @@
 import { settingsOverview } from "@/lib/acquisition/queries";
 import { Badge, Card, Empty, PageHeader, StatusBadge, fmtDate } from "@/components/acquisition/ui";
-import { AiSettingsCard, AutoResearchToggle, Checklist, PauseToggle, SuppressionForm } from "@/components/acquisition/forms";
+import { AiSettingsCard, AutoResearchToggle, SenderIdentityCard, Checklist, PauseToggle, SuppressionForm } from "@/components/acquisition/forms";
 
 export default async function SettingsPage() {
   const s = await settingsOverview();
@@ -12,6 +12,8 @@ export default async function SettingsPage() {
         <p className="mb-3 text-sm text-navy/70">Sending is currently <strong>{s.sendingPaused ? "PAUSED" : "ENABLED"}</strong>. The pause is checked inside the database transaction of every send, so it takes effect on the very next attempt. Daily limit ceiling: {s.maxDailyLimit} (ACQ_MAX_DAILY_LIMIT).</p>
         <PauseToggle paused={s.sendingPaused} />
       </Card>
+
+      <Card title="Sender identity (rep email footer)" className="mb-6"><SenderIdentityCard business={s.identity.business} postalAddress={s.identity.postalAddress} /></Card>
 
       <Card title="AI provider (API key)" className="mb-6"><AiSettingsCard status={s.ai} /></Card>
 

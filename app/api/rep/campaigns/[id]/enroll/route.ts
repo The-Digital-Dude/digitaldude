@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
-import { getAuthenticatedRep } from "@/lib/repAuth";
+import { getOnboardedRep } from "@/lib/repAuth";
 import { enrollLeadInCampaign } from "@/lib/outreachDrip";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const rep = await getAuthenticatedRep(request);
+  const rep = await getOnboardedRep(request);
   if (!rep) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }

@@ -14,6 +14,8 @@ export interface SendBrevoEmailParams {
   senderEmail?: string;
   sender?: EmailRecipient;
   replyTo?: EmailRecipient;
+  /** Extra message headers, e.g. List-Unsubscribe. */
+  headers?: Record<string, string>;
 }
 
 const DEFAULT_SENDER_NAME = "The Digital Dude";
@@ -46,6 +48,9 @@ export async function sendBrevoEmail(params: SendBrevoEmailParams): Promise<{
 
       if (params.replyTo) {
         payload.replyTo = params.replyTo;
+      }
+      if (params.headers && Object.keys(params.headers).length > 0) {
+        payload.headers = params.headers;
       }
 
       const res = await fetch("https://api.brevo.com/v3/smtp/email", {

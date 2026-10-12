@@ -1,5 +1,6 @@
 import { getDb, must } from "./db";
 import { aiStatus } from "./ai-config";
+import { loadSenderIdentity } from "@/lib/outreachGate";
 import { acqEnv, brevoSenderEmail, sendAllowlist } from "./env";
 
 /* Server-only read models for the dashboard pages. */
@@ -132,6 +133,7 @@ export async function settingsOverview() {
     sendingPaused: must(paused, "settings")?.value !== false,
     autoResearchEnabled: must(autoFlag, "settings")?.value === true,
     ai: await aiStatus(db),
+    identity: await loadSenderIdentity(db),
     config: {
       "Supabase (service role)": !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
       "Unsubscribe signing secret": (process.env.ACQ_UNSUBSCRIBE_SECRET ?? "").length >= 32,
