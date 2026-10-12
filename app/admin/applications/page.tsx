@@ -66,6 +66,8 @@ export interface Application {
   scorecard?: Scorecard;
   task_submission_url?: string;
   task_deadline?: string | null;
+  interview_at?: string | null;
+  interview_meeting_link?: string | null;
   bkash_number?: string;
   bkash_payment_status?: string;
   bkash_payment_amount?: number;
@@ -495,13 +497,24 @@ export default function AdminApplicationsPage() {
       });
       const data = await res.json();
       if (data.ok && data.meetUrl) {
+        // Put the schedule in the editable email body too (the link itself is appended server-side).
+        const whenText = new Date(modalState.interviewDate).toLocaleString(undefined, {
+          dateStyle: "full",
+          timeStyle: "short",
+        });
+        const withSchedule = (message: string) =>
+          message.includes(whenText) ? message : `${message}\n\nInterview time: ${whenText}`;
         if (isInline) {
           setInlineStage((prev) =>
-            prev ? { ...prev, meetingLink: data.meetUrl } : null
+            prev
+              ? { ...prev, meetingLink: data.meetUrl, message: withSchedule(prev.message) }
+              : null
           );
         } else {
           setPendingStatusModal((prev) =>
-            prev ? { ...prev, meetingLink: data.meetUrl } : null
+            prev
+              ? { ...prev, meetingLink: data.meetUrl, message: withSchedule(prev.message) }
+              : null
           );
         }
       } else {
@@ -526,6 +539,10 @@ export default function AdminApplicationsPage() {
         email_message: pendingStatusModal.message,
         interview_booking_url: pendingStatusModal.bookingUrl || undefined,
         meeting_link: pendingStatusModal.meetingLink || undefined,
+        interview_at:
+          pendingStatusModal.newStatus === "interview" && pendingStatusModal.interviewDate
+            ? new Date(pendingStatusModal.interviewDate).toISOString()
+            : undefined,
       };
 
       if (pendingStatusModal.newStatus === "shortlisted" && pendingStatusModal.deadline) {
@@ -572,6 +589,10 @@ export default function AdminApplicationsPage() {
         email_message: inlineStage.message,
         interview_booking_url: inlineStage.bookingUrl || undefined,
         meeting_link: inlineStage.meetingLink || undefined,
+        interview_at:
+          inlineStage.targetStatus === "interview" && inlineStage.interviewDate
+            ? new Date(inlineStage.interviewDate).toISOString()
+            : undefined,
       };
 
       if (inlineStage.targetStatus === "shortlisted" && inlineStage.deadline) {
@@ -1211,6 +1232,32 @@ export default function AdminApplicationsPage() {
                   );
                 })}
               </div>
+
+              {(selected.interview_at || selected.interview_meeting_link) && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 space-y-1.5">
+                  <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                    <Video size={13} className="text-blue-600" /> Scheduled Interview
+                  </span>
+                  {selected.interview_at && (
+                    <p className="text-xs text-navy">
+                      {new Date(selected.interview_at).toLocaleString(undefined, {
+                        dateStyle: "full",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  )}
+                  {selected.interview_meeting_link && (
+                    <a
+                      href={selected.interview_meeting_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-xs font-mono text-blue-700 underline break-all"
+                    >
+                      {selected.interview_meeting_link}
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* Inline Interactive Stage Transition Box */}
               {inlineStage && (

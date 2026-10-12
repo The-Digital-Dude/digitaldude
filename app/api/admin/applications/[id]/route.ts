@@ -62,6 +62,7 @@ export async function PUT(
       email_message,
       interview_booking_url,
       meeting_link,
+      interview_at,
     } = body;
 
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -70,6 +71,8 @@ export async function PUT(
     if (scorecard !== undefined) updateData.scorecard = scorecard;
     if (task_submission_url !== undefined) updateData.task_submission_url = task_submission_url;
     if (task_deadline !== undefined) updateData.task_deadline = task_deadline;
+    if (interview_at !== undefined) updateData.interview_at = interview_at;
+    if (meeting_link !== undefined) updateData.interview_meeting_link = meeting_link;
     if (bkash_number !== undefined) updateData.bkash_number = bkash_number;
     if (bkash_payment_status !== undefined) updateData.bkash_payment_status = bkash_payment_status;
     if (bkash_payment_amount !== undefined) updateData.bkash_payment_amount = bkash_payment_amount;
@@ -89,6 +92,8 @@ export async function PUT(
       if (error.message.includes("internal_notes")) delete sanitizedUpdate.internal_notes;
       if (error.message.includes("task_submission_url")) delete sanitizedUpdate.task_submission_url;
       if (error.message.includes("task_deadline")) delete sanitizedUpdate.task_deadline;
+      if (error.message.includes("interview_at")) delete sanitizedUpdate.interview_at;
+      if (error.message.includes("interview_meeting_link")) delete sanitizedUpdate.interview_meeting_link;
       if (error.message.includes("bkash_number")) delete sanitizedUpdate.bkash_number;
       if (error.message.includes("bkash_payment_status")) delete sanitizedUpdate.bkash_payment_status;
       if (error.message.includes("bkash_payment_amount")) delete sanitizedUpdate.bkash_payment_amount;

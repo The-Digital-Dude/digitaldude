@@ -222,6 +222,10 @@ export async function runResearch(companyId: string, deps?: Partial<ResearchDeps
     "update company"
   );
 
+  // Auto-assignment rules need the fit score, so they run once research has finished (best effort).
+  const rule = await db.rpc("acq_apply_assignment_rules", { p_company_id: companyId });
+  if (rule.error) console.error(JSON.stringify({ level: "warn", message: "apply assignment rules failed", error: rule.error.message }));
+
   return { score: result.score, band: result.band, verified: verified.length, rejected: rejected.length };
 }
 

@@ -9,7 +9,9 @@ import path from "node:path";
  */
 export async function createDb() {
   const db = new PGlite();
-  for (const file of ["0022_acquisition_system.sql", "0023_acquisition_autoresearch.sql", "0026_markets_countries_dedupe.sql"]) {
+  // Minimal stand-in for the existing employees table (later migrations reference it).
+  await db.exec(`create table public.employees (id uuid primary key default gen_random_uuid(), full_name text, email text, status text not null default 'active', onboarding_completed boolean default false)`);
+  for (const file of ["0022_acquisition_system.sql", "0023_acquisition_autoresearch.sql", "0026_markets_countries_dedupe.sql", "0027_pool_assignment.sql"]) {
     await db.exec(readFileSync(path.resolve(__dirname, "../../supabase/migrations", file), "utf8"));
   }
   return db;

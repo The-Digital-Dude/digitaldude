@@ -1,4 +1,5 @@
-import { listCountryRules, listMarkets } from "@/lib/acquisition/queries";
+import { listAssignmentRules, listCountryRules, listMarkets, listRepMarkets, listRepsForPool } from "@/lib/acquisition/queries";
+import { RepAccessCard, RulesCard } from "@/components/acquisition/pool";
 import { Badge, Card, Empty, PageHeader } from "@/components/acquisition/ui";
 import { CountryRuleForm, CountryToggle, MarketForm, MarketToggle } from "@/components/acquisition/forms";
 
@@ -6,7 +7,7 @@ interface Market { id: string; name: string; industry: string; country: string; 
 interface Rule { country: string; name: string; email_allowed: boolean; requires_postal_address: boolean; notes: string }
 
 export default async function MarketsPage() {
-  const [markets, rules] = await Promise.all([listMarkets() as Promise<Market[]>, listCountryRules() as Promise<Rule[]>]);
+  const [markets, rules, reps, grants, assignRules] = await Promise.all([listMarkets() as Promise<Market[]>, listCountryRules() as Promise<Rule[]>, listRepsForPool(), listRepMarkets(), listAssignmentRules()]);
   const allowed = new Map(rules.map((r) => [r.country, r.email_allowed]));
   return (
     <>
@@ -31,6 +32,14 @@ export default async function MarketsPage() {
           </div>
         )}
         <details className="mt-5"><summary className="cursor-pointer text-sm font-semibold text-purple">Add a market</summary><div className="mt-3"><MarketForm /></div></details>
+      </Card>
+
+      <Card title="Rep access to markets" className="mb-6">
+        <RepAccessCard reps={reps as never} markets={markets} grants={grants as never} />
+      </Card>
+
+      <Card title="Auto-assignment rules" className="mb-6">
+        <RulesCard reps={reps as never} markets={markets} rules={assignRules as never} />
       </Card>
 
       <Card title="Country email rules">

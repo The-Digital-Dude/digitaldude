@@ -45,6 +45,21 @@ export async function listMarkets() {
   return must(await db.from("acq_markets").select("*").order("created_at", { ascending: true }), "markets");
 }
 
+export async function listRepsForPool() {
+  const db = getDb();
+  return must(await db.from("employees").select("id,full_name,email,status,onboarding_completed").neq("status", "offboarded").order("full_name"), "reps");
+}
+
+export async function listRepMarkets() {
+  const db = getDb();
+  return must(await db.from("acq_rep_markets").select("employee_id,market_id,claim_cap"), "rep markets");
+}
+
+export async function listAssignmentRules() {
+  const db = getDb();
+  return must(await db.from("acq_assignment_rules").select("*").order("priority").order("created_at"), "assignment rules");
+}
+
 export async function listCountryRules() {
   const db = getDb();
   return must(await db.from("acq_country_rules").select("*").order("country"), "country rules");

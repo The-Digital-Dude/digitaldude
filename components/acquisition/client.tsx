@@ -13,7 +13,7 @@ export interface ApiResult {
 
 export async function api(url: string, method: string, body?: unknown): Promise<ApiResult> {
   try {
-    const res = await fetch(url, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) });
+    const res = await fetch(url, { method, headers: { "content-type": "application/json" }, body: method === "GET" ? undefined : JSON.stringify(body ?? {}) });
     const data = (await res.json().catch(() => ({}))) as ApiResult;
     return res.ok ? { ...data, ok: data.ok !== false } : { ...data, ok: false, error: data.error ?? `Request failed (${res.status})` };
   } catch {

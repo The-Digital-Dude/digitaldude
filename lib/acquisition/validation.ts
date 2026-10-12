@@ -163,3 +163,32 @@ export const duplicateBody = z.discriminatedUnion("action", [
   z.object({ action: z.literal("merge"), keeperId: z.string().uuid() }),
   z.object({ action: z.literal("dismiss") }),
 ]);
+
+const ids = z.array(z.string().uuid()).min(1).max(500);
+const POOL = ["unassigned", "assigned", "needs_contact", "contacted", "replied", "meeting", "won", "lost", "dead"] as const;
+
+export const poolBulkBody = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("assign"), companyIds: ids, employeeId: z.string().uuid().nullable() }),
+  z.object({ action: z.literal("set_status"), companyIds: ids, poolStatus: z.enum(POOL) }),
+  z.object({ action: z.literal("set_market"), companyIds: ids, marketId: z.string().uuid().nullable() }),
+  z.object({ action: z.literal("archive"), companyIds: ids }),
+  z.object({ action: z.literal("research"), companyIds: ids }),
+  z.object({ action: z.literal("apply_rules"), companyIds: ids }),
+]);
+
+export const assignmentRuleInput = z
+  .object({
+    employeeId: z.string().uuid(),
+    marketId: z.string().uuid().nullable().optional(),
+    country: z.preprocess((v) => (typeof v === "string" ? (v.trim() === "" ? null : v.trim().toUpperCase()) : v), z.string().regex(/^[A-Z]{2}$/).nullable().optional()),
+    minFitScore: z.number().int().min(0).max(100).nullable().optional(),
+    priority: z.number().int().min(0).max(1000).default(100),
+  })
+  .refine((r) => r.marketId || r.country || r.minFitScore !== null && r.minFitScore !== undefined, "A rule needs at least one of: market, country, minimum score");
+
+export const repMarketBody = z.object({
+  employeeId: z.string().uuid(),
+  marketId: z.string().uuid(),
+  claimCap: z.number().int().min(0).max(1000).default(25),
+});
+export const repMarketDelete = z.object({ employeeId: z.string().uuid(), marketId: z.string().uuid() });
