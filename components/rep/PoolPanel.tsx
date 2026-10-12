@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Loader2, Search, ShieldCheck, Undo2 } from "lucide-react";
+import { ExternalLink, Loader2, Search, ShieldCheck, Sparkles, Undo2 } from "lucide-react";
+import { btn, btnGhost, call, card, input, Msg, type BasisDraft } from "./poolShared";
+import { NeedsBasisPanel } from "./NeedsBasis";
 
 interface Summary { held: number; cap: number; markets: { id: string; name: string; country: string; claimCap: number }[] }
 interface Company {
@@ -21,30 +23,12 @@ interface Detail {
 
 const STATUSES = ["assigned", "needs_contact", "contacted", "replied", "meeting", "won", "lost", "dead"];
 const label = (s: string) => s.replace(/_/g, " ");
-const card = "rounded-2xl border border-white/[0.08] bg-[#131B2E] p-4";
-const input = "w-full rounded-xl bg-[#0B1120] border border-white/[0.08] px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none focus:border-purple focus:ring-2 focus:ring-purple/20";
-const btn = "rounded-xl bg-purple px-3.5 py-2 text-xs font-bold text-white hover:brightness-110 disabled:opacity-50 transition";
-const btnGhost = "rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 disabled:opacity-50 transition";
-
-async function call(url: string, method: string, body?: unknown) {
-  try {
-    const res = await fetch(url, { method, headers: { "content-type": "application/json" }, body: method === "GET" ? undefined : JSON.stringify(body ?? {}) });
-    const data = await res.json().catch(() => ({}));
-    return { ok: res.ok && data.ok !== false, ...data } as { ok: boolean; error?: string; issues?: { message: string }[]; [k: string]: unknown };
-  } catch {
-    return { ok: false, error: "Network error" } as { ok: boolean; error?: string; [k: string]: unknown };
-  }
-}
-
-function Msg({ error, note }: { error?: string | null; note?: string | null }) {
-  if (error) return <p className="mt-2 rounded-lg bg-rose-500/10 p-2.5 text-[11px] text-rose-300" role="alert">{error}</p>;
-  if (note) return <p className="mt-2 rounded-lg bg-emerald-500/10 p-2.5 text-[11px] text-emerald-300" role="status">{note}</p>;
-  return null;
-}
-
 /** "Lead pool" tab: claim companies from your markets, find and record contacts, then email through the normal tools. */
 export function RepPoolPanel() {
-  const [view, setView] = useState<"mine" | "available">("mine");
+  const [view, setView] = useState<"mine" | "available" | "basis">("mine");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +43,22 @@ export function RepPoolPanel() {
     else setMsg({ error: r.error ?? "Could not load the lead pool" });
     setLoading(false);
   }, [view]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (view !== "basis") void load(); }, [load, view]);
+
+  const toggleSel = (id: string) => setSelected((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  async function bulk(body: Record<string, unknown>, confirmText?: string) {
+    if (confirmText && !window.confirm(confirmText)) return;
+    setBulkBusy(true);
+    const r = await call("/api/rep/pool/bulk", "POST", { ...body, companyIds: [...selected] });
+    setBulkBusy(false);
+    if (!r.ok) { setMsg({ error: r.error ?? "Bulk action failed" }); return; }
+    const note = body.action === "find_contacts"
+      ? `Searched ${r.searched as number} compan${r.searched === 1 ? "y" : "ies"}, ${r.suggestions as number} new suggestion${r.suggestions === 1 ? "" : "s"}${(r.skipped as number) > 0 ? `, ${r.skipped as number} skipped (already searched or no website)` : ""}.${r.stopped ? ` Stopped: ${r.stopped as string}` : ""}`
+      : `${r.changed as number} updated.`;
+    setMsg({ note });
+    setSelected(new Set());
+    void load();
+  }
 
   async function claim(id: string) {
     setBusyId(id);
@@ -72,17 +71,36 @@ export function RepPoolPanel() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1.5">
-          {(["mine", "available"] as const).map((v) => (
-            <button key={v} onClick={() => { setView(v); setOpenId(null); }} className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${view === v ? "bg-purple text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>
-              {v === "mine" ? "My companies" : "Available to claim"}
+          {(["mine", "available", "basis"] as const).map((v) => (
+            <button key={v} onClick={() => { setView(v); setOpenId(null); setSelected(new Set()); setMsg(null); }} className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${view === v ? "bg-purple text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>
+              {v === "mine" ? "My companies" : v === "available" ? "Available to claim" : "Needs lawful basis"}
             </button>
           ))}
         </div>
-        {summary && <p className="text-[11px] text-slate-400">Open companies: <strong className="text-white">{summary.held}</strong> / {summary.cap || 0}{summary.markets.length > 0 && <> · Markets: {summary.markets.map((m) => m.name).join(", ")}</>}</p>}
+        {summary && view !== "basis" && <p className="text-[11px] text-slate-400">Open companies: <strong className="text-white">{summary.held}</strong> / {summary.cap || 0}{summary.markets.length > 0 && <> · Markets: {summary.markets.map((m) => m.name).join(", ")}</>}</p>}
       </div>
       <Msg error={msg?.error} note={msg?.note} />
 
-      {loading ? <div className="flex items-center gap-2 py-10 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div> : companies.length === 0 ? (
+      {view === "basis" ? <NeedsBasisPanel onChanged={load} /> : null}
+
+      {view === "mine" && companies.length > 0 && (
+        <div className={`${card} flex flex-wrap items-center gap-2`}>
+          <label className="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" checked={selected.size === companies.length} onChange={(e) => setSelected(e.target.checked ? new Set(companies.map((c) => c.id)) : new Set())} /> {selected.size > 0 ? `${selected.size} selected` : "Select all"}</label>
+          {selected.size > 0 && (
+            <>
+              <button className={btn} disabled={bulkBusy || selected.size > 10} title={selected.size > 10 ? "Select 10 or fewer for a contact search" : undefined} onClick={() => void bulk({ action: "find_contacts" })}>{bulkBusy ? "Working…" : "Find contacts (max 10)"}</button>
+              <select className="rounded-xl bg-[#0B1120] border border-white/[0.08] px-2 py-2 text-xs text-white" value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
+                <option value="">Set status…</option>
+                {STATUSES.map((st) => <option key={st} value={st}>{label(st)}</option>)}
+              </select>
+              <button className={btnGhost} disabled={bulkBusy || !bulkStatus} onClick={() => void bulk({ action: "set_status", poolStatus: bulkStatus })}>Apply</button>
+              <button className={btnGhost} disabled={bulkBusy} onClick={() => void bulk({ action: "release" }, `Return ${selected.size} compan${selected.size === 1 ? "y" : "ies"} to the pool? Someone else may claim them.`)}><Undo2 size={12} className="mr-1 inline" />Release</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {view === "basis" ? null : loading ? <div className="flex items-center gap-2 py-10 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div> : companies.length === 0 ? (
         <div className={`${card} text-center text-xs text-slate-400`}>
           {view === "mine" ? "You don't own any companies yet. Claim some from “Available to claim”, or ask the admin to assign you some." : summary && summary.markets.length === 0 ? "You haven't been given access to any markets yet. Ask the admin." : "Nothing is available to claim in your markets right now."}
         </div>
@@ -91,7 +109,8 @@ export function RepPoolPanel() {
           {companies.map((c) => (
             <li key={c.id} className={card}>
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                {view === "mine" && <input type="checkbox" className="mt-1" checked={selected.has(c.id)} onChange={() => toggleSel(c.id)} aria-label={`Select ${c.name}`} />}
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-white">{c.name}{c.possible_duplicate_of && <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">possible duplicate</span>}</p>
                   <p className="text-[11px] text-slate-400">{c.domain ?? "no website"} · {[c.acq_markets?.name, c.region, c.country].filter(Boolean).join(" · ")}{c.fit_score !== null && <> · fit {c.fit_score}</>}</p>
                 </div>
@@ -124,6 +143,8 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
   const emptyForm = { name: "", role: "", email: "", sourceUrl: "", consentType: "inferred_publication", legalBasis: "", evidenceUrl: "", evidenceNotes: "" };
   const [form, setForm] = useState(emptyForm);
   const [consentFor, setConsentFor] = useState<string | null>(null);
+  const [aiNote, setAiNote] = useState<{ verified: boolean; text: string } | null>(null);
+  const [drafting, setDrafting] = useState(false);
 
   const reload = useCallback(async () => {
     const r = await call(`/api/rep/pool/${id}`, "GET");
@@ -139,6 +160,19 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
     if (r.ok) { setRes({ note: (r.blocked as string | null) ? `${success} ${r.blocked}` : success }); await reload(); onChanged(); }
     else setRes({ error: [r.error, ...(r.issues ?? []).map((i) => i.message)].filter(Boolean).join(" · ") });
     return r;
+  }
+
+  async function draftFor(contactId: string) {
+    setDrafting(true);
+    setAiNote(null);
+    const r = await call("/api/rep/pool/basis/draft", "POST", { contactIds: [contactId] });
+    setDrafting(false);
+    const d = (r.drafts as BasisDraft[] | undefined)?.[0];
+    if (!r.ok || !d) { setAiNote({ verified: false, text: r.error ?? "Could not draft." }); return; }
+    if (d.verified) {
+      setForm((f) => ({ ...f, consentType: d.consentType, legalBasis: d.legalBasis, evidenceUrl: d.evidenceUrl ?? "", evidenceNotes: d.evidenceNotes }));
+      setAiNote({ verified: true, text: "Address found on the page below. This is a draft: read it, then click Record basis." });
+    } else setAiNote({ verified: false, text: d.warning ?? "Nothing could be verified." });
   }
 
   const basisFields = (f: typeof form, set: (v: typeof form) => void) => (
@@ -225,13 +259,17 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
             {c.status !== "eligible" && c.status !== "suppressed" && (
               consentFor === c.id ? (
                 <div className="mt-3 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button className={btnGhost} disabled={busy || drafting} onClick={() => void draftFor(c.id)}><Sparkles size={12} className="mr-1 inline" />{drafting ? "Checking their website…" : "Draft with AI"}</button>
+                    {aiNote && <span className={`text-[11px] ${aiNote.verified ? "text-emerald-300" : "text-amber-300"}`}>{aiNote.text}</span>}
+                  </div>
                   {basisFields(form, setForm)}
                   <div className="flex gap-2">
                     <button className={btn} disabled={busy} onClick={() => void act(() => call(`/api/rep/pool/contacts/${c.id}/consent`, "POST", { consentType: form.consentType, legalBasis: form.legalBasis, evidenceUrl: form.evidenceUrl, evidenceNotes: form.evidenceNotes }), "Basis recorded.").then((r) => { if (r.ok) { setConsentFor(null); setForm(emptyForm); } })}>Record basis</button>
                     <button className={btnGhost} onClick={() => setConsentFor(null)}>Cancel</button>
                   </div>
                 </div>
-              ) : <button className={`${btnGhost} mt-2`} onClick={() => { setConsentFor(c.id); setForm(emptyForm); }}>Record lawful basis</button>
+              ) : <button className={`${btnGhost} mt-2`} onClick={() => { setConsentFor(c.id); setForm(emptyForm); setAiNote(null); }}>Record lawful basis</button>
             )}
             {c.status === "eligible" && <p className="mt-2 text-slate-500">Find them in your Leads CRM (source “Lead pool”) to send an email or enrol them in a campaign.</p>}
           </li>))}

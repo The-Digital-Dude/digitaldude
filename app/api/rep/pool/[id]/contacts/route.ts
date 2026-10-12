@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { basisSchema, bridgeToRepLead, cleanLinkedinUrl, ownedCompany, recordRepConsent, repActor, repJsonError, repRoute } from "@/lib/repPool";
+import { basisSchema, cleanLinkedinUrl, ensureRepLead, ownedCompany, recordRepConsent, repActor, repJsonError, repRoute } from "@/lib/repPool";
 import { logAudit } from "@/lib/acquisition/audit";
 import { isValidEmail, normalizeEmail } from "@/lib/acquisition/normalize";
 import { UNIQUE_VIOLATION } from "@/lib/acquisition/db";
@@ -51,15 +51,15 @@ export const POST = repRoute<{ id: string }>("add pool contact", async (request,
   }
   await logAudit(db, "rep.contact_added", "contact", ins.data.id, { companyId: company.id }, repActor(rep));
 
+  // The contact is saved in the rep's Leads CRM straight away; sending stays blocked until the basis checks out.
   const result = await recordRepConsent(db, rep, ins.data.id, { ...b.basis, evidenceUrl: b.basis.evidenceUrl ?? b.sourceUrl ?? null });
-  let leadId: string | null = null;
-  if (result.eligible) leadId = await bridgeToRepLead(db, rep, ins.data, company.name);
+  const { leadId, readyToEmail } = await ensureRepLead(db, rep, ins.data, company.name);
 
   // Why this contact can't be emailed yet, in plain words.
   let blocked: string | null = result.message;
-  if (result.eligible && !leadId) {
+  if (result.eligible && !readyToEmail) {
     const rule = await db.rpc("acq_country_allowed", { p_country: company.country ?? "" });
     blocked = rule.data === true ? "The contact was saved but is not ready to email yet." : `Outreach to ${company.country ?? "this country"} is not enabled yet. Ask the admin to enable it.`;
   }
-  return NextResponse.json({ ok: true, contactId: ins.data.id, eligible: result.eligible, readyToEmail: !!leadId, leadId, blocked }, { status: 201 });
+  return NextResponse.json({ ok: true, contactId: ins.data.id, eligible: result.eligible, readyToEmail, leadId, blocked }, { status: 201 });
 });

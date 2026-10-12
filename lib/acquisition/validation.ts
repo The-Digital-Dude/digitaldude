@@ -174,6 +174,7 @@ export const poolBulkBody = z.discriminatedUnion("action", [
   z.object({ action: z.literal("archive"), companyIds: ids }),
   z.object({ action: z.literal("research"), companyIds: ids }),
   z.object({ action: z.literal("apply_rules"), companyIds: ids }),
+  z.object({ action: z.literal("find_contacts"), companyIds: ids }),
 ]);
 
 export const assignmentRuleInput = z

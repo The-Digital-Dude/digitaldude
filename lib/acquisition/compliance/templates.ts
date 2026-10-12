@@ -49,7 +49,7 @@ export function buildFooter(s: SenderIdentity, unsubscribeUrl: string): string {
     s.sender_postal_address,
     s.sender_email,
     "",
-    `You are receiving this because of your role at a property management business. If you'd rather not hear from us, unsubscribe here: ${unsubscribeUrl}`,
+    `You are receiving this because we believe our work may be relevant to your business. If you'd rather not hear from us, unsubscribe here: ${unsubscribeUrl}`,
   ].join("\n");
 }
 
@@ -115,7 +115,7 @@ export const STARTER_TEMPLATE = {
 
 {{observation}}
 
-I run The Digital Dude, a small web and software studio. We build custom tools that cut repetitive admin for property management teams, such as automated owner reporting, maintenance request triage and tenant onboarding workflows.
+I run The Digital Dude, a small web and software studio. We build custom tools that cut repetitive admin and automate manual workflows, such as reporting, request handling and customer onboarding.
 
 If that could be relevant to {{company_name}}, I'd be glad to share a couple of examples. If not, no problem at all.
 

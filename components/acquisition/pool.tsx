@@ -91,6 +91,9 @@ export function PoolTable({ markets }: { markets: Market[] }) {
     } else if (bulk.action === "set_market") {
       body = { ...body, marketId: bulk.marketId || null };
       confirmText = `Change the market (and country/industry) of ${ids.length} companies?`;
+    } else if (bulk.action === "find_contacts") {
+      if (ids.length > 10) { setResult({ ok: false, error: "Select 10 or fewer companies for one contact search (it uses finder credits)." }); return; }
+      confirmText = `Search for contacts at ${ids.length} companies? This uses contact-finder credits.`;
     } else if (bulk.action === "archive") confirmText = `Archive ${ids.length} companies? They leave the pool and are released from their owners (nothing is deleted).`;
     if (confirmText && !window.confirm(confirmText)) return;
     setBusy(true);
@@ -99,7 +102,7 @@ export function PoolTable({ markets }: { markets: Market[] }) {
     setBusy(false);
     setResult(r);
     if (r.ok) {
-      setNote(`${r.changed} compan${r.changed === 1 ? "y" : "ies"} updated.`);
+      setNote(bulk.action === "find_contacts" ? `Searched ${r.searched as number} compan${r.searched === 1 ? "y" : "ies"}: ${r.suggestions as number} new suggestion${r.suggestions === 1 ? "" : "s"}${(r.skipped as number) > 0 ? `, ${r.skipped as number} skipped` : ""}.${r.stopped ? ` Stopped: ${r.stopped as string}` : ""} Review them under Suggestions.` : `${r.changed} compan${r.changed === 1 ? "y" : "ies"} updated.`);
       setSelected(new Set());
       void load();
     }
@@ -136,6 +139,7 @@ export function PoolTable({ markets }: { markets: Market[] }) {
             <option value="set_status">Set pool status</option>
             <option value="set_market">Change market</option>
             <option value="research">Run AI research</option>
+            <option value="find_contacts">Find contacts (max 10)</option>
             <option value="apply_rules">Apply assignment rules</option>
             <option value="archive">Archive</option>
           </select>

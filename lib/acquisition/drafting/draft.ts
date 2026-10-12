@@ -7,7 +7,7 @@ export interface DraftSignal {
   sourceUrl: string;
 }
 
-export const DRAFT_SYSTEM_PROMPT = `You write ONE opening sentence for a short, honest B2B email from a small software studio to a property management business in Australia.
+export const draftSystemPrompt = (target = "business") => `You write ONE opening sentence for a short, honest B2B email from a small software studio to ${target}.
 
 RULES:
 - Use ONLY the verified facts provided. Do not add, infer, exaggerate, or guess anything about the company.
@@ -36,12 +36,12 @@ export function validateObservation(text: string, signals: DraftSignal[]): strin
   return t;
 }
 
-export async function generateObservation(ai: AiProvider | null, companyName: string, signals: DraftSignal[]): Promise<string> {
+export async function generateObservation(ai: AiProvider | null, companyName: string, signals: DraftSignal[], ctx: { industry?: string | null; country?: string | null } = {}): Promise<string> {
   if (!ai || signals.length === 0) return "";
   try {
     const facts = signals.slice(0, 4).map((s, i) => `${i + 1}. ${s.claim} (source excerpt: "${s.evidence}")`).join("\n");
     const raw = await ai.completeJson({
-      system: DRAFT_SYSTEM_PROMPT,
+      system: draftSystemPrompt(ctx.industry ? `a ${ctx.industry.toLowerCase()} business${ctx.country ? ` (country code ${ctx.country})` : ""}` : "a business"),
       user: `Company: ${companyName}\n\n<verified_facts>\n${facts}\n</verified_facts>`,
     });
     return validateObservation(outSchema.parse(extractJson(raw)).observation, signals);

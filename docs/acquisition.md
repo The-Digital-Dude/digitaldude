@@ -171,6 +171,42 @@ All under `/api/acquisition`. Admin routes require the admin session cookie, a s
 `{"events":[{"id","type":"delivered|bounced|complained|replied|unsubscribed","email","providerMessageId?","bounceType?","body?"}]}`.
 Brevo uses its own payloads authenticated by `ACQ_WEBHOOK_SECRET` (bearer header or `?token=`), see `BrevoProvider`; the HMAC format above is the generic fallback used when Brevo isn't configured.
 
+## Replies, follow-ups, alerts and bulk work (migrations 0032-0035)
+
+**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035`.
+Run each file whole. A half-applied file (for example only the last statements of `0029`) breaks the rep portal.
+
+**One contact per company at a time.** A first email to a contact is refused while a colleague at the same company has a
+live conversation: an admin campaign email that was sent, is waiting for its follow-up or got a reply; a rep email in the
+last 30 days; or an active rep drip. Enforced in `acq_reserve_send` and `acq_rep_can_email` through `acq_company_other_active`.
+
+**Follow-ups.** The database decides who is due (`acq_due_followups`): first email delivered, campaign active with
+follow-ups on, N business days (Sydney calendar) elapsed, no real reply, at most one per lead. The worker renders the
+already-approved follow-up template (`scheduleFollowUps`) and creates it atomically (`acq_create_followup`). The send still
+passes `acq_reserve_send` (pause, suppression, consent, country, closed company, no reply, daily cap). A follow-up ends the sequence.
+
+**Replies (Gmail).** Brevo's free outbound webhook does not report replies, so the worker reads the shared reply inbox with
+the read-only Gmail API. Set `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` (scope `gmail.readonly`). Mail from a
+known contact is stored (idempotent on the Gmail message id), classified, stops the sequence and notifies the owning rep and the
+admin. Mail from a rep's own one-off prospect only notifies that rep. Auto-replies and system senders are ignored; nothing else in
+the inbox is stored. Without the three variables this step is skipped.
+
+**Alerts.** Notifications are stored in `acq_notifications` (shown on the admin Overview) and emailed through Brevo to
+`ADMIN_ALERT_EMAIL` (default `info@digitaldude.co.uk`) or to the rep's own address. Reps get one digest per batch of newly
+assigned companies, and a message when one of their contacts replies. The rep drip cron doubles as a watchdog: if the acquisition
+worker has not ticked for 30 minutes, or 3+ jobs failed in 24 hours, the admin is emailed (once per day per problem).
+
+**AI-drafted lawful basis.** "Draft with AI" fetches the page the address was found on and the company's contact/about/team pages
+and fills the form **only when the address is really on a page**; otherwise the form stays empty and says so. It is a draft: the
+rep reads it and clicks Record, and the database re-checks it. The same applies to the bulk table (Needs lawful basis): only
+verified rows are pre-ticked, and nothing is recorded without a tick.
+
+**Leads CRM.** Adding or accepting a pool contact saves it to the rep's Leads CRM immediately (source "Lead pool"). Until a basis is
+recorded it shows "needs lawful basis" and every send path still blocks it.
+
+**Bulk actions.** Rep: select companies in My companies (find contacts, max 10 per click; set status; release), and the Needs lawful
+basis table. Admin: Companies list (find contacts, max 10 per click, plus the existing actions) and the Suggestions page (bulk accept or dismiss).
+
 ## Tests
 
 `npm test` runs 130+ tests. The integration tests boot an in-process Postgres (PGlite), apply the real

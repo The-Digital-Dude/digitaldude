@@ -120,26 +120,57 @@ export async function recordRepConsent(db: Db, rep: RepSessionPayload, contactId
   return { eligible: true, message: null };
 }
 
-/** Once a contact may be emailed by this rep, expose it in their normal Leads CRM so drips and outreach tools work. */
-export async function bridgeToRepLead(
+/**
+ * Puts a pool contact in the rep's Leads CRM straight away (stage "new"), whether or not it can be emailed yet.
+ * Sending is still blocked by the same gate on every path until a lawful basis is recorded, so a lead that is
+ * "needs lawful basis" can be seen and worked but not emailed. Returns whether it can be emailed right now.
+ */
+export async function ensureRepLead(
   db: Db,
   rep: { id: string },
   contact: { id: string; email: string; name: string | null; role: string | null },
   companyName: string
-): Promise<string | null> {
+): Promise<{ leadId: string | null; readyToEmail: boolean }> {
+  let leadId: string | null = null;
+  const { data: existing } = await db.from("rep_leads").select("id").eq("employee_id", rep.id).eq("acq_contact_id", contact.id).maybeSingle();
+  if (existing) leadId = existing.id as string;
+  else {
+    const { data, error } = await db
+      .from("rep_leads")
+      .insert({ employee_id: rep.id, acq_contact_id: contact.id, full_name: contact.name?.trim() || contact.email.split("@")[0], email: contact.email, company_name: companyName, job_title: contact.role, lead_source: "Lead pool", stage: "new" })
+      .select("id")
+      .single();
+    if (error) log("warn", { message: "could not save pool contact as a rep lead", error });
+    else leadId = data.id as string;
+  }
   const can = await db.rpc("acq_rep_can_email", { p_contact_id: contact.id, p_employee: rep.id });
   const row = (Array.isArray(can.data) ? can.data[0] : can.data) as { ok: boolean } | undefined;
-  if (can.error || !row?.ok) return null;
-  const { data: existing } = await db.from("rep_leads").select("id").eq("employee_id", rep.id).eq("acq_contact_id", contact.id).maybeSingle();
-  if (existing) return existing.id as string;
-  const { data, error } = await db
-    .from("rep_leads")
-    .insert({ employee_id: rep.id, acq_contact_id: contact.id, full_name: contact.name?.trim() || contact.email.split("@")[0], email: contact.email, company_name: companyName, job_title: contact.role, lead_source: "Lead pool", stage: "new" })
-    .select("id")
-    .single();
-  if (error) {
-    log("warn", { message: "could not bridge pool contact to rep lead", error });
-    return null;
-  }
-  return data.id as string;
+  return { leadId, readyToEmail: !can.error && !!row?.ok };
+}
+
+export type BasisResult =
+  | { ok: true; eligible: boolean; readyToEmail: boolean; leadId: string | null; blocked: string | null }
+  | { ok: false; status: number; error: string };
+
+/**
+ * One place that records a rep's lawful-basis review for a contact: ownership, blocked/withdrawn contacts,
+ * suppression, evidence for "published address" claims, then the database-checked record. Used by the single
+ * form and by the bulk review table, so both enforce exactly the same rules.
+ */
+export async function recordBasisFor(db: Db, rep: RepSessionPayload, contactId: string, basis: RepBasis): Promise<BasisResult> {
+  const { data: contact } = await db.from("acq_contacts").select("id,email,name,role,source_url,status,company_id, acq_companies(id,name,owner_employee_id,status)").eq("id", contactId).maybeSingle();
+  const company = contact?.acq_companies as unknown as { id: string; name: string; owner_employee_id: string | null; status: string } | null;
+  if (!contact || !company || company.owner_employee_id !== rep.id || company.status === "archived") return { ok: false, status: 404, error: "Contact not found" };
+  if (basis.consentType === "inferred_publication" && !contact.source_url && !basis.evidenceUrl) return { ok: false, status: 422, error: "Inferred consent needs the web page where the address was published" };
+
+  // A rep may never re-enable a contact an admin (or the contact) has shut off.
+  if (contact.status === "blocked" || contact.status === "suppressed") return { ok: false, status: 409, error: "This contact has been blocked. Ask the admin." };
+  const { data: latest } = await db.from("acq_consent_records").select("consent_type").eq("contact_id", contact.id).order("created_at", { ascending: false }).limit(1);
+  if (latest?.[0]?.consent_type === "withdrawn") return { ok: false, status: 409, error: "Consent for this contact was withdrawn. Ask the admin." };
+  const sup = await db.rpc("acq_is_suppressed", { p_email: contact.email });
+  if (sup.data === true) return { ok: false, status: 409, error: "This address is on the do-not-contact list." };
+
+  const result = await recordRepConsent(db, rep, contact.id, { ...basis, evidenceUrl: basis.evidenceUrl ?? contact.source_url ?? null });
+  const lead = await ensureRepLead(db, rep, contact, company.name);
+  return { ok: true, eligible: result.eligible, readyToEmail: lead.readyToEmail, leadId: lead.leadId, blocked: result.message };
 }

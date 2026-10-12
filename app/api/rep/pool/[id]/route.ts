@@ -4,6 +4,7 @@ import { cleanLinkedinUrl, ownedCompany, repActor, repJsonError, repRoute, searc
 import { logAudit } from "@/lib/acquisition/audit";
 import { must } from "@/lib/acquisition/db";
 import { secretStatus } from "@/lib/acquisition/secrets";
+import { log } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,24 @@ export const GET = repRoute<{ id: string }>("company detail", async (_request, {
     db.from("acq_company_notes").select("id,author,note,created_at").eq("company_id", company.id).order("created_at", { ascending: false }).limit(30),
   ]);
 
+  // A failing optional section must not blank the whole page; report which one broke so it can be fixed.
+  const warnings: string[] = [];
+  const part = <T,>(res: { data: T[] | null; error: { message: string } | null }, what: string): T[] => {
+    if (res.error) {
+      warnings.push(`${what}: ${res.error.message}`);
+      log("error", { message: `rep pool company detail: ${what} query failed`, error: res.error });
+      return [];
+    }
+    return res.data ?? [];
+  };
   const rule = await db.from("acq_country_rules").select("email_allowed,requires_postal_address,notes,name").eq("country", company.country ?? "").maybeSingle();
+  let finderEnabled = false;
+  try {
+    finderEnabled = (await secretStatus(db, "hunter")).configured && !!company.domain;
+  } catch (e) {
+    warnings.push(`contact finder: ${e instanceof Error ? e.message : "unavailable"}`);
+    log("error", { message: "rep pool company detail: secret status failed", error: e });
+  }
   return NextResponse.json({
     ok: true,
     company: {
@@ -34,13 +52,14 @@ export const GET = repRoute<{ id: string }>("company detail", async (_request, {
       industry: company.industry, summary: company.summary, potential_opportunity: company.potential_opportunity, decision_maker_role: company.decision_maker_role,
       fit_score: company.fit_score, pool_status: company.pool_status, linkedin_url: company.linkedin_url,
     },
-    research: must(research, "research"),
-    contacts: must(contacts, "contacts"),
-    suggestions: must(suggestions, "suggestions"),
-    notes: must(notes, "notes"),
+    research: part(research, "research"),
+    contacts: part(contacts, "contacts"),
+    suggestions: part(suggestions, "suggestions"),
+    notes: part(notes, "notes"),
     countryRule: rule.data ?? null,
-    finderEnabled: (await secretStatus(db, "hunter")).configured && !!company.domain,
+    finderEnabled,
     helpLinks: searchHelpLinks(company),
+    ...(warnings.length ? { warnings } : {}),
   });
 });
 

@@ -7,8 +7,14 @@ import { must } from "@/lib/acquisition/db";
 import { logAudit } from "@/lib/acquisition/audit";
 import { enqueueJob } from "@/lib/acquisition/queue/enqueue";
 import { UNOWNED_OK } from "@/lib/acquisition/pool";
+import { FIND_MESSAGES, findContactsForCompany } from "@/lib/acquisition/contacts/find";
+import { ContactFinderHttpError } from "@/lib/acquisition/providers/contacts";
+
+/** One bulk "find contacts" click is capped so it cannot drain the contact-finder credits. */
+const MAX_FIND_PER_CLICK = 10;
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /** Bulk actions on selected companies (up to 500). Every action is audited. */
 export const POST = adminRoute("pool bulk action", async (request, { db }) => {
@@ -65,6 +71,31 @@ export const POST = adminRoute("pool bulk action", async (request, { db }) => {
     }
     await logAudit(db, "pool.research_queued", "pool", null, { count: queued });
     return NextResponse.json({ ok: true, changed: queued });
+  }
+
+  if (b.action === "find_contacts") {
+    if (b.companyIds.length > MAX_FIND_PER_CLICK) return jsonError(`Select at most ${MAX_FIND_PER_CLICK} companies for one contact search.`, 422);
+    const summary = { searched: 0, suggestions: 0, skipped: 0, stopped: null as string | null };
+    for (const id of b.companyIds) {
+      try {
+        const r = await findContactsForCompany(db, id, { actor });
+        if (r.status === "ok") {
+          summary.searched++;
+          summary.suggestions += r.saved;
+        } else if (r.status === "cap_reached" || r.status === "not_configured") {
+          summary.stopped = FIND_MESSAGES[r.status];
+          break;
+        } else summary.skipped++;
+      } catch (e) {
+        if (e instanceof ContactFinderHttpError) {
+          summary.stopped = "The contact finder is unavailable right now. Try again later.";
+          break;
+        }
+        throw e;
+      }
+    }
+    await logAudit(db, "pool.find_contacts", "pool", null, { selected: b.companyIds.length, ...summary });
+    return NextResponse.json({ ok: true, changed: summary.suggestions, ...summary });
   }
 
   let assigned = 0;

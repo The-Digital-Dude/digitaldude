@@ -5,6 +5,7 @@ import { enqueueJob } from "../queue/enqueue";
 import { notify } from "../providers/notifications";
 import { logAudit } from "../audit";
 import { normalizeEmail } from "../normalize";
+import { alertAdmin, alertRep } from "../alerts";
 
 const ACTIVE_LEAD = ["draft", "approved", "sent", "follow_up_due"];
 
@@ -24,8 +25,8 @@ export async function stopOutreach(db: Db, contactId: string, status: "replied" 
 }
 
 export async function applyClassification(db: Db, replyId: string, cls: Classification, humanBy?: string) {
-  const reply = must(await db.from("acq_replies").select("id,contact_id,classification").eq("id", replyId).single(), "load reply");
-  const contact = must(await db.from("acq_contacts").select("id,email,name").eq("id", reply.contact_id).single(), "load contact");
+  const reply = must(await db.from("acq_replies").select("id,contact_id,classification,body").eq("id", replyId).single(), "load reply");
+  const contact = must(await db.from("acq_contacts").select("id,email,name,company_id").eq("id", reply.contact_id).single(), "load contact");
 
   const needsHuman = !humanBy && (cls.classification === "interested" || cls.classification === "uncertain");
   must(
@@ -57,6 +58,30 @@ export async function applyClassification(db: Db, replyId: string, cls: Classifi
   }
 
   await logAudit(db, "reply.classified", "reply", replyId, { classification: cls.classification, confidence: cls.confidence, by: humanBy ? "human" : cls.by }, humanBy ?? "system");
+  // A real reply (not an out-of-office or bounce) is announced to the rep who owns the company and moves it on to "replied".
+  if (cls.classification !== "out_of_office" && cls.classification !== "bounce") {
+    const { data: company } = contact.company_id
+      ? await db.from("acq_companies").select("id,name,owner_employee_id").eq("id", contact.company_id).maybeSingle()
+      : { data: null };
+    if (company?.owner_employee_id) {
+      await alertRep(db, company.owner_employee_id, {
+        kind: "reply",
+        title: `${contact.name || contact.email} at ${company.name} replied`,
+        body: (reply.body ?? "").slice(0, 600),
+        dedupeKey: `reply:${replyId}:rep`,
+      });
+      await db.from("acq_companies").update({ pool_status: "replied" }).eq("id", company.id).eq("owner_employee_id", company.owner_employee_id).in("pool_status", ["assigned", "needs_contact", "contacted"]);
+    }
+  }
+  if (!humanBy && (cls.classification === "interested" || cls.classification === "uncertain")) {
+    await alertAdmin(db, {
+      kind: "reply",
+      title: cls.classification === "interested" ? `Positive reply from ${contact.name || contact.email}` : `Reply needs review from ${contact.name || contact.email}`,
+      body: (reply.body ?? "").slice(0, 600),
+      link: "/admin/acquisition/inbox",
+      dedupeKey: `reply:${replyId}:admin:${cls.classification}`,
+    });
+  }
   if (!humanBy && (cls.classification === "interested" || cls.classification === "uncertain") && reply.classification !== cls.classification) {
     await notify(`${cls.classification === "interested" ? "Positive reply" : "Reply needs review"} from ${contact.name || contact.email} — open the inbox.`);
   }

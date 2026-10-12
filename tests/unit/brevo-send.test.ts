@@ -186,13 +186,25 @@ describe("sendMessage", () => {
     expect(provider.send).not.toHaveBeenCalled();
   });
 
-  it("does nothing without a configured sender or for follow-ups", async () => {
+  it("does nothing without a configured sender", async () => {
     env();
     const provider = okProvider();
     const reserve = vi.fn(async () => ({ ok: true as const }));
     expect(await sendMessage(fakeDb(baseMessage).db, "m1", { allowlist: null, senderEmail: null, provider, reserve })).toMatchObject({ status: "skipped", reason: "sender_not_configured" });
-    expect(await sendMessage(fakeDb({ ...baseMessage, kind: "follow_up" }).db, "m1", { ...deps, provider, reserve })).toMatchObject({ status: "skipped" });
     expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it("sends a follow-up only through the same gate, and a follow-up completes the sequence", async () => {
+    env();
+    const provider = okProvider();
+    const blocked = vi.fn(async () => ({ ok: false as const, reason: "has_reply" }));
+    expect(await sendMessage(fakeDb({ ...baseMessage, kind: "follow_up" }).db, "m1", { ...deps, provider, reserve: blocked })).toMatchObject({ status: "skipped", reason: "has_reply" });
+    expect(provider.send).not.toHaveBeenCalled();
+
+    const { db, updates } = fakeDb({ ...baseMessage, kind: "follow_up" });
+    const r = await sendMessage(db, "m1", { ...deps, provider, reserve: async () => ({ ok: true }) });
+    expect(r.status).toBe("sent");
+    expect(updates.find((u) => u.table === "acq_campaign_leads")?.values).toMatchObject({ status: "completed", sequence_step: 2 });
   });
 
   it("a definite provider rejection marks the message failed", async () => {

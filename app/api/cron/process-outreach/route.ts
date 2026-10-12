@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { processOutreachQueueBatch } from "@/lib/outreachDrip";
+import { getSupabaseServerClient } from "@/lib/supabaseClient";
+import { runHealthChecks } from "@/lib/acquisition/health";
+import { emailPendingNotifications } from "@/lib/acquisition/alerts";
+import { log } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +22,17 @@ export async function POST(request: Request) {
 
   if (!isCronAuth) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Watchdog: this job is independent of the acquisition worker, so it can notice (and email) when that one has stopped.
+  try {
+    const db = getSupabaseServerClient();
+    if (db) {
+      await runHealthChecks(db);
+      await emailPendingNotifications(db);
+    }
+  } catch (e) {
+    log("warn", { message: "watchdog health check failed", error: e });
   }
 
   try {

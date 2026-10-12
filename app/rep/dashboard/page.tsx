@@ -136,6 +136,8 @@ interface RepLead {
   notes: string | null;
   last_contacted_at: string | null;
   created_at: string;
+  /** Set for leads that came from the lead pool: "eligible" means cleared to email. */
+  pool_contact_status?: string | null;
 }
 
 interface CustomTemplate {
@@ -1107,6 +1109,11 @@ export default function RepDashboardPage() {
                           <td className="py-3 px-4">
                             <span className="font-bold text-white block">{lead.full_name}</span>
                             <span className="text-[11px] text-slate-400 font-mono">{lead.email}</span>
+                            {lead.pool_contact_status && lead.pool_contact_status !== "eligible" && (
+                              <span className="mt-1 block w-fit rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300" title="Record a lawful basis in Lead Pool before emailing this contact">
+                                needs lawful basis
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <span className="text-white font-medium block">{lead.company_name || "—"}</span>

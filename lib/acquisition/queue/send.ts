@@ -62,7 +62,6 @@ export async function sendMessage(db: Db, messageId: string, deps: SendDeps = {}
   const lead = msg.acq_campaign_leads as unknown as Lead;
   const to = lead.acq_contacts.email;
 
-  if (msg.kind !== "initial") return { status: "skipped", reason: "follow_ups_not_enabled" };
   if (!senderEmail) return { status: "skipped", reason: "sender_not_configured" };
   if (!isAllowedRecipient(to, deps.allowlist)) {
     await logAudit(db, "send.blocked_by_allowlist", "message", messageId, {});
@@ -88,7 +87,9 @@ export async function sendMessage(db: Db, messageId: string, deps: SendDeps = {}
     });
     const now = new Date().toISOString();
     must(await db.from("acq_email_messages").update({ status: "sent", provider_message_id: providerMessageId, sent_at: now }).eq("id", messageId).select("id"), "mark sent");
-    must(await db.from("acq_campaign_leads").update({ status: "sent", sequence_step: 1, last_message_at: now, next_action_at: null }).eq("id", lead.id).select("id"), "mark lead sent");
+    // A follow-up ends the sequence ("completed"); the first email leaves the lead waiting ("sent").
+    const leadUpdate = msg.kind === "follow_up" ? { status: "completed", sequence_step: 2, last_message_at: now, next_action_at: null } : { status: "sent", sequence_step: 1, last_message_at: now, next_action_at: null };
+    must(await db.from("acq_campaign_leads").update(leadUpdate).eq("id", lead.id).select("id"), "mark lead sent");
     await logAudit(db, "send.sent", "message", messageId, { providerMessageId });
     return { status: "sent", providerMessageId };
   } catch (e) {
@@ -142,7 +143,22 @@ export async function enqueueDueSends(db: Db, opts: { perTick?: number; now?: Da
     const room = Math.min(opts.perTick ?? 5, Math.max(0, c.daily_limit - used));
     if (room === 0) continue;
 
-    const due = must(
+    // Follow-ups first (they are time-sensitive), then first emails, within the same daily room.
+    const dueFollowUps = must(
+      await db
+        .from("acq_email_messages")
+        .select("id, acq_campaign_leads!inner(campaign_id,status,next_action_at)")
+        .eq("acq_campaign_leads.campaign_id", c.id)
+        .eq("acq_campaign_leads.status", "follow_up_due")
+        .lte("acq_campaign_leads.next_action_at", now.toISOString())
+        .eq("direction", "outbound")
+        .eq("kind", "follow_up")
+        .eq("status", "approved")
+        .order("created_at", { ascending: true })
+        .limit(room),
+      "load due follow-ups"
+    ) as { id: string }[];
+    const dueInitial = room - dueFollowUps.length <= 0 ? [] : (must(
       await db
         .from("acq_email_messages")
         .select("id, acq_campaign_leads!inner(campaign_id,status)")
@@ -152,9 +168,10 @@ export async function enqueueDueSends(db: Db, opts: { perTick?: number; now?: Da
         .eq("kind", "initial")
         .eq("status", "approved")
         .order("created_at", { ascending: true })
-        .limit(room),
+        .limit(room - dueFollowUps.length),
       "load due messages"
-    ) as { id: string }[];
+    ) as { id: string }[]);
+    const due = [...dueFollowUps, ...dueInitial];
 
     let offsetMin = 0;
     for (const m of due) {

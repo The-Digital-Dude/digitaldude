@@ -5,6 +5,10 @@ import { applyClassification } from "../replies/process";
 import { resolveAiProvider } from "../ai-config";
 import { notify } from "../providers/notifications";
 import { enqueueDueSends, sendEmailJob } from "./send";
+import { scheduleFollowUps } from "./followups";
+import { alertAdmin, emailPendingNotifications, notifyAssignments } from "../alerts";
+import { recordHeartbeat, runHealthChecks } from "../health";
+import { GmailReader, pollReplies } from "../replies/gmail";
 import { discoverJob, enqueueDailyAuto } from "./daily";
 import { log } from "@/lib/logger";
 
@@ -19,8 +23,8 @@ export interface Job {
 export type JobHandler = (job: Job, db: Db) => Promise<void>;
 
 /**
- * Registered job types. `schedule_follow_up` is deliberately absent (follow-ups are
- * not built); an unknown type fails loudly instead of being silently dropped.
+ * Registered job types. Follow-ups are not a job type: they are scheduled each tick by scheduleFollowUps().
+ * An unknown type fails loudly instead of being silently dropped.
  */
 export const handlers: Record<string, JobHandler> = {
   send_email: sendEmailJob,
@@ -44,6 +48,11 @@ export async function runWorkerTick(opts: { limit?: number; db?: Db; handlers?: 
   const table = opts.handlers ?? handlers;
   // Real ticks (not handler-injected test ticks) also schedule due sends.
   if (!opts.handlers) {
+    try {
+      await scheduleFollowUps(db);
+    } catch (e) {
+      log("error", { message: "acquisition scheduleFollowUps failed", error: e });
+    }
     try {
       await enqueueDueSends(db);
     } catch (e) {
@@ -74,6 +83,7 @@ export async function runWorkerTick(opts: { limit?: number; db?: Db; handlers?: 
       if (job.attempts >= job.max_attempts) {
         await db.from("acq_jobs").update({ status: "failed", last_error: message.slice(0, 1000) }).eq("id", job.id).eq("status", "running");
         await notify(`Acquisition job failed permanently: ${job.type} — ${message.slice(0, 200)}`);
+        await alertAdmin(db, { kind: "job_failed", title: `Background job failed: ${job.type}`, body: message.slice(0, 500), link: "/admin/acquisition/settings", dedupeKey: `job_failed:${job.id}` });
         summary.failed++;
       } else {
         const runAt = new Date(Date.now() + backoffSeconds(job.attempts) * 1000).toISOString();
@@ -82,5 +92,22 @@ export async function runWorkerTick(opts: { limit?: number; db?: Db; handlers?: 
       }
     }
   }
+  if (!opts.handlers) await housekeeping(db);
   return summary;
+}
+
+/** After the jobs: read replies, announce assignments, check health, email whatever is pending. Each step is isolated. */
+async function housekeeping(db: Db) {
+  const step = async (name: string, fn: () => Promise<unknown>) => {
+    try {
+      await fn();
+    } catch (e) {
+      log("error", { message: `acquisition housekeeping: ${name} failed`, error: e });
+    }
+  };
+  await step("heartbeat", () => recordHeartbeat(db));
+  if (GmailReader.configured()) await step("poll replies", () => pollReplies(db, new GmailReader()));
+  await step("assignment digest", () => notifyAssignments(db));
+  await step("health checks", () => runHealthChecks(db));
+  await step("email notifications", () => emailPendingNotifications(db));
 }

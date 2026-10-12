@@ -176,3 +176,24 @@ export async function settingsOverview() {
     operator: env.operatorName,
   };
 }
+
+/** What needs a human right now: the admin's to-do list plus recent notifications. */
+export async function attentionItems() {
+  const db = getDb();
+  const [needsReview, repliesPending, unassigned, noContact, failedJobs, unread, heartbeat, recent] = await Promise.all([
+    count(db.from("acq_contacts").select("id", head).eq("status", "needs_review")),
+    count(db.from("acq_replies").select("id", head).eq("human_review_status", "pending")),
+    count(db.from("acq_companies").select("id", head).eq("pool_status", "unassigned").neq("status", "archived")),
+    count(db.from("acq_companies").select("id", head).eq("pool_status", "needs_contact").neq("status", "archived")),
+    count(db.from("acq_jobs").select("id", head).eq("status", "failed").gte("run_at", new Date(Date.now() - 86_400_000).toISOString())),
+    count(db.from("acq_notifications").select("id", head).is("recipient_employee_id", null).is("read_at", null)),
+    db.from("acq_settings").select("value").eq("key", "worker_heartbeat").maybeSingle(),
+    db.from("acq_notifications").select("id,kind,title,body,link,created_at,read_at").is("recipient_employee_id", null).order("created_at", { ascending: false }).limit(10),
+  ]);
+  const at = (heartbeat.data?.value as { at?: string } | null)?.at;
+  return {
+    needsReview, repliesPending, unassigned, noContact, failedJobs, unread,
+    workerAgeMin: at ? Math.max(0, Math.round((Date.now() - Date.parse(at)) / 60_000)) : null,
+    recent: (recent.data ?? []) as { id: string; kind: string; title: string; body: string; link: string | null; created_at: string; read_at: string | null }[],
+  };
+}

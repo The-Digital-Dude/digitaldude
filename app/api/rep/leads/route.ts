@@ -28,7 +28,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, leads: [] });
     }
 
-    return NextResponse.json({ ok: true, leads: leads || [] });
+    // Pool leads: show whether the contact has been cleared to email yet (a read-only badge; sending is gated separately).
+    const rows = (leads || []) as { acq_contact_id?: string | null }[];
+    const contactIds = rows.map((l) => l.acq_contact_id).filter((x): x is string => !!x);
+    const status = new Map<string, string>();
+    if (contactIds.length) {
+      const { data: cs } = await supabase.from("acq_contacts").select("id,status").in("id", contactIds);
+      for (const c of (cs ?? []) as { id: string; status: string }[]) status.set(c.id, c.status);
+    }
+    const out = rows.map((l) => ({ ...l, pool_contact_status: l.acq_contact_id ? (status.get(l.acq_contact_id) ?? null) : null }));
+    return NextResponse.json({ ok: true, leads: out });
   } catch (err) {
     return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });
   }

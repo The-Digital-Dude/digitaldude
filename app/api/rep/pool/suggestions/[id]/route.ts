@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { repActor, repJsonError, repRoute } from "@/lib/repPool";
+import { ensureRepLead, repActor, repJsonError, repRoute } from "@/lib/repPool";
 import { logAudit } from "@/lib/acquisition/audit";
 import { UNIQUE_VIOLATION } from "@/lib/acquisition/db";
 
@@ -17,8 +17,8 @@ export const PATCH = repRoute<{ id: string }>("review suggestion", async (reques
   const parsed = body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return repJsonError("Invalid request", 422);
 
-  const { data: s } = await db.from("acq_contact_suggestions").select("*, acq_companies(owner_employee_id,status)").eq("id", params.id).maybeSingle();
-  const owner = (s?.acq_companies as unknown as { owner_employee_id: string | null; status: string } | null);
+  const { data: s } = await db.from("acq_contact_suggestions").select("*, acq_companies(name,owner_employee_id,status)").eq("id", params.id).maybeSingle();
+  const owner = (s?.acq_companies as unknown as { name: string; owner_employee_id: string | null; status: string } | null);
   if (!s || !owner || owner.owner_employee_id !== rep.id || owner.status === "archived") return repJsonError("Suggestion not found", 404);
   if (s.status !== "pending") return repJsonError("Already reviewed", 409);
 
@@ -35,10 +35,12 @@ export const PATCH = repRoute<{ id: string }>("review suggestion", async (reques
   const ins = await db
     .from("acq_contacts")
     .insert({ company_id: s.company_id, email: s.email, source_url: s.source_url, source_type: "company_website", status: "needs_review" })
-    .select("id")
+    .select("id,email,name,role")
     .single();
   if (ins.error && ins.error.code !== UNIQUE_VIOLATION) throw new Error(ins.error.message);
+  // Accepting puts the contact in the rep's Leads CRM right away; it cannot be emailed until a basis is recorded.
+  const lead = ins.data ? await ensureRepLead(db, rep, ins.data, owner.name) : { leadId: null, readyToEmail: false };
   await db.from("acq_contact_suggestions").update({ status: "accepted" }).eq("id", s.id);
   await logAudit(db, "rep.suggestion_accepted", "contact", ins.data?.id ?? null, { companyId: s.company_id }, repActor(rep));
-  return NextResponse.json({ ok: true, contactId: ins.data?.id ?? null });
+  return NextResponse.json({ ok: true, contactId: ins.data?.id ?? null, leadId: lead.leadId });
 });

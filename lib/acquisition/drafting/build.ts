@@ -26,10 +26,11 @@ export async function buildLeadDraft(db: Db, campaign: CampaignRow, contactId: s
   const secret = unsubscribeSecret(); // fail before touching anything if signing isn't configured
 
   const contact = must(
-    await db.from("acq_contacts").select("id,name,email,company_id, acq_companies(name)").eq("id", contactId).single(),
+    await db.from("acq_contacts").select("id,name,email,company_id, acq_companies(name,industry,country)").eq("id", contactId).single(),
     "load contact"
   );
-  const companyName = (contact.acq_companies as unknown as { name: string } | null)?.name ?? "";
+  const companyInfo = contact.acq_companies as unknown as { name: string; industry: string | null; country: string | null } | null;
+  const companyName = companyInfo?.name ?? "";
 
   let signals: { claim: string; evidence: string; sourceUrl: string }[] = [];
   if (contact.company_id) {
@@ -40,7 +41,7 @@ export async function buildLeadDraft(db: Db, campaign: CampaignRow, contactId: s
     signals = rows.map((r: { observed_fact: string; evidence_excerpt: string; source_url: string }) => ({ claim: r.observed_fact, evidence: r.evidence_excerpt, sourceUrl: r.source_url }));
   }
 
-  const observation = await generateObservation(await resolveAiProvider(db), companyName, signals);
+  const observation = await generateObservation(await resolveAiProvider(db), companyName, signals, { industry: companyInfo?.industry, country: companyInfo?.country });
   const unsubscribeUrl = unsubscribeUrlFor(createUnsubscribeToken(contact.email, secret));
   const { subject, body } = renderMessage(
     campaign,
