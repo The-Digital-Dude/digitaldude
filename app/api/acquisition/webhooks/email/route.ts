@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const provider = getEmailProvider();
   let events;
   try {
-    events = provider.verifyAndParseWebhook(raw, request.headers);
+    events = provider.verifyAndParseWebhook(raw, request.headers, request.url);
   } catch (e) {
     if (e instanceof WebhookAuthError) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     return NextResponse.json({ ok: false, error: "Malformed payload" }, { status: 400 });

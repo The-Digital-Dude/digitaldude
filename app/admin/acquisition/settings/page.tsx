@@ -17,7 +17,7 @@ export default async function SettingsPage() {
         <ul className="grid gap-2 sm:grid-cols-2">
           {Object.entries(s.config).map(([k, ok]) => <li key={k} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"><span>{k}</span><Badge tone={ok ? "green" : "amber"}>{ok ? "configured" : "not set"}</Badge></li>)}
         </ul>
-        <p className="mt-3 text-xs text-navy/50">Acting as: <code>{s.operator}</code> (recorded in the audit log). Automated email sending is not implemented in this build.</p>
+        <p className="mt-3 text-xs text-navy/50">Acting as: <code>{s.operator}</code> (recorded in the audit log). Sending uses Brevo for initial emails only (follow-ups are not built). With an allowlist set, only listed recipients can receive email.</p>
       </Card>
 
       <Card title="Pilot launch checklist" className="mb-6"><Checklist /></Card>

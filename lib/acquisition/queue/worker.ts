@@ -4,6 +4,7 @@ import { classifyReply } from "../replies/classify";
 import { applyClassification } from "../replies/process";
 import { getAiProvider } from "../providers/ai";
 import { notify } from "../providers/notifications";
+import { enqueueDueSends, sendEmailJob } from "./send";
 import { log } from "@/lib/logger";
 
 export interface Job {
@@ -17,11 +18,11 @@ export interface Job {
 export type JobHandler = (job: Job, db: Db) => Promise<void>;
 
 /**
- * Registered job types. `send_email` and `schedule_follow_up` are deliberately
- * absent until the sender is built (Phase 4); an unknown type fails loudly
- * instead of being silently dropped.
+ * Registered job types. `schedule_follow_up` is deliberately absent (follow-ups are
+ * not built); an unknown type fails loudly instead of being silently dropped.
  */
 export const handlers: Record<string, JobHandler> = {
+  send_email: sendEmailJob,
   async research(job, db) {
     await runResearch(String(job.payload.companyId), undefined, db);
   },
@@ -39,6 +40,14 @@ export const backoffSeconds = (attempts: number) => Math.min(3600, 60 * 2 ** Mat
 export async function runWorkerTick(opts: { limit?: number; db?: Db; handlers?: Record<string, JobHandler> } = {}) {
   const db = opts.db ?? getDb();
   const table = opts.handlers ?? handlers;
+  // Real ticks (not handler-injected test ticks) also schedule due sends.
+  if (!opts.handlers) {
+    try {
+      await enqueueDueSends(db);
+    } catch (e) {
+      log("error", { message: "acquisition enqueueDueSends failed", error: e });
+    }
+  }
   const { data, error } = await db.rpc("acq_claim_jobs", { p_limit: opts.limit ?? 5 });
   if (error) throw new Error(`claim jobs: ${error.message}`);
 

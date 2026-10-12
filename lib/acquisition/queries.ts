@@ -1,5 +1,5 @@
 import { getDb, must } from "./db";
-import { acqEnv } from "./env";
+import { acqEnv, brevoSenderEmail, sendAllowlist } from "./env";
 
 /* Server-only read models for the dashboard pages. */
 
@@ -132,6 +132,9 @@ export async function settingsOverview() {
       "Unsubscribe signing secret": (process.env.ACQ_UNSUBSCRIBE_SECRET ?? "").length >= 32,
       "Webhook signing secret": (process.env.ACQ_WEBHOOK_SECRET ?? "").length >= 16,
       "Cron secret": !!process.env.CRON_SECRET,
+      "Brevo API key": !!(process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY),
+      "Brevo sender (subdomain)": !!brevoSenderEmail(),
+      "Recipient allowlist (pilot guard)": !!sendAllowlist(),
       "AI provider": !!(process.env.AI_BASE_URL && process.env.AI_API_KEY && process.env.AI_MODEL),
       "Telegram alerts": !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
       "Booking link": !!env.bookingUrl,
