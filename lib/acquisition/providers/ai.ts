@@ -20,6 +20,14 @@ export class AiNotConfiguredError extends Error {
   }
 }
 
+/** The provider answered with an HTTP error. `detail` is the provider's own message (never contains our key). */
+export class AiHttpError extends Error {
+  constructor(readonly status: number, readonly detail: string) {
+    super(`AI provider returned HTTP ${status}${detail ? `: ${detail}` : ""}`);
+    this.name = "AiHttpError";
+  }
+}
+
 export class OpenAiCompatibleProvider implements AiProvider {
   readonly name = "openai-compatible";
   constructor(
@@ -44,7 +52,13 @@ export class OpenAiCompatibleProvider implements AiProvider {
       }),
       signal: AbortSignal.timeout(this.timeoutMs),
     });
-    if (!res.ok) throw new Error(`AI provider returned HTTP ${res.status}`);
+    if (!res.ok) {
+      type ErrBody = { error?: { message?: string } | string; message?: string };
+      const raw = (await res.json().catch(() => null)) as ErrBody | ErrBody[] | null;
+      const first = Array.isArray(raw) ? raw[0] : raw;
+      const msg = typeof first?.error === "string" ? first.error : first?.error?.message ?? first?.message ?? "";
+      throw new AiHttpError(res.status, String(msg).slice(0, 200));
+    }
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const text = data.choices?.[0]?.message?.content;
     if (!text) throw new Error("AI provider returned an empty response");
@@ -52,6 +66,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
   }
 }
 
+/** Environment-only provider. Prefer resolveAiProvider(db), which also honours the key saved in settings. */
 export function getAiProvider(): AiProvider | null {
   const base = process.env.AI_BASE_URL;
   const key = process.env.AI_API_KEY;

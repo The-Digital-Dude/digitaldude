@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getCompany } from "@/lib/acquisition/queries";
 import { evaluateEligibility, type ConsentRecord } from "@/lib/acquisition/compliance/eligibility";
 import { Card, Empty, PageHeader, StatusBadge, Badge, fmtDate } from "@/components/acquisition/ui";
-import { ConsentForm, ContactForm, ResearchControls, ResearchNoteForm } from "@/components/acquisition/forms";
+import { ConsentForm, ContactForm, ResearchControls, ResearchNoteForm, SuggestionControls } from "@/components/acquisition/forms";
 
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
@@ -12,7 +12,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!isUuid(id)) notFound();
   const data = await getCompany(id);
   if (!data) notFound();
-  const { company, research, contacts } = data;
+  const { company, research, contacts, suggestions } = data;
   const missing = (company.missing_evidence ?? []) as string[];
 
   return (
@@ -53,6 +53,22 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-purple">Add a research note manually</summary><div className="mt-3"><ResearchNoteForm companyId={company.id} /></div></details>
         </Card>
       </div>
+
+      {suggestions.length > 0 && (
+        <Card title={`Suggested addresses (${suggestions.length})`} className="mt-6">
+          <p className="mb-3 text-xs text-navy/60">Found automatically on this company&apos;s own website. These are <strong>not contacts</strong> and cannot be emailed. Check the source, then add the ones you have a lawful basis to contact; each still needs a consent review.</p>
+          <ul className="space-y-3">
+            {suggestions.map((x: { id: string; email: string; source_url: string; evidence_excerpt: string }) => (
+              <li key={x.id} className="rounded-lg border border-slate-200 p-3 text-sm">
+                <p className="font-medium text-navy">{x.email}</p>
+                <blockquote className="mt-1 border-l-2 border-slate-300 pl-3 text-navy/70">“{x.evidence_excerpt}”</blockquote>
+                <a className="mt-1 inline-block break-all text-xs text-purple hover:underline" href={x.source_url} target="_blank" rel="noopener noreferrer">{x.source_url}</a>
+                <div className="mt-2"><SuggestionControls suggestionId={x.id} /></div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <Card title={`Contacts (${contacts.length})`} className="mt-6">
         {contacts.length === 0 && <Empty>No contacts yet.</Empty>}

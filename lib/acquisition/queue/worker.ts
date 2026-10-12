@@ -2,9 +2,10 @@ import { getDb, type Db } from "../db";
 import { runResearch } from "../research/pipeline";
 import { classifyReply } from "../replies/classify";
 import { applyClassification } from "../replies/process";
-import { getAiProvider } from "../providers/ai";
+import { resolveAiProvider } from "../ai-config";
 import { notify } from "../providers/notifications";
 import { enqueueDueSends, sendEmailJob } from "./send";
+import { discoverJob, enqueueDailyAuto } from "./daily";
 import { log } from "@/lib/logger";
 
 export interface Job {
@@ -23,6 +24,7 @@ export type JobHandler = (job: Job, db: Db) => Promise<void>;
  */
 export const handlers: Record<string, JobHandler> = {
   send_email: sendEmailJob,
+  discover: discoverJob,
   async research(job, db) {
     await runResearch(String(job.payload.companyId), undefined, db);
   },
@@ -30,7 +32,7 @@ export const handlers: Record<string, JobHandler> = {
     const replyId = String(job.payload.replyId);
     const { data: reply } = await db.from("acq_replies").select("body,classification,classified_by").eq("id", replyId).single();
     if (!reply || reply.classified_by === "human") return; // a person already decided
-    const cls = await classifyReply(reply.body ?? "", getAiProvider());
+    const cls = await classifyReply(reply.body ?? "", await resolveAiProvider(db));
     await applyClassification(db, replyId, cls);
   },
 };
@@ -46,6 +48,11 @@ export async function runWorkerTick(opts: { limit?: number; db?: Db; handlers?: 
       await enqueueDueSends(db);
     } catch (e) {
       log("error", { message: "acquisition enqueueDueSends failed", error: e });
+    }
+    try {
+      await enqueueDailyAuto(db);
+    } catch (e) {
+      log("error", { message: "acquisition enqueueDailyAuto failed", error: e });
     }
   }
   const { data, error } = await db.rpc("acq_claim_jobs", { p_limit: opts.limit ?? 5 });

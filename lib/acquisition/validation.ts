@@ -106,7 +106,11 @@ export const suppressionBody = z
     if (v.domain && !normalizeDomain(v.domain)) ctx.addIssue({ code: "custom", path: ["domain"], message: "Invalid domain" });
   });
 
-export const settingsBody = z.object({ sendingPaused: z.boolean() });
+export const settingsBody = z
+  .object({ sendingPaused: z.boolean().optional(), autoResearchEnabled: z.boolean().optional() })
+  .refine((b) => b.sendingPaused !== undefined || b.autoResearchEnabled !== undefined, "Nothing to update");
+
+export const suggestionBody = z.object({ action: z.enum(["accept", "dismiss"]) });
 
 export const replyReviewBody = z.object({
   classification: z.enum(["interested", "not_interested", "opt_out", "out_of_office", "bounce", "uncertain"]),

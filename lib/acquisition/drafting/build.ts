@@ -1,5 +1,5 @@
 import { must, type Db } from "../db";
-import { getAiProvider } from "../providers/ai";
+import { resolveAiProvider } from "../ai-config";
 import { getBookingUrl } from "../providers/calendar";
 import { firstNameOf, generateObservation } from "./draft";
 import { renderMessage } from "../compliance/templates";
@@ -40,7 +40,7 @@ export async function buildLeadDraft(db: Db, campaign: CampaignRow, contactId: s
     signals = rows.map((r: { observed_fact: string; evidence_excerpt: string; source_url: string }) => ({ claim: r.observed_fact, evidence: r.evidence_excerpt, sourceUrl: r.source_url }));
   }
 
-  const observation = await generateObservation(getAiProvider(), companyName, signals);
+  const observation = await generateObservation(await resolveAiProvider(db), companyName, signals);
   const unsubscribeUrl = unsubscribeUrlFor(createUnsubscribeToken(contact.email, secret));
   const { subject, body } = renderMessage(
     campaign,

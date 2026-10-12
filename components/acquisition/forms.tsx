@@ -496,3 +496,88 @@ export function Checklist() {
     </div>
   );
 }
+
+export function SuggestionControls({ suggestionId }: { suggestionId: string }) {
+  return (
+    <div className="flex gap-2">
+      <ActionButton url={`/api/acquisition/suggestions/${suggestionId}`} method="PATCH" body={{ action: "accept" }} confirm="Add this address as a contact? It still cannot be emailed until you record a consent review.">Add as contact</ActionButton>
+      <ActionButton url={`/api/acquisition/suggestions/${suggestionId}`} method="PATCH" body={{ action: "dismiss" }} variant="ghost">Dismiss</ActionButton>
+    </div>
+  );
+}
+
+export function AutoResearchToggle({ enabled }: { enabled: boolean }) {
+  return (
+    <ActionButton
+      url="/api/acquisition/settings"
+      body={{ autoResearchEnabled: !enabled }}
+      variant={enabled ? "danger" : "primary"}
+      confirm={enabled ? undefined : "Turn on daily automatic discovery and research? It only finds and researches companies and suggests addresses; it never emails anyone."}
+    >
+      {enabled ? "Turn off auto research" : "Turn on auto research"}
+    </ActionButton>
+  );
+}
+
+const AI_PRESETS: Record<string, { baseUrl: string; model: string }> = {
+  gemini: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash" },
+  openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
+  groq: { baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
+};
+
+export function AiSettingsCard({ status }: { status: { configured: boolean; source: string; baseUrl: string | null; model: string | null; keyHint: string | null } }) {
+  const { run, busy, result } = useAction();
+  const [baseUrl, setBaseUrl] = useState(status.baseUrl ?? AI_PRESETS.gemini.baseUrl);
+  const [model, setModel] = useState(status.model ?? AI_PRESETS.gemini.model);
+  const [apiKey, setApiKey] = useState("");
+  const [test, setTest] = useState<{ ok: boolean; text: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  async function runTest() {
+    setTesting(true);
+    setTest(null);
+    const r = await api("/api/acquisition/settings/ai", "POST", { action: "test", baseUrl, model, apiKey });
+    setTest({ ok: r.ok, text: String(r.ok ? r.message : r.error ?? "Test failed") });
+    setTesting(false);
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-navy/70">
+        Status: {status.configured ? <strong className="text-emerald-700">configured</strong> : <strong className="text-amber-700">not configured</strong>}
+        {status.configured && <> via {status.source === "saved" ? "saved settings" : "environment variables"} · <code>{status.model}</code> · key {status.keyHint}</>}.
+        {" "}A key saved here is encrypted, never shown again, and takes priority over the environment variables.
+      </p>
+      <form
+        className="grid gap-3 sm:grid-cols-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void run("/api/acquisition/settings/ai", "POST", { action: "save", baseUrl, model, apiKey: apiKey || undefined }, () => setApiKey(""));
+        }}
+      >
+        <div className="sm:col-span-2">
+          <label className={labelCls}>Provider preset</label>
+          <select className={inputCls} defaultValue="" onChange={(e) => { const p = AI_PRESETS[e.target.value]; if (p) { setBaseUrl(p.baseUrl); setModel(p.model); } }}>
+            <option value="">Choose to fill the fields…</option>
+            <option value="gemini">Google Gemini (AI Studio, free tier)</option>
+            <option value="openai">OpenAI</option>
+            <option value="groq">Groq</option>
+          </select>
+        </div>
+        <div><label className={labelCls}>Base URL (https, OpenAI-compatible)</label><input className={inputCls} value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} required /></div>
+        <div><label className={labelCls}>Model</label><input className={inputCls} value={model} onChange={(e) => setModel(e.target.value)} required /></div>
+        <div className="sm:col-span-2">
+          <label className={labelCls}>API key {status.source === "saved" && "(leave blank to keep the saved key)"}</label>
+          <input className={inputCls} type="password" autoComplete="off" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={status.source === "saved" ? status.keyHint ?? "" : "Paste your key"} />
+        </div>
+        <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+          <button className={btnCls} disabled={busy || testing}>{busy ? "Saving…" : "Save"}</button>
+          <button type="button" className={btnGhostCls} disabled={busy || testing} onClick={() => void runTest()}>{testing ? "Testing…" : "Test connection"}</button>
+          {status.source === "saved" && <button type="button" className={btnDangerCls} disabled={busy || testing} onClick={() => { if (window.confirm("Remove the saved AI settings? The environment variables (if any) will be used instead.")) void run("/api/acquisition/settings/ai", "POST", { action: "clear" }); }}>Remove saved key</button>}
+        </div>
+        {test && <p className={`sm:col-span-2 rounded-lg p-3 text-sm ${test.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`} role="status">{test.ok ? "OK: " : "Failed: "}{test.text}</p>}
+        <div className="sm:col-span-2"><Feedback result={result} /></div>
+      </form>
+    </div>
+  );
+}

@@ -9,11 +9,9 @@ import path from "node:path";
  */
 export async function createDb() {
   const db = new PGlite();
-  const sql = readFileSync(
-    path.resolve(__dirname, "../../supabase/migrations/0022_acquisition_system.sql"),
-    "utf8"
-  );
-  await db.exec(sql);
+  for (const file of ["0022_acquisition_system.sql", "0023_acquisition_autoresearch.sql"]) {
+    await db.exec(readFileSync(path.resolve(__dirname, "../../supabase/migrations", file), "utf8"));
+  }
   return db;
 }
 

@@ -12,8 +12,15 @@ export const dynamic = "force-dynamic";
 export const POST = adminRoute("update settings", async (request, { db }) => {
   const body = await parseBody(request, settingsBody);
   if ("error" in body) return body.error;
-  must(await db.from("acq_settings").upsert({ key: "sending_paused", value: body.data.sendingPaused }).select("key"), "save setting");
-  await logAudit(db, body.data.sendingPaused ? "sending.paused" : "sending.resumed", "settings", null, {});
-  if (body.data.sendingPaused) await notify("Acquisition sending PAUSED.");
-  return NextResponse.json({ ok: true, sendingPaused: body.data.sendingPaused });
+  const { sendingPaused, autoResearchEnabled } = body.data;
+  if (sendingPaused !== undefined) {
+    must(await db.from("acq_settings").upsert({ key: "sending_paused", value: sendingPaused }).select("key"), "save setting");
+    await logAudit(db, sendingPaused ? "sending.paused" : "sending.resumed", "settings", null, {});
+    if (sendingPaused) await notify("Acquisition sending PAUSED.");
+  }
+  if (autoResearchEnabled !== undefined) {
+    must(await db.from("acq_settings").upsert({ key: "auto_research_enabled", value: autoResearchEnabled }).select("key"), "save setting");
+    await logAudit(db, autoResearchEnabled ? "autoresearch.enabled" : "autoresearch.disabled", "settings", null, {});
+  }
+  return NextResponse.json({ ok: true, sendingPaused, autoResearchEnabled });
 });

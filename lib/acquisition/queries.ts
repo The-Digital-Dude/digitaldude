@@ -1,4 +1,5 @@
 import { getDb, must } from "./db";
+import { aiStatus } from "./ai-config";
 import { acqEnv, brevoSenderEmail, sendAllowlist } from "./env";
 
 /* Server-only read models for the dashboard pages. */
@@ -47,11 +48,12 @@ export async function getCompany(id: string) {
   const db = getDb();
   const { data: company } = await db.from("acq_companies").select("*").eq("id", id).maybeSingle();
   if (!company) return null;
-  const [research, contacts] = await Promise.all([
+  const [research, contacts, suggestions] = await Promise.all([
     db.from("acq_research_records").select("*").eq("company_id", id).order("research_date", { ascending: false }),
     db.from("acq_contacts").select("*, acq_consent_records(*)").eq("company_id", id).order("created_at"),
+    db.from("acq_contact_suggestions").select("*").eq("company_id", id).eq("status", "pending").order("created_at"),
   ]);
-  return { company, research: must(research, "research"), contacts: must(contacts, "contacts") };
+  return { company, research: must(research, "research"), contacts: must(contacts, "contacts"), suggestions: must(suggestions, "suggestions") };
 }
 
 export async function listCampaigns() {
@@ -115,11 +117,12 @@ export async function listMeetings() {
 
 export async function settingsOverview() {
   const db = getDb();
-  const [suppressions, jobs, audit, paused] = await Promise.all([
+  const [suppressions, jobs, audit, paused, autoFlag] = await Promise.all([
     db.from("acq_suppressions").select("*").order("created_at", { ascending: false }).limit(200),
     db.from("acq_jobs").select("id,type,status,attempts,last_error,run_at").in("status", ["pending", "running", "failed"]).order("run_at", { ascending: false }).limit(25),
     db.from("acq_audit_logs").select("*").order("created_at", { ascending: false }).limit(25),
     db.from("acq_settings").select("value").eq("key", "sending_paused").maybeSingle(),
+    db.from("acq_settings").select("value").eq("key", "auto_research_enabled").maybeSingle(),
   ]);
   const env = acqEnv();
   return {
@@ -127,15 +130,17 @@ export async function settingsOverview() {
     jobs: must(jobs, "jobs"),
     audit: must(audit, "audit log"),
     sendingPaused: must(paused, "settings")?.value !== false,
+    autoResearchEnabled: must(autoFlag, "settings")?.value === true,
+    ai: await aiStatus(db),
     config: {
       "Supabase (service role)": !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
       "Unsubscribe signing secret": (process.env.ACQ_UNSUBSCRIBE_SECRET ?? "").length >= 32,
       "Webhook signing secret": (process.env.ACQ_WEBHOOK_SECRET ?? "").length >= 16,
       "Cron secret": !!process.env.CRON_SECRET,
+      "Search API key (discovery)": !!process.env.BRAVE_SEARCH_API_KEY,
       "Brevo API key": !!(process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY),
       "Brevo sender (subdomain)": !!brevoSenderEmail(),
       "Recipient allowlist (pilot guard)": !!sendAllowlist(),
-      "AI provider": !!(process.env.AI_BASE_URL && process.env.AI_API_KEY && process.env.AI_MODEL),
       "Telegram alerts": !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID),
       "Booking link": !!env.bookingUrl,
     } as Record<string, boolean>,

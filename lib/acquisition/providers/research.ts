@@ -233,7 +233,7 @@ export function candidateLinks(html: string, baseUrl: string, max = 2): string[]
     if (!/^https?:$/.test(u.protocol) || u.pathname === "/" || u.pathname === base.pathname) continue;
     const p = u.pathname.toLowerCase();
     const score =
-      (/about|who-we-are|our-team|team/.test(p) ? 3 : 0) +
+      (/about|who-we-are|our-team|team|contact/.test(p) ? 3 : 0) +
       (/service|manage|rental|landlord|owner|portfolio|propert/.test(p) ? 2 : 0);
     if (score > 0 && !/\.(pdf|jpg|png|zip)$/.test(p)) scored.set(u.origin + u.pathname, Math.max(score, scored.get(u.origin + u.pathname) ?? 0));
   }

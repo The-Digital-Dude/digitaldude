@@ -1,9 +1,11 @@
 import { z } from "zod";
-import { extractJson, getAiProvider, AiNotConfiguredError, type AiProvider } from "../providers/ai";
+import { extractJson, AiNotConfiguredError, type AiProvider } from "../providers/ai";
+import { resolveAiProvider } from "../ai-config";
 import { RESEARCH_USER_AGENT, candidateLinks, htmlToText, isAllowedByRobots, safeFetchPage, type FetchedPage } from "../providers/research";
 import { SIGNAL_CATEGORIES, scoreLead, type ScoredSignal, type SignalCategory } from "../scoring/property-manager";
 import { getDb, must, type Db } from "../db";
 import { normalizeDomain } from "../normalize";
+import { extractOwnDomainEmails, type ExtractedEmail } from "./emails";
 
 /** Shape returned by the model. `fitScore` is intentionally absent: the score is computed from verified evidence. */
 export const leadResearchSchema = z.object({
@@ -30,6 +32,8 @@ export type LeadResearch = z.infer<typeof leadResearchSchema>;
 export interface ResearchPage {
   url: string;
   text: string;
+  /** Own-domain addresses published on this page (suggestions only). */
+  emails?: ExtractedEmail[];
 }
 
 export const RESEARCH_SYSTEM_PROMPT = `You are a research analyst assessing whether a business is an Australian property management company that could benefit from custom software and workflow automation.
@@ -120,12 +124,16 @@ export async function gatherPages(website: string, fetchPage: ResearchDeps["fetc
 
   const first = await fetchPage(home.toString());
   if (first.status < 200 || first.status >= 300) throw new Error(`Website returned HTTP ${first.status}`);
-  const pages: ResearchPage[] = [{ url: first.url, text: htmlToText(first.body) }];
-  for (const link of candidateLinks(first.body, first.url, 2)) {
+  const pageOf = (p: FetchedPage): ResearchPage => {
+    const text = htmlToText(p.body);
+    return { url: p.url, text, emails: extractOwnDomainEmails(p.body, text, website) };
+  };
+  const pages: ResearchPage[] = [pageOf(first)];
+  for (const link of candidateLinks(first.body, first.url, 3)) {
     if (!allowed(link)) continue;
     try {
       const p = await fetchPage(link);
-      if (p.status >= 200 && p.status < 300) pages.push({ url: p.url, text: htmlToText(p.body) });
+      if (p.status >= 200 && p.status < 300) pages.push(pageOf(p));
     } catch {
       /* optional page */
     }
@@ -134,11 +142,11 @@ export async function gatherPages(website: string, fetchPage: ResearchDeps["fetc
 }
 
 export async function runResearch(companyId: string, deps?: Partial<ResearchDeps>, db: Db = getDb()) {
-  const ai = deps && "ai" in deps ? deps.ai ?? null : getAiProvider();
+  const ai = deps && "ai" in deps ? deps.ai ?? null : await resolveAiProvider(db);
   const fetchPage = deps?.fetchPage ?? safeFetchPage;
   if (!ai) throw new AiNotConfiguredError();
 
-  const company = must(await db.from("acq_companies").select("id,name,website").eq("id", companyId).single(), "load company");
+  const company = must(await db.from("acq_companies").select("id,name,website,source").eq("id", companyId).single(), "load company");
   if (!company.website) throw new Error("Company has no website to research — add one or use manual research notes");
 
   await db.from("acq_companies").update({ status: "researching" }).eq("id", companyId);
@@ -169,13 +177,17 @@ export async function runResearch(companyId: string, deps?: Partial<ResearchDeps
     );
   }
 
+  await saveContactSuggestions(db, companyId, pages);
+  // Discovered companies with no verified proof they are property managers are shelved, not deleted.
+  const looksIrrelevant = company.source === "ai_discovery" && !verified.some((v) => v.category === "identity");
+
   // The model may only say it is *unsure*; downgrading to review is always safe.
   const missing = [...research.missingEvidence, ...rejected.map((r) => `Unverified claim dropped — ${r}`)];
   must(
     await db
       .from("acq_companies")
       .update({
-        status: "researched",
+        status: looksIrrelevant ? "deprioritized" : "researched",
         summary: research.companySummary,
         potential_opportunity: research.potentialOpportunity,
         decision_maker_role: research.decisionMakerRole,
@@ -191,6 +203,28 @@ export async function runResearch(companyId: string, deps?: Partial<ResearchDeps
   );
 
   return { score: result.score, band: result.band, verified: verified.length, rejected: rejected.length };
+}
+
+/**
+ * Stores published own-domain addresses as inert SUGGESTIONS. Skips addresses that are already
+ * contacts or suppressed. A person must accept a suggestion for it to become a contact, and the
+ * consent-review gate still applies after that.
+ */
+export async function saveContactSuggestions(db: Db, companyId: string, pages: ResearchPage[]) {
+  const seen = new Map<string, { email: string; source_url: string; evidence_excerpt: string }>();
+  for (const p of pages) for (const e of p.emails ?? []) if (!seen.has(e.email)) seen.set(e.email, { email: e.email, source_url: p.url, evidence_excerpt: e.excerpt });
+  let saved = 0;
+  for (const s of seen.values()) {
+    const { data: existing } = await db.from("acq_contacts").select("id").eq("email_normalized", s.email).maybeSingle();
+    if (existing) continue;
+    const { data: suppressed, error: se } = await db.rpc("acq_is_suppressed", { p_email: s.email });
+    if (se) throw new Error(`suppression lookup: ${se.message}`);
+    if (suppressed === true) continue;
+    const ins = await db.from("acq_contact_suggestions").insert({ company_id: companyId, ...s });
+    if (ins.error && ins.error.code !== "23505") throw new Error(`save suggestion: ${ins.error.message}`);
+    if (!ins.error) saved++;
+  }
+  return saved;
 }
 
 /** Recompute a company's score from its stored (verified or manually entered) research records. */

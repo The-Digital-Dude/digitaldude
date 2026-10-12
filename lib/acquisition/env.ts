@@ -49,3 +49,15 @@ export function isAllowedRecipient(email: string, list: string[] | null = sendAl
   const domain = e.split("@")[1] ?? "";
   return list.some((entry) => entry === e || entry === domain || entry === `@${domain}`);
 }
+
+const intEnv = (name: string, fallback: number, max: number) =>
+  Math.min(max, Math.max(0, Number.parseInt(process.env[name] ?? "", 10) || fallback));
+
+/** Daily ceilings for the automatic discovery/research run. */
+export function autoLimits() {
+  return {
+    searchQueries: intEnv("ACQ_DAILY_SEARCH_QUERIES", 5, 20),
+    newCompanies: intEnv("ACQ_DAILY_NEW_COMPANIES", 10, 50),
+    research: intEnv("ACQ_DAILY_RESEARCH_LIMIT", 15, 50),
+  };
+}
