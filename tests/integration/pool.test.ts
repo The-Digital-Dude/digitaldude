@@ -85,14 +85,19 @@ describe("rep claiming", () => {
     expect(await claim(await company(), (await one<{ id: string }>(db, `select gen_random_uuid() as id`)).id)).toMatchObject({ ok: false, reason: "rep_not_active" });
   });
 
-  it("enforces the claim cap on open companies, and finishing one frees a slot", async () => {
+  it("enforces the claim cap on everything owned; only a won company frees a slot", async () => {
     const r = await rep();
     await db.query(`insert into acq_rep_markets (employee_id, market_id, claim_cap) values ($1,$2,2)`, [r, marketId]);
     const [a, b, c] = [await company(), await company(), await company()];
     expect(await claim(a, r)).toMatchObject({ ok: true });
     expect(await claim(b, r)).toMatchObject({ ok: true });
     expect(await claim(c, r)).toMatchObject({ ok: false, reason: "claim_cap_reached" });
-    await db.query(`update acq_companies set pool_status='lost' where id=$1`, [a]);
+    // Flipping a company to replied/lost/dead must not dodge the cap.
+    for (const s of ["replied", "meeting", "lost", "dead"]) {
+      await db.query(`update acq_companies set pool_status=$2 where id=$1`, [a, s]);
+      expect(await claim(c, r)).toMatchObject({ ok: false, reason: "claim_cap_reached" });
+    }
+    await db.query(`update acq_companies set pool_status='won' where id=$1`, [a]);
     expect(await claim(c, r)).toMatchObject({ ok: true });
   });
 

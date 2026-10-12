@@ -80,7 +80,7 @@ export function cleanLinkedinUrl(raw: string): string | null {
   }
 }
 
-const optionalUrl = z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.string().trim().max(2000).url().optional());
+const optionalUrl = z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), z.string().trim().max(2000).url().refine((u) => /^https?:\/\//i.test(u), "Must be an http(s) link").optional());
 
 /** The lawful basis a rep records for a contact (validated again by the database). */
 export const basisSchema = z.object({

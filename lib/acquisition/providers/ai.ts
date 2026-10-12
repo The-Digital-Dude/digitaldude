@@ -40,6 +40,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
   async completeJson({ system, user }: { system: string; user: string }): Promise<string> {
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
+      redirect: "error", // never follow a redirect with the API key attached
       headers: { "content-type": "application/json", authorization: `Bearer ${this.apiKey}` },
       body: JSON.stringify({
         model: this.model,

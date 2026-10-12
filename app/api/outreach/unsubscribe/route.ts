@@ -58,9 +58,9 @@ export async function POST(request: Request) {
     if (ctype.includes("application/json")) {
       const body = await request.json().catch(() => ({}));
       token = token ?? (typeof body.t === "string" ? body.t : null);
-      legacyEmail = typeof body.email === "string" ? body.email : null;
-      leadId = typeof body.lead_id === "string" ? body.lead_id : null;
-      reason = typeof body.reason === "string" ? body.reason : null;
+      legacyEmail = typeof body.email === "string" && body.email.length <= 254 ? body.email : null;
+      leadId = typeof body.lead_id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.lead_id) ? body.lead_id : null;
+      reason = typeof body.reason === "string" ? body.reason.slice(0, 200) : null;
     }
 
     const signedEmail = emailFromToken(token);

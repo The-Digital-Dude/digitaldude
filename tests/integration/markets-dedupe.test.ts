@@ -118,6 +118,13 @@ describe("country gate on sending", () => {
     expect(await reserve(await setup("FR", "fr"))).toMatchObject({ ok: false, reason: "country_blocked" });
     expect(await reserve(await setup(null, "null"))).toMatchObject({ ok: false, reason: "country_blocked" });
   });
+  it("refuses contacts at an archived or lost/dead company", async () => {
+    for (const [n, set] of [["arch", "status='archived'"], ["lost", "pool_status='lost'"], ["dead", "pool_status='dead'"]] as const) {
+      const m = await setup("AU", `closed-${n}`);
+      await db.query(`update acq_companies set ${set} where id = (select c.company_id from acq_contacts c join acq_campaign_leads l on l.contact_id=c.id join acq_email_messages e on e.campaign_lead_id=l.id where e.id=$1)`, [m]);
+      expect(await reserve(m)).toMatchObject({ ok: false, reason: "company_closed" });
+    }
+  });
   it("allows the country once the owner enables it", async () => {
     const m = await setup("NL", "nl");
     expect(await reserve(m)).toMatchObject({ ok: false, reason: "country_blocked" });

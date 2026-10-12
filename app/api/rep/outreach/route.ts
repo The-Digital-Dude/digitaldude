@@ -120,13 +120,16 @@ export async function POST(request: Request) {
     // Check for duplicate recipients in last 14 days
     if (!forceSend) {
       const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: duplicateLog } = await supabase
+      // limit(1), not maybeSingle(): maybeSingle errors on 2+ rows, which silently disabled this check after a second send.
+      const { data: duplicateRows } = await supabase
         .from("rep_outreach_logs")
         .select("id, sent_at, subject")
         .eq("employee_id", employee.id)
         .eq("recipient_email", cleanRecipientEmail)
         .gte("sent_at", fourteenDaysAgo)
-        .maybeSingle();
+        .order("sent_at", { ascending: false })
+        .limit(1);
+      const duplicateLog = duplicateRows?.[0];
 
       if (duplicateLog) {
         return NextResponse.json(
@@ -157,11 +160,12 @@ export async function POST(request: Request) {
     const unsubscribeUrl = repUnsubscribeUrl(cleanRecipientEmail);
     const oneClickUrl = repUnsubscribeApiUrl(cleanRecipientEmail);
 
-    const formattedBody = message
+    const escHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+    const formattedBody = String(message)
       .split("\n\n")
       .map(
         (paragraph: string) =>
-          `<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">${paragraph.replace(
+          `<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">${escHtml(paragraph).replace(
             /\n/g,
             "<br>"
           )}</p>`
@@ -183,9 +187,9 @@ export async function POST(request: Request) {
         </table>
 
         <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 24px;">
-          <p style="margin: 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">${senderDisplayName}</p>
+          <p style="margin: 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">${escHtml(senderDisplayName)}</p>
           <p style="margin: 2px 0 0 0; font-size: 12px; color: #7b61ff; font-weight: 600;">${
-            employee.role_title || "Outreach & Partnerships"
+            escHtml(employee.role_title || "Outreach & Partnerships")
           } · The Digital Dude</p>
           <p style="margin: 6px 0 0 0; font-size: 11px; color: #6b6b90;">
             <a href="${SITE_URL}" style="color: #7b61ff; text-decoration: none; font-weight: 600;">digitaldude.co.uk</a>
