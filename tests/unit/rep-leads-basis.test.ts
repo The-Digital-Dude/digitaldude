@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ensureRepLead, recordBasisFor } from "@/lib/repPool";
+import { ensureRepLead, expandQuickBasis, quickBasisSchema, recordBasisFor } from "@/lib/repPool";
 import { reviewSuggestions } from "@/lib/acquisition/contacts/review";
 import type { RepSessionPayload } from "@/lib/repAuth";
 import { fakeDb } from "./helpers/fakedb";
@@ -67,6 +67,50 @@ describe("recordBasisFor", () => {
   it("needs a web page for a published-address claim", async () => {
     const noUrl = { ...basis, evidenceUrl: undefined };
     expect(await run(seed({ source_url: null }), noUrl).result).toMatchObject({ ok: false, status: 422 });
+  });
+});
+
+describe("one-click basis", () => {
+  const ctx = { repName: "Rita Rep", companyName: "Plum", sourceUrl: "https://plum.com.au/team" };
+  const run = (s: Record<string, unknown[]>, q: Parameters<typeof recordBasisFor>[3]) => {
+    const f = fakeDb({ rep_leads: [], acq_consent_records: [], ...(s as Record<string, Record<string, unknown>[]>) }, { rpc: canEmail(true) });
+    return { ...f, result: recordBasisFor(f.db, rep, "c1", q) };
+  };
+
+  it("turns a plain reason into a complete record that satisfies the database rules (a sentence plus evidence)", () => {
+    for (const reason of ["published", "relationship", "asked"] as const) {
+      const b = expandQuickBasis({ reason }, ctx);
+      expect(b.legalBasis.length).toBeGreaterThanOrEqual(10);
+      expect(b.legalBasis).toContain("Rita Rep"); // always names the person who confirmed it
+      expect(b.evidenceNotes).toMatch(/\d{4}-\d{2}-\d{2}/);
+    }
+    expect(expandQuickBasis({ reason: "published" }, ctx)).toMatchObject({ consentType: "inferred_publication", evidenceUrl: "https://plum.com.au/team" });
+    expect(expandQuickBasis({ reason: "relationship" }, ctx).consentType).toBe("existing_relationship");
+    expect(expandQuickBasis({ reason: "asked" }, ctx).consentType).toBe("express");
+  });
+
+  it("keeps the rep's own words when they are long enough, and falls back to generated text otherwise", () => {
+    expect(expandQuickBasis({ reason: "relationship", note: "Worked together on the 2025 portal project" }, ctx).legalBasis).toBe("Worked together on the 2025 portal project");
+    expect(expandQuickBasis({ reason: "relationship", note: "yes" }, ctx).legalBasis).toMatch(/Existing business relationship/);
+  });
+
+  it("accepts the three reasons only, and only http(s) links", () => {
+    expect(quickBasisSchema.safeParse({ reason: "published" }).success).toBe(true);
+    expect(quickBasisSchema.safeParse({ reason: "because" }).success).toBe(false);
+    expect(quickBasisSchema.safeParse({ reason: "published", evidenceUrl: "javascript:alert(1)" }).success).toBe(false);
+  });
+
+  it("records a quick basis end to end and still refuses a published-address claim with no page at all", async () => {
+    const ok = run(seed(), { reason: "published" });
+    expect(await ok.result).toMatchObject({ ok: true, eligible: true });
+    expect(ok.tables.acq_consent_records[0]).toMatchObject({ consent_type: "inferred_publication", evidence_url: "https://plum.com.au/team", reviewed_by_employee_id: "r1" });
+    expect(await run(seed({ source_url: null }), { reason: "published" }).result).toMatchObject({ ok: false, status: 422 });
+    expect(await run(seed({ source_url: null }), { reason: "relationship" }).result).toMatchObject({ ok: true, eligible: true });
+  });
+
+  it("applies the same protections as the full form (blocked contacts, other reps' contacts)", async () => {
+    expect(await run(seed({ status: "blocked" }), { reason: "relationship" }).result).toMatchObject({ ok: false, status: 409 });
+    expect(await run(seed({}, { owner_employee_id: "someone-else" }), { reason: "relationship" }).result).toMatchObject({ ok: false, status: 404 });
   });
 });
 

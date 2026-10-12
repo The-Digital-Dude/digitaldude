@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { basisSchema, cleanLinkedinUrl, ensureRepLead, ownedCompany, recordRepConsent, repActor, repJsonError, repRoute } from "@/lib/repPool";
+import { basisSchema, cleanLinkedinUrl, ensureRepLead, ownedCompany, quickBasisSchema, recordBasisFor, repActor, repJsonError, repRoute } from "@/lib/repPool";
 import { logAudit } from "@/lib/acquisition/audit";
 import { isValidEmail, normalizeEmail } from "@/lib/acquisition/normalize";
 import { UNIQUE_VIOLATION } from "@/lib/acquisition/db";
@@ -17,7 +17,7 @@ const body = z.object({
   sourceUrl: optionalUrl,
   linkedinUrl: z.string().trim().max(500).optional(),
   sourceType: z.enum(["company_website", "public_directory", "referral", "inbound_enquiry", "existing_client", "manual_import", "other"]).default("company_website"),
-  basis: basisSchema,
+  basis: z.union([basisSchema, quickBasisSchema]),
 });
 
 /**
@@ -30,7 +30,8 @@ export const POST = repRoute<{ id: string }>("add pool contact", async (request,
   if (!parsed.success) return repJsonError("Please check the form", 422, { issues: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) });
   const b = parsed.data;
   if (b.linkedinUrl && !cleanLinkedinUrl(b.linkedinUrl)) return repJsonError("Enter a valid https://www.linkedin.com/... address", 422);
-  if (b.basis.consentType === "inferred_publication" && !b.sourceUrl && !b.basis.evidenceUrl) return repJsonError("Inferred consent needs the web page where the address was published", 422);
+  const published = "consentType" in b.basis ? b.basis.consentType === "inferred_publication" : b.basis.reason === "published";
+  if (published && !b.sourceUrl && !b.basis.evidenceUrl) return repJsonError("Add the web page where the address was published", 422);
 
   const company = await ownedCompany(db, rep.id, params.id);
   if (!company) return repJsonError("Company not found", 404);
@@ -52,8 +53,9 @@ export const POST = repRoute<{ id: string }>("add pool contact", async (request,
   await logAudit(db, "rep.contact_added", "contact", ins.data.id, { companyId: company.id }, repActor(rep));
 
   // The contact is saved in the rep's Leads CRM straight away; sending stays blocked until the basis checks out.
-  const result = await recordRepConsent(db, rep, ins.data.id, { ...b.basis, evidenceUrl: b.basis.evidenceUrl ?? b.sourceUrl ?? null });
-  const { leadId, readyToEmail } = await ensureRepLead(db, rep, ins.data, company.name);
+  const recorded = await recordBasisFor(db, rep, ins.data.id, b.basis);
+  const result = recorded.ok ? { eligible: recorded.eligible, message: recorded.blocked } : { eligible: false, message: recorded.error };
+  const { leadId, readyToEmail } = recorded.ok ? { leadId: recorded.leadId, readyToEmail: recorded.readyToEmail } : await ensureRepLead(db, rep, ins.data, company.name);
 
   // Why this contact can't be emailed yet, in plain words.
   let blocked: string | null = result.message;

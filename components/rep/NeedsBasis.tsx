@@ -1,114 +1,132 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Sparkles, TriangleAlert } from "lucide-react";
-import { btn, btnGhost, call, card, input, Msg, type BasisDraft } from "./poolShared";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
+import { btn, btnGhost, call, card, Msg, type BasisDraft } from "./poolShared";
+import { emptyQuick, quickBody, quickFromDraft, QuickBasisFields, type QuickState } from "./QuickBasis";
 
 interface Row {
   id: string; name: string | null; role: string | null; email: string; sourceUrl: string | null; companyName: string; country: string | null;
 }
-interface Edit { draft: BasisDraft; tick: boolean; legalBasis: string }
+interface Edit { quick: QuickState; tick: boolean; draft?: BasisDraft }
 
 const MAX_DRAFT = 10;
 
 /**
- * Every contact still waiting for a lawful basis, in one table. "Draft with AI" fills in the evidence for the
- * ones it can verify; the rep reads each row, ticks the ones they have checked, and records them together.
- * Nothing is recorded without a tick, and the server applies the same checks as the single-contact form.
+ * Contacts still waiting for a lawful basis. When the tab opens, the AI checks the first 10 websites automatically; rows it
+ * verified are pre-filled and ticked. For each row the rep either confirms in one click or picks a reason by hand.
+ * Nothing is recorded without a click, and the server applies the same checks as everywhere else.
  */
 export function NeedsBasisPanel({ onChanged }: { onChanged: () => void }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pick, setPick] = useState<Set<string>>(new Set());
   const [edits, setEdits] = useState<Record<string, Edit>>({});
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [msg, setMsg] = useState<{ error?: string; note?: string } | null>(null);
-  const [results, setResults] = useState<Record<string, string>>({});
+  const [rowMsg, setRowMsg] = useState<Record<string, { error?: string; note?: string }>>({});
+  const autoDone = useRef(false);
+
+  const get = (id: string): Edit => edits[id] ?? { quick: emptyQuick(), tick: false };
+  const patch = (id: string, p: Partial<Edit>) => setEdits((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { quick: emptyQuick(), tick: false }), ...p } }));
+
+  const runDraft = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setChecking(true);
+    const r = await call("/api/rep/pool/basis/draft", "POST", { contactIds: ids.slice(0, MAX_DRAFT) });
+    setChecking(false);
+    if (!r.ok) { setMsg({ error: r.error ?? "Could not check the websites" }); return; }
+    const drafts = r.drafts as BasisDraft[];
+    setEdits((prev) => {
+      const next = { ...prev };
+      for (const d of drafts) {
+        const cur = next[d.contactId] ?? { quick: emptyQuick(), tick: false };
+        // A verified finding fills the row; an unverified one never overwrites what the rep has chosen.
+        next[d.contactId] = d.verified ? { quick: quickFromDraft(d), tick: true, draft: d } : { ...cur, draft: d };
+      }
+      return next;
+    });
+    const verified = drafts.filter((d) => d.verified).length;
+    setMsg({ note: `AI checked ${drafts.length} website${drafts.length === 1 ? "" : "s"}: ${verified} verified (ticked). Read each one, then confirm. For the others, choose a reason yourself.` });
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     const r = await call("/api/rep/pool/needs-basis", "GET");
-    if (r.ok) setRows(r.contacts as Row[]);
-    else setMsg({ error: r.error ?? "Could not load contacts" });
+    if (r.ok) {
+      const list = r.contacts as Row[];
+      setRows(list);
+      if (!autoDone.current && list.length > 0) {
+        autoDone.current = true;
+        void runDraft(list.map((c) => c.id));
+      }
+    } else setMsg({ error: r.error ?? "Could not load contacts" });
     setLoading(false);
-  }, []);
+  }, [runDraft]);
   useEffect(() => { void load(); }, [load]);
 
-  const toggle = (id: string) => setPick((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-
-  async function draft() {
-    const ids = [...pick].slice(0, MAX_DRAFT);
-    if (ids.length === 0) { setMsg({ error: "Tick the contacts you want drafted first." }); return; }
-    setBusy(true);
-    setMsg(null);
-    const r = await call("/api/rep/pool/basis/draft", "POST", { contactIds: ids });
-    setBusy(false);
-    if (!r.ok) { setMsg({ error: r.error ?? "Could not draft" }); return; }
-    const drafts = r.drafts as BasisDraft[];
-    setEdits((prev) => {
-      const next = { ...prev };
-      for (const d of drafts) next[d.contactId] = { draft: d, tick: d.verified, legalBasis: d.legalBasis };
-      return next;
-    });
-    const verified = drafts.filter((d) => d.verified).length;
-    setMsg({ note: `${verified} of ${drafts.length} verified on a real page and ticked. Read each one before you record. ${pick.size > MAX_DRAFT ? `Only the first ${MAX_DRAFT} were drafted; run it again for the rest.` : ""}` });
+  async function save(ids: string[]) {
+    const items = ids.map((id) => ({ contactId: id, ...quickBody(get(id).quick)! }));
+    return call("/api/rep/pool/basis/record", "POST", { items });
   }
 
-  async function record() {
-    const items = Object.values(edits)
-      .filter((e) => e.tick && e.legalBasis.trim().length >= 10)
-      .map((e) => ({ contactId: e.draft.contactId, consentType: e.draft.consentType, legalBasis: e.legalBasis.trim(), evidenceUrl: e.draft.evidenceUrl ?? "", evidenceNotes: e.draft.evidenceNotes }));
-    if (items.length === 0) { setMsg({ error: "Tick at least one reviewed row with a basis of 10+ characters." }); return; }
+  async function saveOne(id: string) {
+    if (!quickBody(get(id).quick)) { setRowMsg((m) => ({ ...m, [id]: { error: "Choose why you may contact them first." } })); return; }
     setBusy(true);
-    setMsg(null);
-    const r = await call("/api/rep/pool/basis/record", "POST", { items });
+    setRowMsg((m) => ({ ...m, [id]: {} }));
+    const r = await save([id]);
     setBusy(false);
-    if (!r.ok) { setMsg({ error: [r.error, ...(r.issues ?? []).map((i) => i.message)].filter(Boolean).join(" · ") }); return; }
-    const out: Record<string, string> = {};
-    for (const x of r.results as { contactId: string; ok: boolean; eligible?: boolean; error?: string; blocked?: string | null }[]) out[x.contactId] = x.ok ? (x.eligible ? "Recorded" : (x.blocked ?? "Saved, not yet eligible")) : (x.error ?? "Failed");
-    setResults(out);
-    setMsg({ note: `${r.recorded as number} contact(s) cleared. They are in your Leads CRM.` });
+    const x = (r.results as { ok: boolean; eligible?: boolean; error?: string; blocked?: string | null }[] | undefined)?.[0];
+    if (!r.ok || !x) { setRowMsg((m) => ({ ...m, [id]: { error: [r.error, ...(r.issues ?? []).map((i) => i.message)].filter(Boolean).join(" · ") || "Could not save" } })); return; }
+    if (!x.ok || !x.eligible) { setRowMsg((m) => ({ ...m, [id]: { error: x.ok ? (x.blocked ?? "Saved, but not eligible yet.") : (x.error ?? "Failed") } })); return; }
+    setMsg({ note: "Saved. The contact is in your Leads CRM." });
     await load();
     onChanged();
   }
 
-  if (loading) return <div className="flex items-center gap-2 py-10 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div>;
-  if (rows.length === 0) return <div className={`${card} text-center text-xs text-slate-400`}>Nothing waiting. Contacts you add or accept appear here until a lawful basis is recorded.</div>;
+  async function confirmTicked() {
+    const ids = rows.map((r) => r.id).filter((id) => get(id).tick && quickBody(get(id).quick));
+    if (ids.length === 0) { setMsg({ error: "Tick at least one row that has a reason chosen." }); return; }
+    setBusy(true);
+    setMsg(null);
+    const r = await save(ids);
+    setBusy(false);
+    if (!r.ok) { setMsg({ error: [r.error, ...(r.issues ?? []).map((i) => i.message)].filter(Boolean).join(" · ") || "Could not save" }); return; }
+    const m: Record<string, { error?: string }> = {};
+    for (const x of r.results as { contactId: string; ok: boolean; eligible?: boolean; error?: string; blocked?: string | null }[]) if (!x.ok || !x.eligible) m[x.contactId] = { error: x.ok ? (x.blocked ?? "Saved, but not eligible yet.") : (x.error ?? "Failed") };
+    setRowMsg(m);
+    setMsg({ note: `${r.recorded as number} contact(s) cleared and added to your Leads CRM.${Object.keys(m).length ? ` ${Object.keys(m).length} need attention (shown on the row).` : ""}` });
+    await load();
+    onChanged();
+  }
 
-  const ticked = Object.values(edits).filter((e) => e.tick).length;
+  if (loading && rows.length === 0) return <div className="flex items-center gap-2 py-10 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div>;
+  if (rows.length === 0) return <div className={`${card} text-center text-xs text-slate-400`}>Nothing waiting. Contacts you add or accept appear here until they are confirmed.</div>;
+
+  const ready = rows.filter((r) => get(r.id).tick && quickBody(get(r.id).quick)).length;
   return (
     <div className="space-y-4">
       <div className={`${card} flex flex-wrap items-center justify-between gap-3`}>
-        <p className="text-xs text-slate-300">{rows.length} contact{rows.length === 1 ? "" : "s"} need a lawful basis. Tick up to {MAX_DRAFT} and let AI check their websites.</p>
-        <div className="flex gap-2">
-          <button className={btnGhost} disabled={busy} onClick={() => setPick(new Set(rows.slice(0, MAX_DRAFT).map((r) => r.id)))}>Tick first {MAX_DRAFT}</button>
-          <button className={btn} disabled={busy || pick.size === 0} onClick={() => void draft()}><Sparkles size={12} className="mr-1 inline" />{busy ? "Working…" : `Draft with AI (${Math.min(pick.size, MAX_DRAFT)})`}</button>
-          <button className={btn} disabled={busy || ticked === 0} onClick={() => void record()}>Record ticked ({ticked})</button>
+        <p className="text-xs text-slate-300">{rows.length} contact{rows.length === 1 ? "" : "s"} to confirm. {checking ? "AI is checking their websites…" : "Confirm each in one click."}</p>
+        <div className="flex flex-wrap gap-2">
+          <button className={btnGhost} disabled={busy || checking} onClick={() => void runDraft(rows.map((r) => r.id))}><Sparkles size={12} className="mr-1 inline" />Check websites again</button>
+          <button className={btn} disabled={busy || checking || ready === 0} onClick={() => void confirmTicked()}>Confirm ticked ({ready})</button>
         </div>
       </div>
       <Msg error={msg?.error} note={msg?.note} />
       <ul className="space-y-3">
         {rows.map((r) => {
-          const e = edits[r.id];
+          const e = get(r.id);
           return (
             <li key={r.id} className={card}>
-              <div className="flex items-start gap-3">
-                <input type="checkbox" className="mt-1" checked={e ? e.tick : pick.has(r.id)} onChange={() => (e ? setEdits({ ...edits, [r.id]: { ...e, tick: !e.tick } }) : toggle(r.id))} aria-label={`Select ${r.email}`} />
-                <div className="min-w-0 flex-1 text-xs">
+              <div className="flex items-start gap-3 text-xs">
+                <input type="checkbox" className="mt-1" checked={e.tick} onChange={() => patch(r.id, { tick: !e.tick })} aria-label={`Include ${r.email} in Confirm ticked`} />
+                <div className="min-w-0 flex-1 space-y-2">
                   <p className="font-bold text-white">{r.name || r.email}{r.role && <span className="font-normal text-slate-500"> · {r.role}</span>}</p>
-                  <p className="text-slate-400">{r.email} · {r.companyName}{r.country && ` · ${r.country}`}</p>
-                  {results[r.id] && <p className="mt-1 text-[11px] text-emerald-300">{results[r.id]}</p>}
-                  {e && (
-                    <div className="mt-3 space-y-2">
-                      {e.draft.verified ? (
-                        <p className="flex items-center gap-1.5 text-[11px] text-emerald-300"><CheckCircle2 size={12} /> Address found on <a className="underline" href={e.draft.evidenceUrl ?? "#"} target="_blank" rel="noopener noreferrer">this page</a>. AI draft: read it before recording.</p>
-                      ) : (
-                        <p className="flex items-start gap-1.5 text-[11px] text-amber-300"><TriangleAlert size={12} className="mt-0.5 shrink-0" /> {e.draft.warning}</p>
-                      )}
-                      <textarea className={input} rows={2} value={e.legalBasis} placeholder="Why you may contact them" onChange={(ev) => setEdits({ ...edits, [r.id]: { ...e, legalBasis: ev.target.value } })} />
-                      {e.draft.evidenceNotes && <p className="text-[11px] text-slate-500">{e.draft.evidenceNotes}</p>}
-                    </div>
-                  )}
+                  <p className="text-slate-400">{r.email} · {r.companyName}{r.country && ` · ${r.country}`}{r.sourceUrl && <> · <a className="text-purple-300 underline" href={r.sourceUrl} target="_blank" rel="noopener noreferrer">where it was found</a></>}</p>
+                  <QuickBasisFields value={e.quick} onChange={(quick) => patch(r.id, { quick })} draft={e.draft} sourceUrl={r.sourceUrl} />
+                  <button className={btn} disabled={busy} onClick={() => void saveOne(r.id)}>{e.draft?.verified && e.quick.reason === "published" ? "Confirm & save" : "Save"}</button>
+                  <Msg error={rowMsg[r.id]?.error} note={rowMsg[r.id]?.note} />
                 </div>
               </div>
             </li>

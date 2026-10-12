@@ -90,6 +90,51 @@ export const basisSchema = z.object({
   evidenceNotes: z.string().trim().max(4000).optional(),
 });
 
+/**
+ * The one-click version of the basis form: the rep picks a plain reason and the server writes the record
+ * (the database still requires a basis sentence and an evidence note, so they are generated from the choice).
+ */
+export const quickBasisSchema = z.object({
+  reason: z.enum(["published", "relationship", "asked"]),
+  evidenceUrl: optionalUrl,
+  note: z.string().trim().max(2000).optional(),
+});
+export type QuickBasis = z.infer<typeof quickBasisSchema>;
+
+export function expandQuickBasis(q: QuickBasis, ctx: { repName: string; companyName: string; sourceUrl: string | null }): RepBasis {
+  const note = q.note?.trim();
+  const when = new Date().toISOString().slice(0, 10);
+  if (q.reason === "published") {
+    const url = q.evidenceUrl ?? ctx.sourceUrl ?? null;
+    let host = url ?? "their website";
+    try {
+      if (url) host = new URL(url).host;
+    } catch {
+      /* keep raw */
+    }
+    return {
+      consentType: "inferred_publication",
+      legalBasis: note && note.length >= 10 ? note : `Address published as a business contact on ${host}, relevant to their role at ${ctx.companyName}. Confirmed by ${ctx.repName}.`,
+      evidenceUrl: url,
+      evidenceNotes: `Rep confirmed the address is published (${host}) on ${when}.`,
+    };
+  }
+  if (q.reason === "relationship") {
+    return {
+      consentType: "existing_relationship",
+      legalBasis: note && note.length >= 10 ? note : `Existing business relationship with ${ctx.companyName}, confirmed by ${ctx.repName}.`,
+      evidenceUrl: q.evidenceUrl ?? null,
+      evidenceNotes: `Existing relationship confirmed by the rep on ${when}.`,
+    };
+  }
+  return {
+    consentType: "express",
+    legalBasis: note && note.length >= 10 ? note : `The contact asked to hear from us (${ctx.companyName}); confirmed by ${ctx.repName}.`,
+    evidenceUrl: q.evidenceUrl ?? null,
+    evidenceNotes: `Contact asked to be contacted; confirmed by the rep on ${when}.`,
+  };
+}
+
 export interface RepBasis {
   consentType: "express" | "inferred_publication" | "existing_relationship";
   legalBasis: string;
@@ -157,10 +202,11 @@ export type BasisResult =
  * suppression, evidence for "published address" claims, then the database-checked record. Used by the single
  * form and by the bulk review table, so both enforce exactly the same rules.
  */
-export async function recordBasisFor(db: Db, rep: RepSessionPayload, contactId: string, basis: RepBasis): Promise<BasisResult> {
+export async function recordBasisFor(db: Db, rep: RepSessionPayload, contactId: string, input: RepBasis | QuickBasis): Promise<BasisResult> {
   const { data: contact } = await db.from("acq_contacts").select("id,email,name,role,source_url,status,company_id, acq_companies(id,name,owner_employee_id,status)").eq("id", contactId).maybeSingle();
   const company = contact?.acq_companies as unknown as { id: string; name: string; owner_employee_id: string | null; status: string } | null;
   if (!contact || !company || company.owner_employee_id !== rep.id || company.status === "archived") return { ok: false, status: 404, error: "Contact not found" };
+  const basis: RepBasis = "reason" in input ? expandQuickBasis(input, { repName: rep.full_name, companyName: company.name, sourceUrl: contact.source_url }) : input;
   if (basis.consentType === "inferred_publication" && !contact.source_url && !basis.evidenceUrl) return { ok: false, status: 422, error: "Inferred consent needs the web page where the address was published" };
 
   // A rep may never re-enable a contact an admin (or the contact) has shut off.

@@ -144,6 +144,11 @@ export async function draftBasisForContact(db: Db, contactId: string, deps: Draf
 
   const base = { contactId: c.id as string, email: c.email as string, checkedPages: checked };
   if (!proof) {
+    const why = pages.length === 0
+      ? "This company has no website saved, so there was nothing to check."
+      : checked.length === 0
+        ? `None of the ${pages.length} page(s) could be opened (the site may be down, blocking automated visits, or the address is wrong), so nothing was filled in.`
+        : `This address was not found on the ${checked.length} page(s) checked (${checked.map((u) => { try { return new URL(u).pathname || "/"; } catch { return u; } }).join(", ")}), so nothing was filled in. It may be hidden by the site (a contact form, an image or a script).`;
     return {
       ...base,
       consentType: "inferred_publication",
@@ -151,7 +156,7 @@ export async function draftBasisForContact(db: Db, contactId: string, deps: Draf
       evidenceUrl: null,
       evidenceNotes: "",
       verified: false,
-      warning: "This address was not found on the pages checked, so nothing was filled in. Only record a published-address basis if you have seen it yourself. If you already know this person, choose 'existing relationship' and explain.",
+      warning: `${why} Only record a published-address basis if you have seen it yourself. If you already know this person, choose 'existing relationship' and explain.`,
     };
   }
   const ctx: BasisContext = { email: base.email, companyName: co?.name ?? "the company", role: (c.role as string | null) ?? null, industry: co?.industry ?? null, country: co?.country ?? null, url: proof.url };

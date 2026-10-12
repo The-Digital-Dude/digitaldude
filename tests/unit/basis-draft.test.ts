@@ -65,8 +65,17 @@ describe("draftBasisForContact", () => {
     const fetchPage = async (u: string) => page(u, "<p>No emails here</p>");
     const d = await draftBasisForContact(db, "c1", { fetchPage, ai: null });
     expect(d).toMatchObject({ verified: false, legalBasis: "", evidenceUrl: null });
-    expect(d?.warning).toMatch(/not found on the pages checked/);
+    expect(d?.warning).toMatch(/not found on the \d+ page\(s\) checked/);
     expect(d?.checkedPages.length).toBeGreaterThan(0);
+  });
+
+  it("says when no page could be opened, and when the company has no website", async () => {
+    const { db } = fakeDb({ acq_contacts: [contact] });
+    const down = await draftBasisForContact(db, "c1", { fetchPage: async () => { throw new Error("blocked"); }, ai: null });
+    expect(down).toMatchObject({ verified: false, checkedPages: [] });
+    expect(down?.warning).toMatch(/could be opened/);
+    const none = fakeDb({ acq_contacts: [{ ...contact, source_url: null, acq_companies: { ...contact.acq_companies, website: null, domain: null } }] });
+    expect((await draftBasisForContact(none.db, "c1", { fetchPage: async () => page("x", ""), ai: null }))?.warning).toMatch(/no website saved/);
   });
 
   it("treats unreachable pages and error responses as 'no evidence', not as a failure", async () => {

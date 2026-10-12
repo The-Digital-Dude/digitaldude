@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Loader2, Search, ShieldCheck, Sparkles, Undo2 } from "lucide-react";
 import { btn, btnGhost, call, card, input, Msg, type BasisDraft } from "./poolShared";
 import { NeedsBasisPanel } from "./NeedsBasis";
+import { emptyQuick, quickBody, quickFromDraft, QuickBasisFields, type QuickState } from "./QuickBasis";
 
 interface Summary { held: number; cap: number; markets: { id: string; name: string; country: string; claimCap: number }[] }
 interface Company {
@@ -140,11 +141,12 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
   const [busy, setBusy] = useState(false);
   const [linkedin, setLinkedin] = useState("");
   const [note, setNote] = useState("");
-  const emptyForm = { name: "", role: "", email: "", sourceUrl: "", consentType: "inferred_publication", legalBasis: "", evidenceUrl: "", evidenceNotes: "" };
+  const emptyForm = { name: "", role: "", email: "", sourceUrl: "" };
   const [form, setForm] = useState(emptyForm);
+  const [quick, setQuick] = useState<QuickState>(emptyQuick());
+  const [addQuick, setAddQuick] = useState<QuickState>(emptyQuick());
+  const [draft, setDraft] = useState<BasisDraft | undefined>(undefined);
   const [consentFor, setConsentFor] = useState<string | null>(null);
-  const [aiNote, setAiNote] = useState<{ verified: boolean; text: string } | null>(null);
-  const [drafting, setDrafting] = useState(false);
 
   const reload = useCallback(async () => {
     const r = await call(`/api/rep/pool/${id}`, "GET");
@@ -162,32 +164,18 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
     return r;
   }
 
-  async function draftFor(contactId: string) {
-    setDrafting(true);
-    setAiNote(null);
+  // Opening a contact's basis form checks their website straight away: a verified finding pre-fills it.
+  async function openBasis(contactId: string) {
+    setConsentFor(contactId);
+    setQuick(emptyQuick());
+    setDraft(undefined);
     const r = await call("/api/rep/pool/basis/draft", "POST", { contactIds: [contactId] });
-    setDrafting(false);
     const d = (r.drafts as BasisDraft[] | undefined)?.[0];
-    if (!r.ok || !d) { setAiNote({ verified: false, text: r.error ?? "Could not draft." }); return; }
-    if (d.verified) {
-      setForm((f) => ({ ...f, consentType: d.consentType, legalBasis: d.legalBasis, evidenceUrl: d.evidenceUrl ?? "", evidenceNotes: d.evidenceNotes }));
-      setAiNote({ verified: true, text: "Address found on the page below. This is a draft: read it, then click Record basis." });
-    } else setAiNote({ verified: false, text: d.warning ?? "Nothing could be verified." });
+    if (d) {
+      setDraft(d);
+      if (d.verified) setQuick(quickFromDraft(d));
+    }
   }
-
-  const basisFields = (f: typeof form, set: (v: typeof form) => void) => (
-    <div className="grid gap-2 sm:grid-cols-2">
-      <div className="sm:col-span-2"><label className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Lawful basis</label>
-        <select className={input} value={f.consentType} onChange={(e) => set({ ...f, consentType: e.target.value })}>
-          <option value="inferred_publication">Address publicly published for business contact (relevant to their role)</option>
-          <option value="existing_relationship">Existing relationship</option>
-          <option value="express">They asked / agreed to be contacted</option>
-        </select></div>
-      <div className="sm:col-span-2"><label className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Why you may contact them (a sentence or two)</label><textarea className={input} rows={2} value={f.legalBasis} onChange={(e) => set({ ...f, legalBasis: e.target.value })} placeholder="e.g. Listed on their contact page as the property management enquiries address; our service is relevant to their role." /></div>
-      <div><label className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Evidence link</label><input className={input} value={f.evidenceUrl} onChange={(e) => set({ ...f, evidenceUrl: e.target.value })} placeholder="https://…" /></div>
-      <div><label className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Notes</label><input className={input} value={f.evidenceNotes} onChange={(e) => set({ ...f, evidenceNotes: e.target.value })} /></div>
-    </div>
-  );
 
   if (err) return <Msg error={err} />;
   if (!d) return <div className="mt-4 flex items-center gap-2 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div>;
@@ -259,17 +247,13 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
             {c.status !== "eligible" && c.status !== "suppressed" && (
               consentFor === c.id ? (
                 <div className="mt-3 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button className={btnGhost} disabled={busy || drafting} onClick={() => void draftFor(c.id)}><Sparkles size={12} className="mr-1 inline" />{drafting ? "Checking their website…" : "Draft with AI"}</button>
-                    {aiNote && <span className={`text-[11px] ${aiNote.verified ? "text-emerald-300" : "text-amber-300"}`}>{aiNote.text}</span>}
-                  </div>
-                  {basisFields(form, setForm)}
+                  <QuickBasisFields value={quick} onChange={setQuick} draft={draft} sourceUrl={null} />
                   <div className="flex gap-2">
-                    <button className={btn} disabled={busy} onClick={() => void act(() => call(`/api/rep/pool/contacts/${c.id}/consent`, "POST", { consentType: form.consentType, legalBasis: form.legalBasis, evidenceUrl: form.evidenceUrl, evidenceNotes: form.evidenceNotes }), "Basis recorded.").then((r) => { if (r.ok) { setConsentFor(null); setForm(emptyForm); } })}>Record basis</button>
+                    <button className={btn} disabled={busy || !quickBody(quick)} onClick={() => void act(() => call(`/api/rep/pool/contacts/${c.id}/consent`, "POST", quickBody(quick)), "Confirmed.").then((r) => { if (r.ok) { setConsentFor(null); setQuick(emptyQuick()); } })}>{draft?.verified && quick.reason === "published" ? "Confirm & save" : "Save"}</button>
                     <button className={btnGhost} onClick={() => setConsentFor(null)}>Cancel</button>
                   </div>
                 </div>
-              ) : <button className={`${btnGhost} mt-2`} onClick={() => { setConsentFor(c.id); setForm(emptyForm); setAiNote(null); }}>Record lawful basis</button>
+              ) : <button className={`${btnGhost} mt-2`} onClick={() => void openBasis(c.id)}>Confirm lawful basis</button>
             )}
             {c.status === "eligible" && <p className="mt-2 text-slate-500">Find them in your Leads CRM (source “Lead pool”) to send an email or enrol them in a campaign.</p>}
           </li>))}
@@ -283,8 +267,8 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
               <div><label className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Role</label><input className={input} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} placeholder="e.g. Principal, Head of Property" /></div>
               <div><label className="mb-1 block text-[10px] font-bold uppercase text-slate-500">Where you found it (link)</label><input className={input} value={form.sourceUrl} onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })} placeholder="https://…" /></div>
             </div>
-            {basisFields(form, setForm)}
-            <button className={btn} disabled={busy || !form.email} onClick={() => void act(() => call(`/api/rep/pool/${id}/contacts`, "POST", { name: form.name, role: form.role, email: form.email, sourceUrl: form.sourceUrl, sourceType: "company_website", basis: { consentType: form.consentType, legalBasis: form.legalBasis, evidenceUrl: form.evidenceUrl, evidenceNotes: form.evidenceNotes } }), "Contact added.").then((r) => { if (r.ok) setForm(emptyForm); })}>Add contact &amp; record basis</button>
+            <QuickBasisFields value={addQuick} onChange={setAddQuick} sourceUrl={form.sourceUrl || null} />
+            <button className={btn} disabled={busy || !form.email || !quickBody(addQuick)} onClick={() => void act(() => call(`/api/rep/pool/${id}/contacts`, "POST", { name: form.name, role: form.role, email: form.email, sourceUrl: form.sourceUrl, sourceType: "company_website", basis: quickBody(addQuick) }), "Contact added.").then((r) => { if (r.ok) { setForm(emptyForm); setAddQuick(emptyQuick()); } })}>Add contact &amp; save</button>
           </div>
         </details>
       </div>

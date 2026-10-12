@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { basisSchema, recordBasisFor, repJsonError, repRoute } from "@/lib/repPool";
+import { basisSchema, quickBasisSchema, recordBasisFor, repJsonError, repRoute } from "@/lib/repPool";
 import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const body = z.object({
-  items: z.array(basisSchema.and(z.object({ contactId: z.string().uuid() }))).min(1).max(25),
+  items: z.array(z.union([basisSchema, quickBasisSchema]).and(z.object({ contactId: z.string().uuid() }))).min(1).max(25),
 });
 
 /**
