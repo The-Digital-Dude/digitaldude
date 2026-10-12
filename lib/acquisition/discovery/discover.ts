@@ -5,14 +5,28 @@ import { getSearchProvider, SearchNotConfiguredError, type SearchProvider, type 
 import { enqueueJob } from "../queue/enqueue";
 import { logAudit } from "../audit";
 
-const TERMS = ["property management company", "rental property managers", "real estate property management agency", "strata and property management"];
-const PLACES: { place: string; state: string }[] = [
-  { place: "Sydney", state: "NSW" }, { place: "Melbourne", state: "VIC" }, { place: "Brisbane", state: "QLD" },
-  { place: "Perth", state: "WA" }, { place: "Adelaide", state: "SA" }, { place: "Canberra", state: "ACT" },
-  { place: "Hobart", state: "TAS" }, { place: "Darwin", state: "NT" }, { place: "Gold Coast", state: "QLD" },
-  { place: "Newcastle", state: "NSW" }, { place: "Sunshine Coast", state: "QLD" }, { place: "Geelong", state: "VIC" },
-  { place: "Wollongong", state: "NSW" }, { place: "Townsville", state: "QLD" }, { place: "Cairns", state: "QLD" },
-];
+export interface Market {
+  id: string | null;
+  name: string;
+  industry: string;
+  country: string;
+  search_phrases: string[];
+  places: string[];
+  qualification_text: string;
+  domain_suffixes: string[];
+}
+
+/** Used when no markets are configured (or the markets table does not exist yet): the original AU property-management behaviour. */
+export const DEFAULT_MARKET: Market = {
+  id: null,
+  name: "Property management - Australia",
+  industry: "Property management",
+  country: "AU",
+  search_phrases: ["property management company", "rental property managers", "real estate property management agency", "strata and property management"],
+  places: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Hobart", "Darwin", "Gold Coast", "Newcastle", "Sunshine Coast", "Geelong", "Wollongong", "Townsville", "Cairns"],
+  qualification_text: "Property management businesses that could benefit from custom software, workflow automation and owner/tenant reporting.",
+  domain_suffixes: [".au"],
+};
 
 /** Portals, directories, social networks and aggregators are not the businesses we want. */
 const DENY = [
@@ -25,13 +39,14 @@ const DENY = [
 
 export interface Query {
   text: string;
-  state: string;
 }
 
-/** Deterministic daily rotation so different days cover different term/place pairs. */
-export function queriesForDay(dayNumber: number, count: number): Query[] {
+/** Deterministic daily rotation so different days cover different phrase/place pairs of a market. */
+export function queriesForDay(dayNumber: number, count: number, market: Market = DEFAULT_MARKET): Query[] {
+  const places = market.places.length ? market.places : [""];
   const all: Query[] = [];
-  for (const p of PLACES) for (const t of TERMS) all.push({ text: `${t} ${p.place}`, state: p.state });
+  for (const p of places) for (const t of market.search_phrases) all.push({ text: `${t} ${p}`.trim() });
+  if (all.length === 0) return [];
   const out: Query[] = [];
   for (let i = 0; i < Math.min(count, all.length); i++) out.push(all[(dayNumber * count + i) % all.length]);
   return out;
@@ -41,7 +56,7 @@ export interface Candidate {
   name: string;
   website: string;
   domain: string;
-  state: string;
+  region: string | null;
 }
 
 export function isDeniedDomain(domain: string): boolean {
@@ -54,33 +69,46 @@ function nameFromTitle(title: string, domain: string): string {
   return clean.length >= 2 && clean.length <= 120 ? clean : domain;
 }
 
-/** Turns raw search hits into unique, plausible .au business candidates. Never fetches anything. */
-export function candidatesFromResults(results: SearchResult[], state: string): Candidate[] {
+/** Turns raw search hits into unique, plausible business candidates for a market. Never fetches anything. */
+export function candidatesFromResults(results: SearchResult[], region: string | null = null, suffixes: string[] = [".au"]): Candidate[] {
   const seen = new Set<string>();
   const out: Candidate[] = [];
   for (const r of results) {
     const domain = normalizeDomain(r.url);
-    if (!domain || seen.has(domain) || !domain.endsWith(".au") || isDeniedDomain(domain)) continue;
+    if (!domain || seen.has(domain) || isDeniedDomain(domain)) continue;
+    if (suffixes.length && !suffixes.some((s) => domain.endsWith(s))) continue;
     seen.add(domain);
-    out.push({ name: nameFromTitle(r.title, domain), website: `https://${domain}`, domain, state });
+    out.push({ name: nameFromTitle(r.title, domain), website: `https://${domain}`, domain, region });
   }
   return out;
 }
 
-export async function runDiscovery(db: Db, deps: { search?: SearchProvider | null; now?: Date } = {}) {
+async function loadMarkets(db: Db): Promise<Market[]> {
+  const { data, error } = await db.from("acq_markets").select("id,name,industry,country,search_phrases,places,qualification_text,domain_suffixes").eq("enabled", true).order("created_at", { ascending: true });
+  if (error || !data) return [DEFAULT_MARKET]; // markets table not migrated yet
+  return data.length ? (data as Market[]) : [];
+}
+
+export async function runDiscovery(db: Db, deps: { search?: SearchProvider | null; now?: Date; markets?: Market[] } = {}) {
   const search = deps.search === undefined ? getSearchProvider() : deps.search;
   if (!search) throw new SearchNotConfiguredError();
   const limits = autoLimits();
   const now = deps.now ?? new Date();
   const dayNumber = Math.floor(now.getTime() / 86_400_000);
   const day = now.toISOString().slice(0, 10);
+  const markets = deps.markets ?? (await loadMarkets(db));
+  if (markets.length === 0) return { queries: 0, candidates: 0, created: 0 };
 
-  const found = new Map<string, Candidate>();
-  for (const q of queriesForDay(dayNumber, limits.searchQueries)) {
-    const results = await search.search(q.text, 10);
-    for (const c of candidatesFromResults(results, q.state)) if (!found.has(c.domain)) found.set(c.domain, c);
+  // Spread the daily search budget over the enabled markets.
+  const perMarket = Math.max(1, Math.floor(limits.searchQueries / markets.length));
+  const found = new Map<string, Candidate & { market: Market }>();
+  for (const market of markets) {
+    for (const q of queriesForDay(dayNumber, perMarket, market)) {
+      const results = await search.search(q.text, 10, market.country);
+      for (const c of candidatesFromResults(results, null, market.domain_suffixes)) if (!found.has(c.domain)) found.set(c.domain, { ...c, market });
+    }
   }
-  if (found.size === 0) return { queries: limits.searchQueries, candidates: 0, created: 0 };
+  if (found.size === 0) return { queries: perMarket * markets.length, candidates: 0, created: 0 };
 
   const domains = [...found.keys()];
   const existing = new Set<string>();
@@ -98,7 +126,10 @@ export async function runDiscovery(db: Db, deps: { search?: SearchProvider | nul
     if (existing.has(c.domain)) continue;
     const { data, error } = await db
       .from("acq_companies")
-      .insert({ name: c.name, website: c.website, domain: c.domain, state: c.state, source: "ai_discovery" })
+      .insert({
+        name: c.name, website: c.website, domain: c.domain, source: "ai_discovery",
+        market_id: c.market.id, country: c.market.country, industry: c.market.industry,
+      })
       .select("id")
       .single();
     if (error) {
@@ -107,7 +138,7 @@ export async function runDiscovery(db: Db, deps: { search?: SearchProvider | nul
     }
     created++;
     await enqueueJob(db, { type: "research", payload: { companyId: data.id }, idempotencyKey: `research:${data.id}:${day}` });
-    await logAudit(db, "company.discovered", "company", data.id, { domain: c.domain }, "ai-discovery");
+    await logAudit(db, "company.discovered", "company", data.id, { domain: c.domain, market: c.market.name }, "ai-discovery");
   }
-  return { queries: limits.searchQueries, candidates: found.size, created };
+  return { queries: perMarket * markets.length, candidates: found.size, created };
 }

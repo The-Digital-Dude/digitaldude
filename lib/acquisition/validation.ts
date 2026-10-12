@@ -14,7 +14,12 @@ export const STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"] as c
 export const companyInput = z.object({
   name: text(200).min(1),
   website: optionalUrl,
-  state: z.preprocess((v) => (v === "" ? null : v), z.enum(STATES).nullable().optional()),
+  state: z.preprocess((v) => (v === "" ? null : v), z.enum(STATES).nullable().optional()), // legacy AU state; prefer `region`
+  region: optionalText(80),
+  country: z.preprocess((v) => (typeof v === "string" ? (v.trim() === "" ? null : v.trim().toUpperCase()) : v), z.string().regex(/^[A-Z]{2}$/, "Use a 2-letter country code like AU, GB, US").nullable().optional()),
+  market_id: z.preprocess((v) => (v === "" ? null : v), z.string().uuid().nullable().optional()),
+  industry: optionalText(120),
+  linkedin_url: optionalUrl,
   suburb: optionalText(120),
   property_portfolio_evidence: optionalText(2000),
 });
@@ -127,3 +132,34 @@ export const webhookEvent = z.object({
   body: z.string().max(100_000).optional(),
   occurredAt: z.string().optional(),
 });
+
+const list = (maxItems: number, maxLen: number) =>
+  z.preprocess(
+    (v) => (typeof v === "string" ? v.split(/[\n,]/).map((x) => x.trim()).filter(Boolean) : v),
+    z.array(z.string().trim().min(1).max(maxLen)).max(maxItems)
+  );
+
+export const marketInput = z.object({
+  name: text(120).min(1),
+  industry: text(120).min(1),
+  country: z.preprocess((v) => (typeof v === "string" ? v.trim().toUpperCase() : v), z.string().regex(/^[A-Z]{2}$/, "Use a 2-letter country code like AU, GB, US")),
+  search_phrases: list(20, 120),
+  places: list(60, 80),
+  qualification_text: text(1000).default(""),
+  domain_suffixes: list(10, 12),
+  enabled: z.boolean().default(true),
+});
+export const marketPatch = marketInput.partial();
+
+export const countryRuleInput = z.object({
+  country: z.preprocess((v) => (typeof v === "string" ? v.trim().toUpperCase() : v), z.string().regex(/^[A-Z]{2}$/, "Use a 2-letter country code")),
+  name: text(120).min(1),
+  email_allowed: z.boolean(),
+  requires_postal_address: z.boolean().default(false),
+  notes: text(1000).default(""),
+});
+
+export const duplicateBody = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("merge"), keeperId: z.string().uuid() }),
+  z.object({ action: z.literal("dismiss") }),
+]);

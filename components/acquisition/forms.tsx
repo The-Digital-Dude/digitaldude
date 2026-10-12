@@ -10,9 +10,11 @@ import { STARTER_TEMPLATE } from "@/lib/acquisition/compliance/templates";
 
 const STATES = ["", "NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
 
-export function CompanyImportForm() {
+export function CompanyImportForm({ markets = [] }: { markets?: { id: string; name: string; country: string; industry: string }[] }) {
   const { run, busy, result } = useAction();
   const [text, setText] = useState("");
+  const [marketId, setMarketId] = useState("");
+  const [country, setCountry] = useState("");
   const [summary, setSummary] = useState<string | null>(null);
 
   function parse() {
@@ -22,14 +24,28 @@ export function CompanyImportForm() {
       .filter(Boolean)
       .filter((l, i) => !(i === 0 && /^name\b/i.test(l)))
       .map((l) => {
-        const [name, website, state, suburb] = l.split(/\t|,/).map((x) => x.trim());
-        return { name, website: website || null, state: (state || "").toUpperCase() || null, suburb: suburb || null };
+        const [name, website, region, suburb] = l.split(/\t|,/).map((x) => x.trim());
+        const m = markets.find((x) => x.id === marketId);
+        return { name, website: website || null, region: region || null, suburb: suburb || null, market_id: marketId || null, country: m?.country ?? (country.trim().toUpperCase() || null), industry: m?.industry ?? null };
       });
   }
 
   return (
     <div>
-      <label className={labelCls} htmlFor="import">Paste one company per line: <code>name, website, state, suburb</code></label>
+      <div className="mb-3 grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className={labelCls}>Market (sets country and industry)</label>
+          <select className={inputCls} value={marketId} onChange={(e) => setMarketId(e.target.value)}>
+            <option value="">No market</option>
+            {markets.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls}>Country code (when no market)</label>
+          <input className={inputCls} maxLength={2} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="AU, GB, US…" disabled={!!marketId} />
+        </div>
+      </div>
+      <label className={labelCls} htmlFor="import">Paste one company per line: <code>name, website, region, suburb</code></label>
       <textarea id="import" className={inputCls} rows={5} value={text} onChange={(e) => setText(e.target.value)} placeholder={"Acme Property Management, https://acme.com.au, QLD, Brisbane\nHarbour Realty, harbourrealty.com.au, NSW, Sydney"} />
       <div className="mt-3 flex items-center gap-3">
         <button
@@ -593,5 +609,65 @@ export function SenderIdentityCard({ business, postalAddress }: { business: stri
       <div><label className={labelCls}>Postal address</label><input className={inputCls} value={a} onChange={(e) => setA(e.target.value)} placeholder="Street, city, postcode, country" /></div>
       <div className="sm:col-span-2"><button className={btnCls} disabled={busy}>{busy ? "Saving…" : "Save identity"}</button><Feedback result={result} /></div>
     </form>
+  );
+}
+
+/* ---------- Markets, countries, duplicates ---------- */
+
+export function MarketForm() {
+  const { run, busy, result } = useAction();
+  const [f, setF] = useState({ name: "", industry: "", country: "", search_phrases: "", places: "", domain_suffixes: "", qualification_text: "" });
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
+  return (
+    <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); void run("/api/acquisition/markets", "POST", f, () => setF({ name: "", industry: "", country: "", search_phrases: "", places: "", domain_suffixes: "", qualification_text: "" })); }}>
+      <div><label className={labelCls}>Market name</label><input className={inputCls} required value={f.name} onChange={set("name")} placeholder="Law firms - United Kingdom" /></div>
+      <div><label className={labelCls}>Industry</label><input className={inputCls} required value={f.industry} onChange={set("industry")} placeholder="Law firms" /></div>
+      <div><label className={labelCls}>Country code</label><input className={inputCls} required maxLength={2} value={f.country} onChange={set("country")} placeholder="GB" /></div>
+      <div><label className={labelCls}>Allowed website endings (optional)</label><input className={inputCls} value={f.domain_suffixes} onChange={set("domain_suffixes")} placeholder=".uk, .co.uk (blank = any business site)" /></div>
+      <div className="sm:col-span-2"><label className={labelCls}>Search phrases (one per line or comma separated)</label><textarea className={inputCls} rows={3} value={f.search_phrases} onChange={set("search_phrases")} placeholder={"commercial law firm\nsmall business solicitors"} /></div>
+      <div className="sm:col-span-2"><label className={labelCls}>Places to search (cities/regions, optional)</label><textarea className={inputCls} rows={2} value={f.places} onChange={set("places")} placeholder="London, Manchester, Leeds" /></div>
+      <div className="sm:col-span-2"><label className={labelCls}>What a good fit looks like (guides the AI)</label><textarea className={inputCls} rows={2} value={f.qualification_text} onChange={set("qualification_text")} placeholder="Small to mid-sized firms that could use case-management automation." /></div>
+      <div className="sm:col-span-2"><button className={btnCls} disabled={busy}>{busy ? "Creating…" : "Create market"}</button><Feedback result={result} /></div>
+    </form>
+  );
+}
+
+export function MarketToggle({ id, enabled }: { id: string; enabled: boolean }) {
+  return <ActionButton url={`/api/acquisition/markets/${id}`} method="PATCH" body={{ enabled: !enabled }} variant={enabled ? "ghost" : "primary"}>{enabled ? "Disable" : "Enable"}</ActionButton>;
+}
+
+export function CountryRuleForm() {
+  const { run, busy, result } = useAction();
+  const [f, setF] = useState({ country: "", name: "", requires_postal_address: false, notes: "" });
+  return (
+    <form className="grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); if (!window.confirm("Enable email outreach to this country? Only do this after checking its rules for business email.")) return; void run("/api/acquisition/country-rules", "POST", { ...f, email_allowed: true }, () => setF({ country: "", name: "", requires_postal_address: false, notes: "" })); }}>
+      <div><label className={labelCls}>Country code</label><input className={inputCls} required maxLength={2} value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })} placeholder="DE" /></div>
+      <div><label className={labelCls}>Country name</label><input className={inputCls} required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Germany" /></div>
+      <div className="sm:col-span-2"><label className={labelCls}>Notes (the rule you checked)</label><input className={inputCls} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></div>
+      <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={f.requires_postal_address} onChange={(e) => setF({ ...f, requires_postal_address: e.target.checked })} /> Requires a postal address in the footer</label>
+      <div className="sm:col-span-2"><button className={btnCls} disabled={busy}>{busy ? "Saving…" : "Enable country"}</button><Feedback result={result} /></div>
+    </form>
+  );
+}
+
+export function CountryToggle({ country, name, allowed, requiresPostal, notes }: { country: string; name: string; allowed: boolean; requiresPostal: boolean; notes: string }) {
+  return (
+    <ActionButton
+      url="/api/acquisition/country-rules"
+      body={{ country, name, email_allowed: !allowed, requires_postal_address: requiresPostal, notes }}
+      variant={allowed ? "danger" : "primary"}
+      confirm={allowed ? undefined : `Enable email outreach to ${name}? Check its rules for business email first.`}
+    >
+      {allowed ? "Block" : "Enable"}
+    </ActionButton>
+  );
+}
+
+export function DuplicateControls({ companyId, keeperId, keeperName }: { companyId: string; keeperId: string; keeperName: string }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <ActionButton url={`/api/acquisition/companies/${companyId}/duplicate`} body={{ action: "merge", keeperId }} confirm={`Merge this company into "${keeperName}"? Its contacts, research and suggestions move across and this record is archived (not deleted).`}>Merge into {keeperName}</ActionButton>
+      <ActionButton url={`/api/acquisition/companies/${companyId}/duplicate`} body={{ action: "dismiss" }} variant="ghost">Not a duplicate</ActionButton>
+    </div>
   );
 }

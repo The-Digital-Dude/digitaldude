@@ -34,7 +34,12 @@ export const POST = adminRoute("import companies", async (request, { db }) => {
     }
     const { data, error } = await db
       .from("acq_companies")
-      .insert({ name: c.name, website: c.website ?? null, domain, state: c.state ?? null, suburb: c.suburb ?? null, property_portfolio_evidence: c.property_portfolio_evidence ?? null })
+      .insert({
+        name: c.name, website: c.website ?? null, domain, state: c.state ?? null, suburb: c.suburb ?? null,
+        region: c.region ?? c.state ?? null, country: c.country ?? null, market_id: c.market_id ?? null,
+        industry: c.industry ?? null, linkedin_url: c.linkedin_url ?? null,
+        property_portfolio_evidence: c.property_portfolio_evidence ?? null,
+      })
       .select("id")
       .single();
     if (error) {

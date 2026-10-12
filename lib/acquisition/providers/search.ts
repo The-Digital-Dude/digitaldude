@@ -8,7 +8,7 @@ export interface SearchResult {
 
 export interface SearchProvider {
   readonly name: string;
-  search(query: string, count: number): Promise<SearchResult[]>;
+  search(query: string, count: number, country?: string): Promise<SearchResult[]>;
 }
 
 export class SearchNotConfiguredError extends Error {
@@ -22,11 +22,11 @@ export class BraveSearchProvider implements SearchProvider {
   readonly name = "brave";
   constructor(private readonly apiKey: string) {}
 
-  async search(query: string, count: number): Promise<SearchResult[]> {
+  async search(query: string, count: number, country = "AU"): Promise<SearchResult[]> {
     const u = new URL("https://api.search.brave.com/res/v1/web/search");
     u.searchParams.set("q", query);
     u.searchParams.set("count", String(Math.min(20, Math.max(1, count))));
-    u.searchParams.set("country", "AU");
+    u.searchParams.set("country", country.toUpperCase());
     u.searchParams.set("search_lang", "en");
     const res = await fetch(u, { headers: { accept: "application/json", "x-subscription-token": this.apiKey }, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) throw new Error(`Search API error ${res.status}`);

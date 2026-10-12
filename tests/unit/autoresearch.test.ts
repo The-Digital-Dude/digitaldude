@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { extractOwnDomainEmails } from "@/lib/acquisition/research/emails";
-import { candidatesFromResults, queriesForDay, isDeniedDomain, runDiscovery } from "@/lib/acquisition/discovery/discover";
+import { candidatesFromResults, queriesForDay, isDeniedDomain, runDiscovery, DEFAULT_MARKET, type Market } from "@/lib/acquisition/discovery/discover";
 import { enqueueDailyAuto } from "@/lib/acquisition/queue/daily";
 import { saveContactSuggestions } from "@/lib/acquisition/research/pipeline";
 import type { SearchProvider } from "@/lib/acquisition/providers/search";
@@ -108,7 +108,7 @@ describe("runDiscovery", () => {
       acq_companies: [{ id: "c0", domain: "known.com.au" }],
       acq_suppressions: [{ company_domain: "optout.com.au" }],
     });
-    const r = await runDiscovery(db, { search: fakeSearch(["https://known.com.au", "https://optout.com.au", "https://fresh.com.au", "https://realestate.com.au/x"]), now: new Date("2026-10-13T00:00:00Z") });
+    const r = await runDiscovery(db, { search: fakeSearch(["https://known.com.au", "https://optout.com.au", "https://fresh.com.au", "https://realestate.com.au/x"]), now: new Date("2026-10-13T00:00:00Z"), markets: [DEFAULT_MARKET] });
     expect(r.created).toBe(1);
     const added = tables.acq_companies.find((c) => c.domain === "fresh.com.au")!;
     expect(added).toMatchObject({ source: "ai_discovery" });
@@ -119,7 +119,7 @@ describe("runDiscovery", () => {
     vi.stubEnv("ACQ_DAILY_NEW_COMPANIES", "2");
     const { db, tables } = memDb();
     const urls = ["a", "b", "c", "d"].map((x) => `https://${x}.com.au`);
-    expect((await runDiscovery(db, { search: fakeSearch(urls) })).created).toBe(2);
+    expect((await runDiscovery(db, { search: fakeSearch(urls), markets: [DEFAULT_MARKET] })).created).toBe(2);
     expect(tables.acq_companies).toHaveLength(2);
   });
 });

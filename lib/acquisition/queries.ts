@@ -40,9 +40,19 @@ export async function dashboardStats() {
   };
 }
 
+export async function listMarkets() {
+  const db = getDb();
+  return must(await db.from("acq_markets").select("*").order("created_at", { ascending: true }), "markets");
+}
+
+export async function listCountryRules() {
+  const db = getDb();
+  return must(await db.from("acq_country_rules").select("*").order("country"), "country rules");
+}
+
 export async function listCompanies() {
   const db = getDb();
-  return must(await db.from("acq_companies").select("*, acq_contacts(count)").order("fit_score", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).limit(500), "companies");
+  return must(await db.from("acq_companies").select("*, acq_contacts(count), acq_markets(name)").order("fit_score", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false }).limit(500), "companies");
 }
 
 export async function getCompany(id: string) {

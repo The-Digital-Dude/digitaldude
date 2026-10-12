@@ -9,7 +9,7 @@ import path from "node:path";
  */
 export async function createDb() {
   const db = new PGlite();
-  for (const file of ["0022_acquisition_system.sql", "0023_acquisition_autoresearch.sql"]) {
+  for (const file of ["0022_acquisition_system.sql", "0023_acquisition_autoresearch.sql", "0026_markets_countries_dedupe.sql"]) {
     await db.exec(readFileSync(path.resolve(__dirname, "../../supabase/migrations", file), "utf8"));
   }
   return db;
@@ -38,7 +38,8 @@ export async function unpause(db: Db) {
 
 /** Creates a contact with a valid, reviewed consent basis and marks it eligible. */
 export async function eligibleContact(db: Db, email: string) {
-  const c = await one<{ id: string }>(db, `insert into acq_contacts (email, source_url, source_type) values ($1,'https://example.com.au/contact','company_website') returning id`, [email]);
+  const co = await one<{ id: string }>(db, `insert into acq_companies (name, country) values ($1,'AU') returning id`, [`Co ${email}`]);
+  const c = await one<{ id: string }>(db, `insert into acq_contacts (company_id, email, source_url, source_type) values ($1,$2,'https://example.com.au/contact','company_website') returning id`, [co.id, email]);
   await db.query(
     `insert into acq_consent_records (contact_id, consent_type, legal_basis, evidence_url, evidence_notes, reviewed_by, reviewed_at)
      values ($1,'inferred_publication','Conspicuously published business address; relevant to role','https://example.com.au/contact','Reviewed page','neil', now())`,
