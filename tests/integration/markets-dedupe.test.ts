@@ -23,12 +23,12 @@ describe("markets and country rules", () => {
     expect(await allowed("AU")).toBe(true);
     expect(await allowed("gb")).toBe(true);
     expect(await allowed("US")).toBe(true);
-    expect(await allowed("DE")).toBe(false);
+    expect(await allowed("FR")).toBe(false);
     expect(await allowed("BD")).toBe(false);
-    await db.query(`insert into acq_country_rules (country, name, email_allowed) values ('DE','Germany',false)`);
-    expect(await allowed("DE")).toBe(false);
-    await db.query(`update acq_country_rules set email_allowed = true where country='DE'`);
-    expect(await allowed("DE")).toBe(true);
+    await db.query(`insert into acq_country_rules (country, name, email_allowed) values ('SE','Sweden',false)`);
+    expect(await allowed("SE")).toBe(false);
+    await db.query(`update acq_country_rules set email_allowed = true where country='SE'`);
+    expect(await allowed("SE")).toBe(true);
   });
 
   it("validates market country codes", async () => {
@@ -126,9 +126,9 @@ describe("country gate on sending", () => {
     }
   });
   it("allows the country once the owner enables it", async () => {
-    const m = await setup("NL", "nl");
+    const m = await setup("NO", "no");
     expect(await reserve(m)).toMatchObject({ ok: false, reason: "country_blocked" });
-    await db.query(`insert into acq_country_rules (country, name, email_allowed) values ('NL','Netherlands',true)`);
+    await db.query(`insert into acq_country_rules (country, name, email_allowed) values ('NO','Norway',true)`);
     expect(await reserve(m)).toMatchObject({ ok: true });
   });
 });
