@@ -1,7 +1,8 @@
 import { UNIQUE_VIOLATION, type Db } from "../db";
 import { normalizeDomain } from "../normalize";
 import { autoLimits } from "../env";
-import { getSearchProvider, SearchNotConfiguredError, type SearchProvider, type SearchResult } from "../providers/search";
+import { SearchNotConfiguredError, type SearchProvider, type SearchResult } from "../providers/search";
+import { resolveSearchProvider } from "../secrets";
 import { enqueueJob } from "../queue/enqueue";
 import { logAudit } from "../audit";
 
@@ -90,7 +91,7 @@ async function loadMarkets(db: Db): Promise<Market[]> {
 }
 
 export async function runDiscovery(db: Db, deps: { search?: SearchProvider | null; now?: Date; markets?: Market[] } = {}) {
-  const search = deps.search === undefined ? getSearchProvider() : deps.search;
+  const search = deps.search === undefined ? await resolveSearchProvider(db) : deps.search;
   if (!search) throw new SearchNotConfiguredError();
   const limits = autoLimits();
   const now = deps.now ?? new Date();

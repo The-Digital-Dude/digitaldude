@@ -16,6 +16,7 @@ interface Detail {
   notes: { id: string; author: string; note: string; created_at: string }[];
   countryRule: { email_allowed: boolean; requires_postal_address: boolean; notes: string; name: string } | null;
   helpLinks: { label: string; url: string }[];
+  finderEnabled: boolean;
 }
 
 const STATUSES = ["assigned", "needs_contact", "contacted", "replied", "meeting", "won", "lost", "dead"];
@@ -178,6 +179,12 @@ function CompanyWorkspace({ id, onChanged, onReleased }: { id: string; onChanged
         <div className="flex flex-wrap gap-2">
           {d.helpLinks.map((l) => <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer" className={btnGhost}>{l.label} <ExternalLink size={10} className="ml-1 inline" /></a>)}
         </div>
+        {d.finderEnabled && (
+          <div className="mt-3">
+            <button className={btn} disabled={busy} onClick={() => void act(() => call(`/api/rep/pool/${id}/find-contacts`, "POST", {}), "Search finished.").then((r) => { if (r.ok && r.message) setRes({ note: String(r.message) }); })}>Find contacts with Hunter</button>
+            <span className="ml-2 text-slate-500">Results appear below as suggestions you review.</span>
+          </div>
+        )}
         <div className="mt-3 flex gap-2">
           <input className={input} value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="Paste the company's LinkedIn page address" />
           <button className={btnGhost} disabled={busy} onClick={() => void act(() => call(`/api/rep/pool/${id}`, "PATCH", { linkedinUrl: linkedin }), "Saved.")}>Save</button>

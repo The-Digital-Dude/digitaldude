@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ActionButton, Feedback, api, useAction } from "./client";
-import { btnCls, btnDangerCls, btnGhostCls, inputCls, labelCls } from "./ui";
+import { Badge, btnCls, btnDangerCls, btnGhostCls, inputCls, labelCls } from "./ui";
 import { STARTER_TEMPLATE } from "@/lib/acquisition/compliance/templates";
 
 /* ---------- Companies ---------- */
@@ -668,6 +668,55 @@ export function DuplicateControls({ companyId, keeperId, keeperName }: { company
     <div className="flex flex-wrap gap-2">
       <ActionButton url={`/api/acquisition/companies/${companyId}/duplicate`} body={{ action: "merge", keeperId }} confirm={`Merge this company into "${keeperName}"? Its contacts, research and suggestions move across and this record is archived (not deleted).`}>Merge into {keeperName}</ActionButton>
       <ActionButton url={`/api/acquisition/companies/${companyId}/duplicate`} body={{ action: "dismiss" }} variant="ghost">Not a duplicate</ActionButton>
+    </div>
+  );
+}
+
+/* ---------- Third-party API keys + contact finder ---------- */
+
+export function SecretKeyCard({ name, title, help, status }: { name: "hunter" | "brave"; title: string; help: string; status: { configured: boolean; source: string; keyHint: string | null } }) {
+  const { run, busy, result } = useAction();
+  const [apiKey, setApiKey] = useState("");
+  const [test, setTest] = useState<{ ok: boolean; text: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  async function runTest() {
+    setTesting(true);
+    setTest(null);
+    const r = await api("/api/acquisition/settings/secrets", "POST", { name, action: "test", apiKey: apiKey || undefined });
+    setTest({ ok: r.ok, text: String(r.ok ? r.message : r.error ?? "Test failed") });
+    setTesting(false);
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 p-4">
+      <p className="font-semibold text-navy">{title} <Badge tone={status.configured ? "green" : "amber"}>{status.configured ? `configured (${status.source === "saved" ? "saved here" : "environment"})` : "not set"}</Badge></p>
+      <p className="mt-1 text-xs text-navy/60">{help}{status.configured && status.keyHint && <> Current key: <code>{status.keyHint}</code>.</>}</p>
+      <form
+        className="mt-3 flex flex-wrap items-center gap-2"
+        onSubmit={(e) => { e.preventDefault(); void run("/api/acquisition/settings/secrets", "POST", { name, action: "save", apiKey }, () => setApiKey("")); }}
+      >
+        <input className={`${inputCls} max-w-sm`} type="password" autoComplete="off" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder={status.source === "saved" ? "Paste a new key to replace" : "Paste your API key"} />
+        <button className={btnCls} disabled={busy || testing || !apiKey}>{busy ? "Saving…" : "Save"}</button>
+        <button type="button" className={btnGhostCls} disabled={busy || testing} onClick={() => void runTest()}>{testing ? "Testing…" : "Test connection"}</button>
+        {status.source === "saved" && <button type="button" className={btnDangerCls} disabled={busy || testing} onClick={() => { if (window.confirm(`Remove the saved ${title} key?`)) void run("/api/acquisition/settings/secrets", "POST", { name, action: "clear" }); }}>Remove</button>}
+      </form>
+      {test && <p className={`mt-3 rounded-lg p-3 text-sm ${test.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-700"}`} role="status">{test.ok ? "OK: " : "Failed: "}{test.text}</p>}
+      <Feedback result={result} />
+    </div>
+  );
+}
+
+export function FindContactsButton({ companyId, enabled }: { companyId: string; enabled: boolean }) {
+  const { run, busy, result } = useAction();
+  const [msg, setMsg] = useState<string | null>(null);
+  return (
+    <div>
+      <button className={btnGhostCls} disabled={busy || !enabled} title={enabled ? undefined : "Add a Hunter key under Safety & settings first"} onClick={() => { setMsg(null); void run(`/api/acquisition/companies/${companyId}/find-contacts`, "POST", {}, (r) => setMsg(String(r.message ?? "Done"))); }}>
+        {busy ? "Searching…" : "Find contacts (Hunter)"}
+      </button>
+      {msg && <p className="mt-2 text-sm text-emerald-700" role="status">{msg}</p>}
+      <Feedback result={result && !result.ok ? result : null} />
     </div>
   );
 }

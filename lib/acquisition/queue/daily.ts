@@ -1,7 +1,7 @@
 import type { Db } from "../db";
 import { autoLimits } from "../env";
 import { resolveAiProvider } from "../ai-config";
-import { getSearchProvider } from "../providers/search";
+import { resolveSearchProvider } from "../secrets";
 import { runDiscovery } from "../discovery/discover";
 import { enqueueJob } from "./enqueue";
 import { sydneyDayKey } from "./send";
@@ -25,7 +25,7 @@ export async function enqueueDailyAuto(db: Db, now = new Date()): Promise<{ disc
   const sydneyDay = sydneyDayKey(now);
   const limits = autoLimits();
   let discover = false;
-  if (getSearchProvider() && limits.searchQueries > 0 && limits.newCompanies > 0) {
+  if ((await resolveSearchProvider(db)) && limits.searchQueries > 0 && limits.newCompanies > 0) {
     discover = (await enqueueJob(db, { type: "discover", payload: {}, idempotencyKey: `discover:${sydneyDay}`, maxAttempts: 2 })).created;
   }
 

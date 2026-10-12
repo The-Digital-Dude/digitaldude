@@ -1,6 +1,7 @@
 import { getDb, must } from "./db";
 import { aiStatus } from "./ai-config";
 import { loadSenderIdentity } from "@/lib/outreachGate";
+import { secretStatus } from "./secrets";
 import { acqEnv, brevoSenderEmail, sendAllowlist } from "./env";
 
 /* Server-only read models for the dashboard pages. */
@@ -79,7 +80,7 @@ export async function getCompany(id: string) {
     db.from("acq_contacts").select("*, acq_consent_records(*)").eq("company_id", id).order("created_at"),
     db.from("acq_contact_suggestions").select("*").eq("company_id", id).eq("status", "pending").order("created_at"),
   ]);
-  return { company, research: must(research, "research"), contacts: must(contacts, "contacts"), suggestions: must(suggestions, "suggestions") };
+  return { company, research: must(research, "research"), contacts: must(contacts, "contacts"), suggestions: must(suggestions, "suggestions"), finderEnabled: (await secretStatus(db, "hunter")).configured };
 }
 
 export async function listCampaigns() {
@@ -159,12 +160,12 @@ export async function settingsOverview() {
     autoResearchEnabled: must(autoFlag, "settings")?.value === true,
     ai: await aiStatus(db),
     identity: await loadSenderIdentity(db),
+    secrets: { hunter: await secretStatus(db, "hunter"), brave: await secretStatus(db, "brave") },
     config: {
       "Supabase (service role)": !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
       "Unsubscribe signing secret": (process.env.ACQ_UNSUBSCRIBE_SECRET ?? "").length >= 32,
       "Webhook signing secret": (process.env.ACQ_WEBHOOK_SECRET ?? "").length >= 16,
       "Cron secret": !!process.env.CRON_SECRET,
-      "Search API key (discovery)": !!process.env.BRAVE_SEARCH_API_KEY,
       "Brevo API key": !!(process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY),
       "Brevo sender (subdomain)": !!brevoSenderEmail(),
       "Recipient allowlist (pilot guard)": !!sendAllowlist(),

@@ -6,6 +6,7 @@ import { SIGNAL_CATEGORIES, scoreLead, type ScoredSignal, type SignalCategory } 
 import { getDb, must, type Db } from "../db";
 import { normalizeDomain } from "../normalize";
 import { extractOwnDomainEmails, type ExtractedEmail } from "./emails";
+import { insertSuggestions, type SuggestionInput } from "../contacts/suggestions";
 
 /** Shape returned by the model. `fitScore` is intentionally absent: the score is computed from verified evidence. */
 export const leadResearchSchema = z.object({
@@ -235,20 +236,9 @@ export async function runResearch(companyId: string, deps?: Partial<ResearchDeps
  * consent-review gate still applies after that.
  */
 export async function saveContactSuggestions(db: Db, companyId: string, pages: ResearchPage[]) {
-  const seen = new Map<string, { email: string; source_url: string; evidence_excerpt: string }>();
-  for (const p of pages) for (const e of p.emails ?? []) if (!seen.has(e.email)) seen.set(e.email, { email: e.email, source_url: p.url, evidence_excerpt: e.excerpt });
-  let saved = 0;
-  for (const s of seen.values()) {
-    const { data: existing } = await db.from("acq_contacts").select("id").eq("email_normalized", s.email).maybeSingle();
-    if (existing) continue;
-    const { data: suppressed, error: se } = await db.rpc("acq_is_suppressed", { p_email: s.email });
-    if (se) throw new Error(`suppression lookup: ${se.message}`);
-    if (suppressed === true) continue;
-    const ins = await db.from("acq_contact_suggestions").insert({ company_id: companyId, ...s });
-    if (ins.error && ins.error.code !== "23505") throw new Error(`save suggestion: ${ins.error.message}`);
-    if (!ins.error) saved++;
-  }
-  return saved;
+  const items: SuggestionInput[] = [];
+  for (const p of pages) for (const e of p.emails ?? []) items.push({ email: e.email, source_url: p.url, evidence_excerpt: e.excerpt, origin: "website" });
+  return insertSuggestions(db, companyId, items);
 }
 
 /** Recompute a company's score from its stored (verified or manually entered) research records. */

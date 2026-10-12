@@ -3,6 +3,7 @@ import { z } from "zod";
 import { cleanLinkedinUrl, ownedCompany, repActor, repJsonError, repRoute, searchHelpLinks } from "@/lib/repPool";
 import { logAudit } from "@/lib/acquisition/audit";
 import { must } from "@/lib/acquisition/db";
+import { secretStatus } from "@/lib/acquisition/secrets";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export const GET = repRoute<{ id: string }>("company detail", async (_request, {
     suggestions: must(suggestions, "suggestions"),
     notes: must(notes, "notes"),
     countryRule: rule.data ?? null,
+    finderEnabled: (await secretStatus(db, "hunter")).configured && !!company.domain,
     helpLinks: searchHelpLinks(company),
   });
 });

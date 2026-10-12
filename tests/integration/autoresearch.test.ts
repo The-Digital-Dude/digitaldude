@@ -33,3 +33,21 @@ describe("migration 0023 (auto research)", () => {
     expect(await failure(db, `update acq_contacts set status='eligible' where id=$1`, [c.id])).toMatch(/no reviewed consent/);
   });
 });
+
+describe("migration 0030 (contact finder)", () => {
+  it("suggestions record their origin and confidence, with bounds", async () => {
+    const co = await one<{ id: string }>(db, `insert into acq_companies (name) values ('Finder Co') returning id`);
+    const ins = (email: string, origin: string, conf: number | null) =>
+      failure(db, `insert into acq_contact_suggestions (company_id, email, source_url, evidence_excerpt, origin, confidence) values ($1,$2,'https://x','e',$3,$4)`, [co.id, email, origin, conf]);
+    expect(await ins("a@finder.com", "hunter", 92)).toBeNull();
+    expect(await ins("b@finder.com", "website", null)).toBeNull();
+    expect(await ins("c@finder.com", "scraped", 50)).toMatch(/origin_check/);
+    expect(await ins("d@finder.com", "hunter", 101)).toMatch(/confidence_check/);
+    const d = await one<{ origin: string }>(db, `insert into acq_contact_suggestions (company_id, email, source_url, evidence_excerpt) values ($1,'e@finder.com','https://x','e') returning origin`, [co.id]);
+    expect(d.origin).toBe("website");
+  });
+  it("tracks when a company was last looked up", async () => {
+    const co = await one<{ at: string | null }>(db, `insert into acq_companies (name) values ('Lookup Co') returning contacts_looked_up_at as at`);
+    expect(co.at).toBeNull();
+  });
+});

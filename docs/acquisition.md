@@ -120,7 +120,15 @@ it, leave auto research off or remove `saveContactSuggestions` from `research/pi
   eligible with a valid basis, the address is not suppressed and the company's country is enabled (`acq_rep_can_email`). A first email moves the
   company to "contacted". A rep's own non-pool prospects behave as before.
 
-**Migrations, in order:** `0022`, `0023`, `0024` (cron; replace `<CRON_SECRET>`, never commit the real value), `0025`, `0026`, `0027`, `0029`.
+- **Contact finder (Hunter.io):** "Find contacts" on a company (admin company page and the rep Lead Pool) looks up published business addresses
+  for the company's domain. Only addresses on the company's own domain are kept (free-mail and other domains dropped), results are cached for
+  30 days per company, and lookups are capped daily (`ACQ_DAILY_HUNTER_LOOKUPS`, default 25). Hunter results are **suggestions**, exactly like
+  website-found addresses: a person must accept one and record a lawful basis before it can be emailed. The Spam Act "address-harvesting" caveat
+  above applies; UK/EU personal-data rules (GDPR) apply to named individuals, and the country rule table still gates sending.
+- **API keys in the UI** (Safety & settings > Contact finder & web search keys): Hunter and Brave keys can be saved there (encrypted, never shown
+  again, override env vars) with a **Test connection** button (Hunter also shows the plan and monthly searches used).
+
+**Migrations, in order:** `0022`, `0023`, `0024` (cron; replace `<CRON_SECRET>`, never commit the real value), `0025`, `0026`, `0027`, `0029`, `0030`.
 
 ## Daily flow
 

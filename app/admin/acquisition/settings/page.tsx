@@ -1,6 +1,6 @@
 import { settingsOverview } from "@/lib/acquisition/queries";
 import { Badge, Card, Empty, PageHeader, StatusBadge, fmtDate } from "@/components/acquisition/ui";
-import { AiSettingsCard, AutoResearchToggle, SenderIdentityCard, Checklist, PauseToggle, SuppressionForm } from "@/components/acquisition/forms";
+import { AiSettingsCard, AutoResearchToggle, SecretKeyCard, SenderIdentityCard, Checklist, PauseToggle, SuppressionForm } from "@/components/acquisition/forms";
 
 export default async function SettingsPage() {
   const s = await settingsOverview();
@@ -16,6 +16,13 @@ export default async function SettingsPage() {
       <Card title="Sender identity (rep email footer)" className="mb-6"><SenderIdentityCard business={s.identity.business} postalAddress={s.identity.postalAddress} /></Card>
 
       <Card title="AI provider (API key)" className="mb-6"><AiSettingsCard status={s.ai} /></Card>
+
+      <Card title="Contact finder & web search keys" className="mb-6">
+        <div className="space-y-4">
+          <SecretKeyCard name="hunter" title="Hunter.io (contact finder)" help="Finds published business email addresses for a company's domain. Results are only suggestions that a person must accept and justify. The free plan allows a limited number of searches a month; lookups are cached for 30 days and capped daily." status={s.secrets.hunter} />
+          <SecretKeyCard name="brave" title="Brave Search (company discovery)" help="Used by the daily discovery run to find new companies for your markets." status={s.secrets.brave} />
+        </div>
+      </Card>
 
       <Card title="Automatic discovery & research" className="mb-6">
         <p className="mb-3 text-sm text-navy/70">Auto research is currently <strong>{s.autoResearchEnabled ? "ON" : "OFF"}</strong>. When on, each day the system searches for Australian property managers, adds new companies, researches them, and suggests published business addresses for you to review. It never emails anyone. Needs the AI and search keys below.</p>
