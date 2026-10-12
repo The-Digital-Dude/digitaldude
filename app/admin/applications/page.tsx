@@ -568,6 +568,7 @@ export default function AdminApplicationsPage() {
           setSelected(data.application);
         }
         setPendingStatusModal(null);
+        if (data.emailError) alert(`Status updated, but the email was NOT sent: ${data.emailError}`);
       } else {
         alert(data.error || "Failed to update status");
       }
@@ -611,6 +612,7 @@ export default function AdminApplicationsPage() {
         );
         setSelected(data.application);
         setInlineStage(null);
+        if (data.emailError) alert(`Stage updated, but the email was NOT sent: ${data.emailError}`);
       } else {
         alert(data.error || "Failed to update stage.");
       }

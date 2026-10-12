@@ -40,6 +40,7 @@ const POOL_REASONS: Record<string, string> = {
   consent_invalid: "The recorded lawful basis is missing, expired or withdrawn.",
   country_blocked: "Outreach to this company's country is not enabled. Ask the admin.",
   company_archived: "This company is archived.",
+  company_closed: "This company was closed out as lost or dead. Reopen it before emailing.",
   company_has_active_contact: "Another person at this company is already being contacted. Wait for that conversation to finish (or 30 days) before emailing a colleague.",
   suppressed: "This address is on the do-not-contact list.",
 };

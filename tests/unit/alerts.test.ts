@@ -86,3 +86,20 @@ describe("health checks", () => {
     expect(tables.acq_notifications[0].title).toMatch(/3 background jobs failed/);
   });
 });
+
+describe("notification emails are sent once", () => {
+  it("two overlapping ticks never email the same notification twice", async () => {
+    const { db } = fakeDb({ acq_notifications: [{ id: "a", title: "T", body: "", link: null, recipient_employee_id: null, email_sent_at: null, created_at: "1" }] });
+    const send = vi.fn<MailSender>(async () => ({ ok: true }));
+    await Promise.all([emailPendingNotifications(db, send), emailPendingNotifications(db, send)]);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+  it("releases a notification whose email failed so it is retried", async () => {
+    const { db, tables } = fakeDb({ acq_notifications: [{ id: "a", title: "T", body: "", link: null, recipient_employee_id: null, email_sent_at: null, created_at: "1" }] });
+    await emailPendingNotifications(db, async () => ({ ok: false, error: "boom" }));
+    expect(tables.acq_notifications[0].email_sent_at).toBeNull();
+    const send = vi.fn<MailSender>(async () => ({ ok: true }));
+    await emailPendingNotifications(db, send);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+});

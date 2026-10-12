@@ -73,3 +73,20 @@ describe("one contact per company at a time", () => {
     expect(await active(a)).toBe(false);
   });
 });
+
+describe("rep gate: closed companies (0036)", () => {
+  it("refuses a contact at a lost or dead company, and allows it again when reopened", async () => {
+    const rep = await one<{ id: string }>(db, `insert into employees (full_name, email, onboarding_completed) values ('Rita','rita@x.com',true) returning id`);
+    const c = await eligibleContact(db, "closed-gate@example.com.au");
+    const co = await one<{ company_id: string }>(db, `select company_id from acq_contacts where id=$1`, [c]);
+    await db.query(`update acq_companies set owner_employee_id=$1, pool_status='assigned' where id=$2`, [rep.id, co.company_id]);
+    const can = () => one<{ ok: boolean; reason: string | null }>(db, `select * from acq_rep_can_email($1,$2)`, [c, rep.id]);
+    expect(await can()).toMatchObject({ ok: true });
+    for (const s of ["lost", "dead"]) {
+      await db.query(`update acq_companies set pool_status=$1 where id=$2`, [s, co.company_id]);
+      expect(await can()).toMatchObject({ ok: false, reason: "company_closed" });
+    }
+    await db.query(`update acq_companies set pool_status='assigned' where id=$1`, [co.company_id]);
+    expect(await can()).toMatchObject({ ok: true });
+  });
+});

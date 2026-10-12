@@ -1,6 +1,6 @@
 import { listReplies } from "@/lib/acquisition/queries";
 import { Badge, Card, Empty, PageHeader, StatusBadge, fmtDate } from "@/components/acquisition/ui";
-import { ReplyControls } from "@/components/acquisition/forms";
+import { ReplyControls, SuggestReply } from "@/components/acquisition/forms";
 
 export default async function InboxPage() {
   const replies = await listReplies();
@@ -21,6 +21,7 @@ export default async function InboxPage() {
               </div>
               <pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-slate-50 p-3 font-sans text-sm text-navy/80">{r.body || "(empty)"}</pre>
               <div className="mt-3"><ReplyControls replyId={r.id} classification={r.classification} contactId={r.acq_contacts.id} canBook={r.classification === "interested"} /></div>
+              <SuggestReply replyId={r.id} classification={r.classification} />
             </Card>
           ))}
         </div>

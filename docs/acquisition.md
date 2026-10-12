@@ -173,7 +173,7 @@ Brevo uses its own payloads authenticated by `ACQ_WEBHOOK_SECRET` (bearer header
 
 ## Replies, follow-ups, alerts and bulk work (migrations 0032-0035)
 
-**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035`.
+**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0036`.
 Run each file whole. A half-applied file (for example only the last statements of `0029`) breaks the rep portal.
 
 **One contact per company at a time.** A first email to a contact is refused while a colleague at the same company has a
@@ -206,6 +206,22 @@ recorded it shows "needs lawful basis" and every send path still blocks it.
 
 **Bulk actions.** Rep: select companies in My companies (find contacts, max 10 per click; set status; release), and the Needs lawful
 basis table. Admin: Companies list (find contacts, max 10 per click, plus the existing actions) and the Suggestions page (bulk accept or dismiss).
+
+**Reply trust.** A reply is only processed automatically when Gmail's `Authentication-Results` shows DMARC pass, or a DKIM pass for
+the sender's own domain. Otherwise nobody's sequence is stopped and nobody is suppressed: the admin gets an "Unverified reply" alert
+and decides. Mail with no automation headers is a person talking, so "I'm away until March" in it is held for a human, never treated as an
+auto-reply. One failing message never blocks the others, and the Gmail cursor only advances when everything was handled.
+
+**Rep notifications.** The dashboard bell lists the rep's replies and new assignments (also emailed).
+
+**Industry templates.** `lib/industryTemplates.ts` holds drafted starting wording for the seven industries: pick one when creating an admin
+campaign, and reps find "Industry: ..." templates in the outreach composer. They are drafts to edit and make no claims about the recipient.
+
+**AI reply suggestions.** In the admin Inbox and the rep "Replies" tab. The text is a draft for a person to edit: nothing is sent from the
+suggestion, opt-outs / bounces / auto-replies get none, only the booking link may appear as a link, and a rep only sees their own earlier email.
+Reps use "Use in composer" so the normal send checks (suppression, basis, country, one-contact rule, caps, footer) still run.
+
+**Applicant emails.** Status changes report whether the Brevo email actually went out, instead of silently ignoring a failure.
 
 ## Tests
 

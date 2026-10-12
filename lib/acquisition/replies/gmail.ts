@@ -1,7 +1,7 @@
 import type { Db } from "../db";
 import { normalizeEmail } from "../normalize";
 import { recordInboundReply } from "./process";
-import { alertRep } from "../alerts";
+import { alertAdmin, alertRep } from "../alerts";
 import { log } from "@/lib/logger";
 
 export interface InboundMail {
@@ -13,11 +13,16 @@ export interface InboundMail {
   receivedAt: string;
   /** Automatic mail (out-of-office, mailing-list, bounce). */
   automated: boolean;
+  /** The sender passed DMARC, or a DKIM signature aligned with the From domain. Without it the From address cannot be trusted. */
+  authenticated: boolean;
 }
 
 export interface MailReader {
-  /** Messages that arrived after `afterEpochSec` (newest first is fine), without fetching bodies of mail we don't need. */
-  list(afterEpochSec: number): Promise<{ id: string; fromEmail: string }[]>;
+  /**
+   * Messages that arrived after `afterEpochSec`, without fetching bodies of mail we don't need.
+   * `truncated` is true when more mail exists than was returned (the caller must not move its cursor past it).
+   */
+  list(afterEpochSec: number): Promise<{ items: { id: string; fromEmail: string }[]; truncated: boolean }>;
   get(id: string): Promise<InboundMail>;
 }
 
@@ -56,6 +61,23 @@ export function stripQuoted(text: string): string {
   return out.join("\n").trim().slice(0, 5000);
 }
 
+const domainOf = (email: string) => email.split("@")[1]?.toLowerCase() ?? "";
+
+/**
+ * Gmail records the results of SPF/DKIM/DMARC checks in Authentication-Results. We trust a sender only if DMARC passed,
+ * or a DKIM signature passed for the From domain (or a parent/sub domain of it). Anything else could be a forged From.
+ */
+export function isAuthenticatedSender(authResults: string, fromEmail: string): boolean {
+  if (/\bdmarc=pass\b/i.test(authResults)) return true;
+  const from = domainOf(fromEmail);
+  if (!from) return false;
+  for (const m of authResults.matchAll(/\bdkim=pass\b[^;]*?\bheader\.(?:d|i)=@?([^\s;]+)/gi)) {
+    const d = domainOf(`x@${m[1].includes("@") ? m[1].split("@")[1] : m[1]}`);
+    if (d && (d === from || from.endsWith(`.${d}`) || d.endsWith(`.${from}`))) return true;
+  }
+  return false;
+}
+
 export function toInboundMail(m: GmailMessage): InboundMail {
   const from = parseAddress(header(m, "From"));
   const auto = header(m, "Auto-Submitted");
@@ -68,6 +90,7 @@ export function toInboundMail(m: GmailMessage): InboundMail {
     body: stripQuoted(findText(m.payload)),
     receivedAt: m.internalDate ? new Date(Number(m.internalDate)).toISOString() : new Date().toISOString(),
     automated: (auto !== "" && auto.toLowerCase() !== "no") || ["bulk", "junk", "list"].includes(precedence),
+    authenticated: isAuthenticatedSender((m.payload?.headers ?? []).filter((h) => h.name.toLowerCase() === "authentication-results").map((h) => h.value).join(" ; "), from.email),
   };
 }
 
@@ -102,13 +125,22 @@ export class GmailReader implements MailReader {
 
   async list(afterEpochSec: number) {
     const q = encodeURIComponent(`in:inbox -from:me after:${afterEpochSec}`);
-    const ids = ((await this.api<{ messages?: { id: string }[] }>(`messages?q=${q}&maxResults=40`)).messages ?? []).map((m) => m.id);
-    const out: { id: string; fromEmail: string }[] = [];
-    for (const id of ids) {
-      const m = await this.api<GmailMessage>(`messages/${id}?format=metadata&metadataHeaders=From`);
-      out.push({ id, fromEmail: parseAddress(header(m, "From")).email });
+    const ids: string[] = [];
+    let page: string | undefined;
+    let truncated = false;
+    for (let i = 0; i < 5; i++) {
+      const r = await this.api<{ messages?: { id: string }[]; nextPageToken?: string }>(`messages?q=${q}&maxResults=100${page ? `&pageToken=${encodeURIComponent(page)}` : ""}`);
+      ids.push(...(r.messages ?? []).map((m) => m.id));
+      page = r.nextPageToken;
+      if (!page) break;
+      if (i === 4) truncated = true; // more mail than five pages: leave the cursor where it is so nothing is skipped
     }
-    return out;
+    const items: { id: string; fromEmail: string }[] = [];
+    for (const id of ids.reverse()) { // oldest first
+      const m = await this.api<GmailMessage>(`messages/${id}?format=metadata&metadataHeaders=From`);
+      items.push({ id, fromEmail: parseAddress(header(m, "From")).email });
+    }
+    return { items, truncated };
   }
 
   async get(id: string) {
@@ -131,33 +163,58 @@ export async function pollReplies(db: Db, reader: MailReader, now = new Date(), 
 
   let recorded = 0;
   let repNotified = 0;
-  for (const item of await reader.list(after)) {
-    const email = normalizeEmail(item.fromEmail);
-    if (!email.includes("@") || SYSTEM_SENDER.test(email)) continue;
+  let failed = 0;
+  const { items, truncated } = await reader.list(after);
+  for (const item of items) {
+    // One bad message must never stop the others (an opt-out may be behind it).
+    try {
+      const email = normalizeEmail(item.fromEmail);
+      if (!email.includes("@") || SYSTEM_SENDER.test(email)) continue;
 
-    const { data: contact } = await db.from("acq_contacts").select("id").eq("email_normalized", email).maybeSingle();
-    if (contact) {
+      const { data: contact } = await db.from("acq_contacts").select("id").eq("email_normalized", email).maybeSingle();
+      if (contact) {
+        const mail = await reader.get(item.id);
+        if (mail.automated) continue; // out-of-office and list mail are not conversations
+        if (!mail.authenticated) {
+          // A forged From could otherwise stop a sequence or add someone to the permanent opt-out list. A person decides.
+          await alertAdmin(db, {
+            kind: "reply_unverified",
+            title: `Unverified reply claiming to be from ${email}`,
+            body: `The sender could not be authenticated (no passing DMARC/DKIM), so it was not processed automatically. Check the inbox and handle it by hand if it is genuine.\n\n${mail.body.slice(0, 300)}`,
+            dedupeKey: `gmail-unverified:${item.id}`,
+          });
+          continue;
+        }
+        // Mail we already filtered for automation headers is human: an "out of office" wording in it is a real reply.
+        const r = await record(db, { email, body: mail.body || `(no text) ${mail.subject}`, providerEventId: `gmail:${item.id}`, receivedAt: mail.receivedAt, humanMail: true });
+        if (r) recorded++;
+        continue;
+      }
+
+      // Not in the lead pool: was it a rep's own one-off prospect?
+      const { data: sent } = await db.from("rep_outreach_logs").select("employee_id,recipient_name").eq("recipient_email", email).order("sent_at", { ascending: false }).limit(1);
+      const owner = sent?.[0] as { employee_id: string; recipient_name: string | null } | undefined;
+      if (!owner) continue;
       const mail = await reader.get(item.id);
-      if (mail.automated) continue; // out-of-office and list mail are not conversations
-      const r = await record(db, { email, body: mail.body || `(no text) ${mail.subject}`, providerEventId: `gmail:${item.id}`, receivedAt: mail.receivedAt });
-      if (r) recorded++;
-      continue;
+      if (mail.automated || !mail.authenticated) continue; // a notification only: unverified mail is simply not announced
+      await alertRep(db, owner.employee_id, {
+        kind: "reply",
+        title: `${owner.recipient_name || email} replied to your email`,
+        body: mail.body.slice(0, 600),
+        dedupeKey: `gmail:${item.id}`,
+      });
+      repNotified++;
+    } catch (e) {
+      failed++;
+      log("error", { message: "gmail reply could not be processed", context: { messageId: item.id }, error: e });
     }
-
-    // Not in the lead pool: was it a rep's own one-off prospect?
-    const { data: sent } = await db.from("rep_outreach_logs").select("employee_id,recipient_name").eq("recipient_email", email).order("sent_at", { ascending: false }).limit(1);
-    const owner = sent?.[0] as { employee_id: string; recipient_name: string | null } | undefined;
-    if (!owner) continue;
-    const mail = await reader.get(item.id);
-    if (mail.automated) continue;
-    await alertRep(db, owner.employee_id, {
-      kind: "reply",
-      title: `${owner.recipient_name || email} replied to your email`,
-      body: mail.body.slice(0, 600),
-      dedupeKey: `gmail:${item.id}`,
-    });
-    repNotified++;
   }
+  if (failed > 0) {
+    await alertAdmin(db, { kind: "health", title: `${failed} inbox message(s) could not be processed`, body: "The reply reader hit an error on one or more messages and will keep retrying them. Check the server logs for 'gmail reply could not be processed'.", link: "/admin/acquisition/settings", dedupeKey: `health:gmail_failed:${now.toISOString().slice(0, 10)}` });
+  }
+
+  // Only move on when everything was handled and nothing was left unlisted; otherwise the next tick sees it all again.
+  if (failed > 0 || truncated) return { recorded, repNotified };
 
   const saved = await db.from("acq_settings").upsert({ key: "gmail_cursor", value: { at: startedAt } }).select("key");
   if (saved.error) log("warn", { message: "could not save gmail cursor", error: saved.error });

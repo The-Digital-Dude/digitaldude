@@ -277,6 +277,7 @@ export function AddCandidateModal({
 
       onCreated(data.application);
       onClose();
+      if (data.emailError) alert(`Candidate saved, but the email was NOT sent: ${data.emailError}`);
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : "Error saving candidate.");
     } finally {

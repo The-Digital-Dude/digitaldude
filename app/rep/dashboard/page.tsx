@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -53,6 +53,8 @@ import {
 import { SITE_URL } from "@/lib/utils";
 import { RepAnalyticsOverview } from "@/components/rep/RepAnalyticsOverview";
 import { RepPoolPanel } from "@/components/rep/PoolPanel";
+import { NotificationBell } from "@/components/rep/NotificationBell";
+import { repTemplates } from "@/lib/industryTemplates";
 
 interface ChecklistItem {
   task: string;
@@ -272,6 +274,8 @@ export default function RepDashboardPage() {
 
   // Outreach Composer State
   const [selectedTemplateId, setSelectedTemplateId] = useState("custom_crm");
+  // A reply suggestion filled into the composer: kept until the rep picks a template, so the template effect does not overwrite it.
+  const replyDraft = useRef<{ subject: string; message: string } | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -508,6 +512,7 @@ export default function RepDashboardPage() {
   useEffect(() => {
     const allTemplates = [
       ...BUILTIN_TEMPLATES,
+      ...repTemplates(),
       ...customTemplates.map((t) => ({
         id: t.id,
         name: t.template_name,
@@ -516,6 +521,11 @@ export default function RepDashboardPage() {
       })),
     ];
 
+    if (replyDraft.current) {
+      setEmailSubject(replyDraft.current.subject);
+      setEmailMessage(replyDraft.current.message);
+      return;
+    }
     const found = allTemplates.find((t) => t.id === selectedTemplateId) || BUILTIN_TEMPLATES[0];
     if (found) {
       const refLink = `${SITE_URL}/contact?ref=${profile?.referral_code || "rep"}`;
@@ -978,6 +988,8 @@ export default function RepDashboardPage() {
               </button>
             </div>
 
+            {profile.onboarding_completed && <NotificationBell onOpenItem={(kind) => setActiveTab(kind === "assignment" ? "pool" : "leads")} />}
+
             <button
               onClick={() => {
                 resetLeadForm();
@@ -1221,7 +1233,19 @@ export default function RepDashboardPage() {
         {/* ===================================================================== */}
         {/* VIEW 3: CAMPAIGNS & DRIP SEQUENCES */}
         {/* ===================================================================== */}
-        {activeTab === "pool" && profile.onboarding_completed && <RepPoolPanel />}
+        {activeTab === "pool" && profile.onboarding_completed && (
+          <RepPoolPanel
+            onUseReply={(r) => {
+              replyDraft.current = { subject: "Re: your reply", message: r.message };
+              setRecipientName(r.name);
+              setRecipientEmail(r.email);
+              setCompanyName(r.company);
+              setEmailSubject(replyDraft.current.subject);
+              setEmailMessage(r.message);
+              setActiveTab("outreach");
+            }}
+          />
+        )}
 
         {activeTab === "campaigns" && (
           <div className="space-y-6">
@@ -1482,7 +1506,7 @@ export default function RepDashboardPage() {
                 </label>
                 <select
                   value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
+                  onChange={(e) => { replyDraft.current = null; setSelectedTemplateId(e.target.value); }}
                   className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                 >
                   {BUILTIN_TEMPLATES.map((t) => (

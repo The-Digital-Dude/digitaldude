@@ -53,9 +53,11 @@ export function candidatePageUrls(sourceUrl: string | null, website: string | nu
 /** Does this page literally publish the address (mailto link or visible text)? Returns a short excerpt as proof. */
 export function findEmailOnPage(page: { html: string; text: string }, email: string): string | null {
   const e = email.trim().toLowerCase();
-  const inText = page.text.toLowerCase().indexOf(e);
-  if (inText >= 0) return page.text.slice(Math.max(0, inText - 100), Math.min(page.text.length, inText + e.length + 100)).replace(/\s+/g, " ").trim();
-  if (page.html.toLowerCase().includes(`mailto:${e}`)) return `Published as a mailto link on the page (${e})`;
+  // Whole-address match only: "info@acme.co" must not match "info@acme.com", nor "ann@x.com" match "joann@x.com".
+  const whole = new RegExp(`(?<![\\w.+-])${e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-]|\\.[\\w-])`, "i");
+  const m = whole.exec(page.text);
+  if (m) return page.text.slice(Math.max(0, m.index - 100), Math.min(page.text.length, m.index + e.length + 100)).replace(/\s+/g, " ").trim();
+  if (new RegExp(`mailto:${e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-]|\\.[\\w-])`, "i").test(page.html)) return `Published as a mailto link on the page (${e})`;
   return null;
 }
 

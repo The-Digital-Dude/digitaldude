@@ -25,7 +25,7 @@ export default async function SettingsPage() {
       </Card>
 
       <Card title="Automatic discovery & research" className="mb-6">
-        <p className="mb-3 text-sm text-navy/70">Auto research is currently <strong>{s.autoResearchEnabled ? "ON" : "OFF"}</strong>. When on, each day the system searches for Australian property managers, adds new companies, researches them, and suggests published business addresses for you to review. It never emails anyone. Needs the AI and search keys below.</p>
+        <p className="mb-3 text-sm text-navy/70">Auto research is currently <strong>{s.autoResearchEnabled ? "ON" : "OFF"}</strong>. When on, each day the system searches for companies in your enabled markets, adds new companies, researches them, and suggests published business addresses for you to review. It never emails anyone. Needs the AI and search keys below.</p>
         <AutoResearchToggle enabled={s.autoResearchEnabled} />
       </Card>
 

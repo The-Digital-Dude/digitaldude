@@ -90,7 +90,7 @@ export async function applyClassification(db: Db, replyId: string, cls: Classifi
 /** Stores an inbound reply (idempotent on provider event id) and applies instant rule-based handling. */
 export async function recordInboundReply(
   db: Db,
-  a: { email: string; body: string; providerEventId?: string; inReplyToProviderMessageId?: string; receivedAt?: string }
+  a: { email: string; body: string; providerEventId?: string; inReplyToProviderMessageId?: string; receivedAt?: string; humanMail?: boolean }
 ): Promise<{ replyId: string } | null> {
   const { data: contact } = await db.from("acq_contacts").select("id").eq("email_normalized", normalizeEmail(a.email)).maybeSingle();
   if (!contact) return null;
@@ -118,7 +118,10 @@ export async function recordInboundReply(
   }
 
   // Safest default first: an unclassified reply already halts automation.
-  const instant = classifyByRules(a.body);
+  let instant = classifyByRules(a.body);
+  // A rule-matched "out of office" in a message with no automation headers is a person talking ("interested, but I'm away until March"):
+  // never treat it as an auto-reply, which would let a follow-up through and hide it from the rep. A human decides.
+  if (a.humanMail && instant?.classification === "out_of_office") instant = null;
   const cls: Classification = instant ?? { classification: "uncertain", confidence: 0, by: "rules" };
   await applyClassification(db, reply.id, cls);
   if (!instant) {

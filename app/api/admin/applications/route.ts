@@ -297,11 +297,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Dispatch dynamic email if requested
+    // Dispatch dynamic email if requested, and report the real outcome.
+    let emailSent: boolean | null = null;
+    let emailError: string | null = null;
     if (sendEmail) {
       try {
         const { sendApplicationStatusEmail } = await import("@/lib/recruitingEmails");
-        await sendApplicationStatusEmail({
+        const result = await sendApplicationStatusEmail({
           applicantName,
           applicantEmail,
           jobTitle,
@@ -311,8 +313,15 @@ export async function POST(request: Request) {
           interviewBookingUrl: interviewBookingUrl || undefined,
           meetingLink: generatedMeetUrl || undefined,
         });
-        log("info", { message: "Manual candidate email dispatched", context: { applicantEmail, status } });
+        emailSent = result.ok;
+        if (result.ok) log("info", { message: "Manual candidate email dispatched", context: { applicantEmail, status } });
+        else {
+          emailError = result.error || "The email provider rejected the message.";
+          log("error", { message: "Manual candidate status email was not sent", error: result.error, context: { applicantEmail, status } });
+        }
       } catch (emailErr) {
+        emailSent = false;
+        emailError = emailErr instanceof Error ? emailErr.message : "Could not send the email.";
         log("warn", { message: "Could not send manual candidate status email", error: emailErr });
       }
     }
@@ -321,6 +330,8 @@ export async function POST(request: Request) {
       ok: true,
       application,
       meetUrl: generatedMeetUrl || null,
+      emailSent,
+      emailError,
     });
   } catch (error) {
     log("error", { message: "Failed to process manual candidate creation", error });

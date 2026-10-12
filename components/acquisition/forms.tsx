@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ActionButton, Feedback, api, useAction } from "./client";
 import { Badge, btnCls, btnDangerCls, btnGhostCls, inputCls, labelCls } from "./ui";
 import { STARTER_TEMPLATE } from "@/lib/acquisition/compliance/templates";
+import { INDUSTRY_NAMES, campaignTemplateFor } from "@/lib/industryTemplates";
 
 /* ---------- Companies ---------- */
 
@@ -110,7 +111,7 @@ export function ResearchNoteForm({ companyId }: { companyId: string }) {
         <div>
           <label className={labelCls}>Signal</label>
           <select className={inputCls} value={f.category} onChange={set("category")}>
-            <option value="identity">Is a property manager</option>
+            <option value="identity">Is the target type of business</option>
             <option value="portfolio">Portfolio size</option>
             <option value="opportunity">Workflow opportunity</option>
             <option value="technology">Technology investment</option>
@@ -280,6 +281,21 @@ export function CampaignForm({ campaignId, initial, maxDailyLimit }: { campaignI
           <div><label className={labelCls}>Sender / reply-to email</label><input className={inputCls} type="email" value={f.sender_email} onChange={(e) => set("sender_email", e.target.value)} /></div>
         </div>
       </fieldset>
+      {!campaignId && (
+        <div className="max-w-md">
+          <label className={labelCls}>Start from an industry template</label>
+          <select className={inputCls} value="" onChange={(e) => {
+            const t = campaignTemplateFor(e.target.value);
+            if (!t) return;
+            if (f.body_template.trim() !== STARTER_TEMPLATE.body.trim() && !window.confirm("Replace the subject, body and follow-up with this template?")) return;
+            setF({ ...f, subject_template: t.subject, body_template: t.body, followup_body_template: t.followup });
+          }}>
+            <option value="">Choose an industry…</option>
+            {INDUSTRY_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <p className="mt-1 text-xs text-navy/50">A drafted starting point. Edit it freely; nothing sends until you approve the campaign.</p>
+        </div>
+      )}
       <div><label className={labelCls}>Subject</label><input className={inputCls} value={f.subject_template} onChange={(e) => set("subject_template", e.target.value)} /></div>
       <div>
         <label className={labelCls}>Initial email body</label>
@@ -717,6 +733,46 @@ export function FindContactsButton({ companyId, enabled }: { companyId: string; 
       </button>
       {msg && <p className="mt-2 text-sm text-emerald-700" role="status">{msg}</p>}
       <Feedback result={result && !result.ok ? result : null} />
+    </div>
+  );
+}
+
+
+/** Drafts a reply with the AI for a person to review. Nothing is sent from here: copy it into your own mail. */
+export function SuggestReply({ replyId, classification }: { replyId: string; classification: string }) {
+  const [busy, setBusy] = useState(false);
+  const [text, setText] = useState<string | null>(null);
+  const [to, setTo] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  if (["opt_out", "bounce", "out_of_office"].includes(classification)) return null;
+
+  async function suggest() {
+    setBusy(true);
+    setError(null);
+    const r = await api(`/api/acquisition/replies/${replyId}/suggest`, "POST");
+    setBusy(false);
+    if (r.ok) {
+      setText(String(r.suggestion));
+      setTo(String(r.to ?? ""));
+    } else setError(r.error ?? "Could not suggest a reply");
+  }
+
+  return (
+    <div className="mt-3">
+      {text === null ? (
+        <button className={btnGhostCls} disabled={busy} onClick={() => void suggest()}>{busy ? "Thinking…" : "Suggest a reply (AI)"}</button>
+      ) : (
+        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <p className="text-xs font-semibold text-navy/60">Draft reply to {to}. Read and edit it, then send it from your own mail. Nothing is sent from here.</p>
+          <textarea className={`${inputCls} font-sans`} rows={6} value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="flex gap-2">
+            <button className={btnCls} onClick={() => { void navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>{copied ? "Copied" : "Copy"}</button>
+            <button className={btnGhostCls} onClick={() => setText(null)}>Discard</button>
+          </div>
+        </div>
+      )}
+      {error && <p className="mt-2 text-sm font-medium text-red-700" role="alert">{error}</p>}
     </div>
   );
 }

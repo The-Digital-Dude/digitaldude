@@ -83,18 +83,18 @@ export async function emailPendingNotifications(db: Db, send: MailSender = brevo
   let sent = 0;
   let failed = 0;
   for (const n of rows) {
+    // Claim the row atomically; if another worker tick got there first, skip it.
+    const claim = await db.from("acq_notifications").update({ email_sent_at: new Date().toISOString() }).eq("id", n.id).is("email_sent_at", null).select("id");
+    if (claim.error || (claim.data ?? []).length === 0) continue;
     const repOk = n.recipient_employee_id ? n.employees && n.employees.status !== "offboarded" && n.employees.email : true;
     const to = n.recipient_employee_id ? n.employees?.email : adminAlertEmail();
-    if (!repOk || !to) {
-      await db.from("acq_notifications").update({ email_sent_at: new Date().toISOString() }).eq("id", n.id); // nowhere to send
-      continue;
-    }
+    if (!repOk || !to) continue; // nowhere to send: stays marked as handled
     const res = await send({ to, toName: n.employees?.full_name ?? undefined, subject: n.title, html: render(n) });
     if (res.ok) {
-      await db.from("acq_notifications").update({ email_sent_at: new Date().toISOString() }).eq("id", n.id);
       sent++;
     } else {
       failed++;
+      await db.from("acq_notifications").update({ email_sent_at: null }).eq("id", n.id); // release it so the next tick retries
       log("warn", { message: "notification email failed", context: { id: n.id }, error: res.error });
     }
   }

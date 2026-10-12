@@ -117,10 +117,17 @@ export async function PUT(
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
+    // The status is already saved. Report honestly whether the email actually went out instead of assuming it did.
+    let emailSent: boolean | null = null; // null = no email was requested
+    let emailError: string | null = null;
+    if (send_email && !data.applicant_email) {
+      emailSent = false;
+      emailError = "This candidate has no email address, so no email was sent.";
+    }
     if (send_email && data.applicant_email) {
       try {
         const { sendApplicationStatusEmail } = await import("@/lib/recruitingEmails");
-        await sendApplicationStatusEmail({
+        const result = await sendApplicationStatusEmail({
           applicantName: data.applicant_name,
           applicantEmail: data.applicant_email,
           jobTitle: data.job_postings?.title || "the role",
@@ -130,12 +137,19 @@ export async function PUT(
           interviewBookingUrl: interview_booking_url,
           meetingLink: meeting_link,
         });
+        emailSent = result.ok;
+        if (!result.ok) {
+          emailError = result.error || "The email provider rejected the message.";
+          log("error", { message: "Application status email was not sent", error: result.error, context: { id } });
+        }
       } catch (err) {
+        emailSent = false;
+        emailError = err instanceof Error ? err.message : "Could not send the email.";
         log("warn", { message: "Could not send application status email", error: err });
       }
     }
 
-    return NextResponse.json({ ok: true, application: data });
+    return NextResponse.json({ ok: true, application: data, emailSent, emailError });
   } catch (error) {
     return NextResponse.json({ ok: false, error: (error as Error).message }, { status: 500 });
   }

@@ -92,3 +92,15 @@ describe("draftBasisForContact", () => {
     expect(await draftBasisForContact(fakeDb({ acq_contacts: [] }).db, "nope", { ai: null })).toBeNull();
   });
 });
+
+describe("whole-address matching", () => {
+  it("does not treat a longer or different address as proof", () => {
+    const hit = (text: string, email: string) => findEmailOnPage({ html: "", text }, email);
+    expect(hit("Write to info@acme.com today", "info@acme.co")).toBeNull();
+    expect(hit("Write to joann@x.com today", "ann@x.com")).toBeNull();
+    expect(hit("Write to info@acme.com.au today", "info@acme.com")).toBeNull();
+    expect(hit("Write to info@acme.com. Thanks", "info@acme.com")).toBeTruthy(); // trailing full stop is fine
+    expect(hit("Write to (info@acme.com) or call", "info@acme.com")).toBeTruthy();
+    expect(findEmailOnPage({ html: '<a href="mailto:info@acme.co">x</a>', text: "" }, "info@acme.com")).toBeNull();
+  });
+});

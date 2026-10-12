@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Loader2, Search, ShieldCheck, Sparkles, Undo2 } from "lucide-react";
 import { btn, btnGhost, call, card, input, Msg, type BasisDraft } from "./poolShared";
 import { NeedsBasisPanel } from "./NeedsBasis";
+import { RepliesPanel } from "./Replies";
 import { emptyQuick, quickBody, quickFromDraft, QuickBasisFields, type QuickState } from "./QuickBasis";
 
 interface Summary { held: number; cap: number; markets: { id: string; name: string; country: string; claimCap: number }[] }
@@ -25,8 +26,8 @@ interface Detail {
 const STATUSES = ["assigned", "needs_contact", "contacted", "replied", "meeting", "won", "lost", "dead"];
 const label = (s: string) => s.replace(/_/g, " ");
 /** "Lead pool" tab: claim companies from your markets, find and record contacts, then email through the normal tools. */
-export function RepPoolPanel() {
-  const [view, setView] = useState<"mine" | "available" | "basis">("mine");
+export function RepPoolPanel({ onUseReply }: { onUseReply?: (r: { email: string; name: string; company: string; message: string }) => void } = {}) {
+  const [view, setView] = useState<"mine" | "available" | "basis" | "replies">("mine");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -44,7 +45,7 @@ export function RepPoolPanel() {
     else setMsg({ error: r.error ?? "Could not load the lead pool" });
     setLoading(false);
   }, [view]);
-  useEffect(() => { if (view !== "basis") void load(); }, [load, view]);
+  useEffect(() => { if (view !== "basis" && view !== "replies") void load(); }, [load, view]);
 
   const toggleSel = (id: string) => setSelected((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   async function bulk(body: Record<string, unknown>, confirmText?: string) {
@@ -72,17 +73,18 @@ export function RepPoolPanel() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1.5">
-          {(["mine", "available", "basis"] as const).map((v) => (
+          {(["mine", "available", "basis", "replies"] as const).map((v) => (
             <button key={v} onClick={() => { setView(v); setOpenId(null); setSelected(new Set()); setMsg(null); }} className={`px-3.5 py-2 rounded-lg text-xs font-bold transition ${view === v ? "bg-purple text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}>
-              {v === "mine" ? "My companies" : v === "available" ? "Available to claim" : "Needs lawful basis"}
+              {v === "mine" ? "My companies" : v === "available" ? "Available to claim" : v === "basis" ? "Needs lawful basis" : "Replies"}
             </button>
           ))}
         </div>
-        {summary && view !== "basis" && <p className="text-[11px] text-slate-400">Open companies: <strong className="text-white">{summary.held}</strong> / {summary.cap || 0}{summary.markets.length > 0 && <> · Markets: {summary.markets.map((m) => m.name).join(", ")}</>}</p>}
+        {summary && view !== "basis" && view !== "replies" && <p className="text-[11px] text-slate-400">Open companies: <strong className="text-white">{summary.held}</strong> / {summary.cap || 0}{summary.markets.length > 0 && <> · Markets: {summary.markets.map((m) => m.name).join(", ")}</>}</p>}
       </div>
       <Msg error={msg?.error} note={msg?.note} />
 
       {view === "basis" ? <NeedsBasisPanel onChanged={load} /> : null}
+      {view === "replies" ? <RepliesPanel onUseReply={onUseReply} /> : null}
 
       {view === "mine" && companies.length > 0 && (
         <div className={`${card} flex flex-wrap items-center gap-2`}>
@@ -101,7 +103,7 @@ export function RepPoolPanel() {
         </div>
       )}
 
-      {view === "basis" ? null : loading ? <div className="flex items-center gap-2 py-10 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div> : companies.length === 0 ? (
+      {view === "basis" || view === "replies" ? null : loading ? <div className="flex items-center gap-2 py-10 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div> : companies.length === 0 ? (
         <div className={`${card} text-center text-xs text-slate-400`}>
           {view === "mine" ? "You don't own any companies yet. Claim some from “Available to claim”, or ask the admin to assign you some." : summary && summary.markets.length === 0 ? "You haven't been given access to any markets yet. Ask the admin." : "Nothing is available to claim in your markets right now."}
         </div>
