@@ -19,8 +19,9 @@ const seed = () => ({
 });
 const good = {
   subject: "Reducing admin at Plum Property",
-  body: `Hi Dan,\n\nI saw that Plum Property manages 40 rental properties in Brisbane. We build owner reporting and workflow automation.\n\nWould a short call be useful?\n${BOOK}\n\nRegards,\nNeil`,
-  followup_body: "Hi Dan, a brief follow-up on my note. No reply is needed if it is not a priority.\n\nRegards,\nNeil",
+  // The model is told not to sign off, but if it does, the system strips it: the sign-off below is added exactly once by the system.
+  body: "Hi Dan,\n\nI saw that Plum Property manages 40 rental properties in Brisbane. We build owner reporting and workflow automation.\n\nIs owner reporting something you do by hand?\n\nRegards,\nNeil",
+  followup_body: "Hi Dan, a quick second note on owner reporting. No worries if the timing is off, no reply needed.\n\nBest,\nNeil",
   used_facts: [1],
 };
 
@@ -40,11 +41,13 @@ describe("buildLeadDraft with AI compose", () => {
     const msg = tables.acq_email_messages[0];
     expect(msg.subject).toBe(good.subject);
     expect(String(msg.body)).toContain("manages 40 rental properties");
+    expect(String(msg.body)).toContain("Regards,\nNeil"); // the sign-off is added by the system, not the AI
+    expect(String(msg.body)).not.toContain(BOOK); // no raw booking link in a cold email
     expect(String(msg.body)).toContain("Dhanmondi, Dhaka, Bangladesh");
     expect(String(msg.body)).toMatch(/unsubscribe here: https?:\/\/\S+t=/);
     const lead = tables.acq_campaign_leads[0];
     expect(lead.followup_subject).toBe("Following up: Reducing admin at Plum Property");
-    expect(String(lead.followup_body)).toContain("No reply is needed");
+    expect(String(lead.followup_body)).toContain("no reply needed");
     expect(String(lead.followup_body)).toMatch(/unsubscribe here: https?:\/\/\S+t=/);
     expect(tables.acq_audit_logs.some((a) => JSON.stringify(a).includes("aiComposed"))).toBe(true);
   });

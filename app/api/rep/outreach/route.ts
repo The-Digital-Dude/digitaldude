@@ -63,6 +63,10 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { recipientEmail, recipientName, companyName, subject, message, templateUsed, forceSend } = body;
+    // Stage-wise: a first cold email carries the "Book a 30-minute call" button (with THIS rep's referral link); a follow-up is a
+    // plain personal note by default. The rep can override the default with includeButton.
+    const stage: "cold" | "follow_up" = body.stage === "follow_up" ? "follow_up" : "cold";
+    const wantButton: boolean = typeof body.includeButton === "boolean" ? body.includeButton : stage === "cold";
 
     if (!recipientEmail || !subject || !message) {
       return NextResponse.json(
@@ -118,7 +122,7 @@ export async function POST(request: Request) {
     }
 
     // Check for duplicate recipients in last 14 days
-    if (!forceSend) {
+    if (!forceSend && stage !== "follow_up") {
       const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
       // limit(1), not maybeSingle(): maybeSingle errors on 2+ rows, which silently disabled this check after a second send.
       const { data: duplicateRows } = await supabase
@@ -176,15 +180,15 @@ export async function POST(request: Request) {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         ${formattedBody}
 
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0 20px 0;">
+        ${wantButton ? `        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0 20px 0;">
           <tr>
             <td>
               <a href="${repOutreachLink}" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 12px rgba(123, 97, 255, 0.25);">
-                Book 30-Min Technical Discovery Call →
+                Book a 30-minute call →
               </a>
             </td>
           </tr>
-        </table>
+        </table>` : ""}
 
         <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 24px;">
           <p style="margin: 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">${escHtml(senderDisplayName)}</p>

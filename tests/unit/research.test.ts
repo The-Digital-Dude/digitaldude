@@ -139,3 +139,10 @@ describe("AI draft safety", () => {
     expect(() => extractJson("no json")).toThrow();
   });
 });
+
+describe("research link picking for sharper observations", () => {
+  it("prefers about/contact and careers pages (recent hires, open roles) over blog and news", () => {
+    const html = `<a href="/blog/x">a</a><a href="/news/y">b</a><a href="/careers">c</a><a href="/about-us">d</a>`;
+    expect(candidateLinks(html, "https://www.agency.com/").sort()).toEqual(["https://www.agency.com/about-us", "https://www.agency.com/careers"]);
+  });
+});

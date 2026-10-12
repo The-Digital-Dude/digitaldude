@@ -61,10 +61,10 @@ export async function buildLeadDraft(db: Db, campaign: CampaignRow, contactId: s
   if (campaign.ai_compose) {
     const ai = await resolveAiProvider(db);
     const ctx = await loadComposeContext(db, contactId);
-    composed = ai && ctx ? await composeEmail(ai, ctx, { senderName: campaign.sender_name, bookingUrl: getBookingUrl(), withFollowUp: !!campaign.followup_enabled }) : null;
+    composed = ai && ctx ? await composeEmail(ai, ctx, { senderName: campaign.sender_name, withFollowUp: !!campaign.followup_enabled }) : null;
     if (composed) {
       subject = composed.subject;
-      body = `${composed.body}\n\n${buildFooter(campaign, unsubscribeUrl)}`;
+      body = `${composed.body}\n\nRegards,\n${campaign.sender_name}\n\n${buildFooter(campaign, unsubscribeUrl)}`;
     }
   }
 
@@ -76,7 +76,7 @@ export async function buildLeadDraft(db: Db, campaign: CampaignRow, contactId: s
         campaign_id: campaign.id,
         contact_id: contactId,
         // Reviewed and approved together with the first email (it is part of the campaign approval hash).
-        ...(composed?.followupBody ? { followup_subject: `Following up: ${composed.subject}`.slice(0, 200), followup_body: `${composed.followupBody}\n\n${buildFooter(campaign, unsubscribeUrl)}` } : {}),
+        ...(composed?.followupBody ? { followup_subject: `Following up: ${composed.subject}`.slice(0, 200), followup_body: `${composed.followupBody}\n\nRegards,\n${campaign.sender_name}\n\n${buildFooter(campaign, unsubscribeUrl)}` } : {}),
       })
       .select("id")
       .single(),

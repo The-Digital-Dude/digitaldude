@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { composeEmail, hasForeignLink, loadComposeContext, validateComposed, type ComposeContext } from "@/lib/acquisition/drafting/compose";
+import { composeEmail, composeFollowUp, hasForeignLink, loadComposeContext, validateComposed, validateFollowUpOnly, type ComposeContext } from "@/lib/acquisition/drafting/compose";
 import type { AiProvider } from "@/lib/acquisition/providers/ai";
 import { fakeDb } from "./helpers/fakedb";
 
@@ -106,5 +106,61 @@ describe("loadComposeContext", () => {
     expect(c).toMatchObject({ contactFirstName: "Dan", companyName: "Plum", ownerEmployeeId: "rep1", angle: "owner reports" });
     expect(c?.facts).toEqual([{ claim: "Lists 40 properties", evidence: "40 properties", sourceUrl: "https://plum.com.au" }]);
     expect(await loadComposeContext(db, "missing")).toBeNull();
+  });
+});
+
+
+describe("writing rules (human tone, under 120 words, soft question)", () => {
+  const withBody = (body: string) => ({ ...good, body, followup_body: undefined });
+  const noLink = (body: string) => validateComposed(withBody(body), ctx(), null, false);
+  const ok = "Hi Dan,\n\nI saw Plum Property manages 40 rental properties in Brisbane. We build owner reporting tools. Is that done by hand today?";
+
+  it("accepts a short human note that ends on a question and has no link", () => {
+    expect(noLink(ok)).toBeTruthy();
+  });
+  it("rejects AI clichés and call-begging phrases", () => {
+    for (const phrase of ["We leverage automation.", "I hope this finds you well.", "I am reaching out about reports.", "Just wanted to say hi.", "Would you be open to a call?", "A seamless, robust platform.", "Let's touch base soon.", "This is a game-changer."]) {
+      expect(noLink(ok + " " + phrase)).toBeNull();
+    }
+  });
+  it("needs a question, and allows no exclamation marks", () => {
+    expect(noLink(ok.replace("?", "."))).toBeNull();
+    expect(noLink(ok.replace("?", "!"))).toBeNull();
+  });
+  it("is capped at 120 words", () => {
+    expect(noLink(ok + " " + "word ".repeat(120) + "?")).toBeNull();
+  });
+});
+
+describe("follow-up stage", () => {
+  const prev = { subject: "Reducing admin at Plum Property", body: "Hi Dan, I saw Plum manages 40 rental properties in Brisbane. Is reporting done by hand?", sentAt: "2026-10-01T00:00:00Z" };
+  const fu = { body: "Hi Dan, quick second note on owner reporting. No worries if the timing is off.", used_facts: [] };
+
+  it("accepts a short, plain, pressure-free follow-up", () => {
+    expect(validateFollowUpOnly(fu, ctx(), prev)).toMatchObject({ body: fu.body });
+  });
+  it("rejects pressure phrases, links, clichés, exclamation marks and length over 70 words", () => {
+    for (const body of ["Hi Dan, just checking in on my last note.", "Hi Dan, bumping this to the top of your inbox.", "Hi Dan, see https://evil.example/x for details.", "Hi Dan, we leverage automation for teams like yours.", "Hi Dan, quick note on reports!", "Hi Dan, " + "word ".repeat(80)]) {
+      expect(validateFollowUpOnly({ body, used_facts: [] }, ctx(), prev)).toBeNull();
+    }
+  });
+  it("allows a number from the earlier email or the facts, but not an invented one", () => {
+    expect(validateFollowUpOnly({ body: "Hi Dan, with 40 properties to report on, is that still a manual job? No worries if not.", used_facts: [1] }, ctx(), prev)).toBeTruthy();
+    expect(validateFollowUpOnly({ body: "Hi Dan, with 90 properties to report on, is that still a manual job? No worries if not.", used_facts: [] }, ctx(), prev)).toBeNull();
+  });
+  it("composeFollowUp builds the subject itself, never as a fake reply, and returns null on a rule break", async () => {
+    const model = { completeJson: vi.fn(async () => JSON.stringify(fu)) } as unknown as AiProvider & { completeJson: ReturnType<typeof vi.fn> };
+    const out = await composeFollowUp(model, ctx(), prev, { senderName: "Neil" });
+    expect(out?.subject).toBe("Following up: Reducing admin at Plum Property");
+    expect(out?.subject).not.toMatch(/^re:/i);
+    const call = model.completeJson.mock.calls[0][0] as { user: string; system: string };
+    expect(call.user).toContain("Earlier email");
+    expect(call.system).toMatch(/Under 70 words/);
+    expect(await composeFollowUp({ completeJson: async () => JSON.stringify({ body: "Just checking in on this!" }) } as unknown as AiProvider, ctx(), prev, { senderName: "Neil" })).toBeNull();
+    expect(await composeFollowUp(null, ctx(), prev, { senderName: "Neil" })).toBeNull();
+  });
+  it("does not stack the prefix when the earlier subject already starts with it", async () => {
+    const model = { completeJson: async () => JSON.stringify(fu) } as unknown as AiProvider;
+    expect((await composeFollowUp(model, ctx(), { ...prev, subject: "Following up: hello" }, { senderName: "Neil" }))?.subject).toBe("Following up: hello");
   });
 });

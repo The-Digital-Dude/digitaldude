@@ -234,6 +234,8 @@ export function candidateLinks(html: string, baseUrl: string, max = 2): string[]
     const p = u.pathname.toLowerCase();
     const score =
       (/about|who-we-are|our-team|team|contact/.test(p) ? 3 : 0) +
+      (/career|jobs?|vacanc|hiring|join-us|work-with-us/.test(p) ? 3 : 0) + // recent hires and open roles
+      (/news|blog|case-stud|customers|clients|technology|platform|software/.test(p) ? 1 : 0) +
       (/service|manage|rental|landlord|owner|portfolio|propert/.test(p) ? 2 : 0);
     if (score > 0 && !/\.(pdf|jpg|png|zip)$/.test(p)) scored.set(u.origin + u.pathname, Math.max(score, scored.get(u.origin + u.pathname) ?? 0));
   }

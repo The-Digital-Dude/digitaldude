@@ -212,19 +212,19 @@ const BUILTIN_TEMPLATES = [
     id: "custom_crm",
     name: "Custom CRM & Systems Architecture",
     subject: "Modernizing digital platforms & internal workflows for {{company}}",
-    body: "Hi {{name}},\n\nI noticed {{company}} is rapidly scaling and likely managing complex operations across disparate software tools.\n\nAt The Digital Dude, we engineer bespoke web systems, internal operations platforms, and automated pipelines tailored specifically to your exact business model.\n\nWould you be open to a brief 15-minute technical discovery call this week to explore how a tailored platform can eliminate bottlenecks?\n\nBest,\n{{rep_name}}",
+    body: "Hi {{name}},\n\nI noticed {{company}} is rapidly scaling and likely managing complex operations across disparate software tools.\n\nAt The Digital Dude, we engineer bespoke web systems, internal operations platforms, and automated pipelines tailored specifically to your exact business model.\n\nIs that something you're dealing with? If it is, you can book a 30-minute call with the button below.",
   },
   {
     id: "mvp_saas",
     name: "MVP & SaaS Full-Stack Development",
     subject: "Engineering {{company}}'s high-performance SaaS roadmap",
-    body: "Hi {{name}},\n\nReaching out from The Digital Dude. We specialize in rapid end-to-end architecture and full-stack development of high-performance web applications, MVP platforms, and SaaS products.\n\nIf you're currently scoping or accelerating technical development, we'd love to share some recent architecture case studies and discuss how we can expedite your launch.\n\nLet me know if you have 15 minutes this Thursday or Friday.",
+    body: "Hi {{name}},\n\nReaching out from The Digital Dude. We specialize in rapid end-to-end architecture and full-stack development of high-performance web applications, MVP platforms, and SaaS products.\n\nIf you're currently scoping or accelerating technical development, we'd love to share some recent architecture case studies and discuss how we can expedite your launch.\n\nIf that's useful, you can book a 30-minute call with the button below.",
   },
   {
     id: "follow_up",
     name: "Value Follow-Up & Case Study",
     subject: "Quick follow-up regarding {{company}} digital platform",
-    body: "Hi {{name}},\n\nFollowing up on my previous note regarding custom software systems for {{company}}.\n\nYou can review some of our live client transformations and technical architectures here: {{referral_link}}\n\nHappy to align on a quick discovery call at your convenience.",
+    body: "Hi {{name}},\n\nFollowing up on my previous note regarding custom software systems for {{company}}.\n\nYou can review some of our live client transformations and technical architectures here: {{referral_link}}\n\nIf it helps, you can book a 30-minute call with the button below.",
   },
 ];
 
@@ -277,6 +277,9 @@ export default function RepDashboardPage() {
   // A reply suggestion filled into the composer: kept until the rep picks a template, so the template effect does not overwrite it.
   const replyDraft = useRef<{ subject: string; message: string } | null>(null);
   // "Write with AI": the AI drafts from the contact's verified research; this holds what it used, so the rep can see the evidence.
+  // Stage: a first cold email (booking button on) or a follow-up (plain note, button off by default).
+  const [outreachStage, setOutreachStage] = useState<"cold" | "follow_up">("cold");
+  const [includeButton, setIncludeButton] = useState(true);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiResult, setAiResult] = useState<{ error?: string; general?: boolean; usedFacts?: { n: number; claim: string; sourceUrl: string }[]; blocked?: string | null } | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -723,7 +726,7 @@ export default function RepDashboardPage() {
     setAiBusy(true);
     setAiResult(null);
     try {
-      const res = await fetch("/api/rep/pool/compose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+      const res = await fetch("/api/rep/pool/compose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, stage: outreachStage }) });
       const data = await res.json();
       if (!res.ok || !data.ok) {
         setAiResult({ error: data.error || "The AI could not write this email." });
@@ -816,13 +819,15 @@ export default function RepDashboardPage() {
           subject: emailSubject,
           message: emailMessage,
           templateUsed: selectedTemplateId,
+          stage: outreachStage,
+          includeButton,
           forceSend,
         }),
       });
 
       const data = await res.json();
 
-      if (res.status === 409 && data.isDuplicate) {
+      if (res.status === 409 && (data.isDuplicate || data.duplicateWarning)) {
         setDuplicateWarning(data.error);
         setSendingOutreach(false);
         return;
@@ -1620,6 +1625,33 @@ export default function RepDashboardPage() {
 
             {/* Composer Form */}
             <form onSubmit={(e) => handleSendOutreach(e, false)} className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-6 space-y-4">
+              {/* Stage: cold outreach or follow-up */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Stage</label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {([["cold", "Cold outreach"], ["follow_up", "Follow-up"]] as const).map(([id, name]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setOutreachStage(id);
+                        setIncludeButton(id === "cold"); // cold: booking button on. follow-up: plain note unless the rep turns it on.
+                        replyDraft.current = null;
+                        setAiResult(null);
+                        setSelectedTemplateId(id === "follow_up" ? "follow_up" : "custom_crm");
+                      }}
+                      className={`rounded-lg px-3.5 py-2 text-xs font-bold transition ${outreachStage === id ? "bg-purple text-white" : "bg-white/5 text-slate-300 hover:bg-white/10"}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                  <label className="ml-2 flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <input type="checkbox" checked={includeButton} onChange={(e) => setIncludeButton(e.target.checked)} />
+                    Add the &ldquo;Book a 30-minute call&rdquo; button (uses your referral link)
+                  </label>
+                </div>
+              </div>
+
               {/* Template Selector */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
@@ -1652,7 +1684,7 @@ export default function RepDashboardPage() {
               <div className="rounded-xl border border-purple/30 bg-purple/5 p-3">
                 <div className="flex flex-wrap items-center gap-3">
                   <button type="button" disabled={aiBusy} onClick={() => void handleWriteWithAI()} className="rounded-xl bg-purple px-3.5 py-2 text-xs font-bold text-white hover:brightness-110 disabled:opacity-50 transition">
-                    {aiBusy ? "Writing from the research…" : "Write with AI"}
+                    {aiBusy ? "Writing from the research…" : outreachStage === "follow_up" ? "Write follow-up with AI" : "Write first email with AI"}
                   </button>
                   <span className="text-[11px] text-slate-400">Uses only verified facts about this company from your Lead Pool. You can edit everything before sending.</span>
                 </div>

@@ -62,6 +62,6 @@ export function repTemplates() {
     id: `industry_${o.industry.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
     name: `Industry: ${o.industry}`,
     subject: "Reducing admin load at {{company}}",
-    body: `Hi {{name}},\n\nI'm reaching out from The Digital Dude, a small web and software studio. We build ${o.offer}.\n\nIf that could be relevant to {{company}}, I'd be glad to share a couple of examples or set up a short call: {{referral_link}}\n\nIf not, no problem at all.\n\nBest,\n{{rep_name}}`,
+    body: `Hi {{name}},\n\nI'm writing from The Digital Dude, a small web and software studio. We build ${o.offer}.\n\nIf that could be relevant to {{company}}, I'd be glad to share a couple of examples. You can book a 30-minute call with the button below if that's useful.\n\nIf not, no problem at all.`,
   }));
 }

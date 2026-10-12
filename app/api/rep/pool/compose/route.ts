@@ -2,15 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { repJsonError, repRoute } from "@/lib/repPool";
 import { resolveAiProvider } from "@/lib/acquisition/ai-config";
-import { composeEmail, loadComposeContext } from "@/lib/acquisition/drafting/compose";
-import { getBookingUrl } from "@/lib/acquisition/providers/calendar";
+import { composeEmail, composeFollowUp, loadComposeContext } from "@/lib/acquisition/drafting/compose";
 import { normalizeEmail } from "@/lib/acquisition/normalize";
 import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const body = z.object({ contactId: z.string().uuid().optional(), email: z.string().trim().max(320).optional() }).refine((b) => b.contactId || b.email, "Give a contact");
+const body = z.object({ contactId: z.string().uuid().optional(), email: z.string().trim().max(320).optional(), stage: z.enum(["cold", "follow_up"]).default("cold") }).refine((b) => b.contactId || b.email, "Give a contact");
 
 /**
  * The AI writes a first email for one of the rep's own pool contacts, using ONLY that company's verified research.
@@ -33,7 +32,19 @@ export const POST = repRoute("compose email", async (request, { rep, db }) => {
   if (!ai) return repJsonError("The AI is not set up yet. Ask the admin.", 409);
   const { data: me } = await db.from("employees").select("outreach_display_name,full_name").eq("id", rep.id).maybeSingle();
   const senderName = ((me?.outreach_display_name as string | null) || (me?.full_name as string | null) || "").trim();
-  const email = await composeEmail(ai, ctx, { senderName, bookingUrl: getBookingUrl() });
+  let email;
+  if (parsed.data.stage === "follow_up") {
+    // A follow-up answers OUR earlier email to this person, and only if they have not replied.
+    const { data: prev } = await db.from("rep_outreach_logs").select("subject,body_content,sent_at").eq("employee_id", rep.id).eq("recipient_email", ctx.contactEmail.toLowerCase()).order("sent_at", { ascending: false }).limit(1);
+    const p = prev?.[0] as { subject: string; body_content: string; sent_at: string } | undefined;
+    if (!p) return repJsonError("You haven't emailed this person yet, so there is nothing to follow up. Switch to Cold outreach.", 409);
+    const { data: replies } = await db.from("acq_replies").select("id,classification").eq("contact_id", ctx.contactId);
+    if ((replies ?? []).some((r) => r.classification !== "out_of_office" && r.classification !== "bounce")) return repJsonError("This person has already replied. Use the Replies tab to answer them instead.", 409);
+    email = await composeFollowUp(ai, ctx, { subject: p.subject, body: p.body_content, sentAt: p.sent_at }, { senderName });
+  } else {
+    // No link in the text: the outreach email adds a "Book a 30-minute call" button that carries THIS rep's referral link.
+    email = await composeEmail(ai, ctx, { senderName });
+  }
   if (!email) return repJsonError("The AI could not write a safe email from the evidence. Please write it yourself or use a template.", 422);
 
   // Tell the rep up front if this contact cannot be emailed yet, so they do not write for nothing.
@@ -42,6 +53,7 @@ export const POST = repRoute("compose email", async (request, { rep, db }) => {
 
   return NextResponse.json({
     ok: true,
+    stage: parsed.data.stage,
     subject: email.subject,
     body: email.body,
     to: ctx.contactEmail,
