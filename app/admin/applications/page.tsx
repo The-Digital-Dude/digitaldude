@@ -474,6 +474,11 @@ export default function AdminApplicationsPage() {
     const app = isInline ? selected : pendingStatusModal?.application;
     if (!modalState || !app) return;
 
+    if (!modalState.interviewDate) {
+      alert("Please select an interview date & time first.");
+      return;
+    }
+
     if (isInline) setInlineMeetGenerating(true);
     else setGeneratingMeet(true);
 
@@ -482,21 +487,21 @@ export default function AdminApplicationsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          applicant_name: app.applicant_name,
-          applicant_email: app.applicant_email,
-          job_title: app.job_postings?.title || "Role",
-          scheduled_time: modalState.interviewDate || undefined,
+          candidateName: app.applicant_name,
+          candidateEmail: app.applicant_email,
+          jobTitle: app.job_postings?.title || "Role",
+          slotStart: new Date(modalState.interviewDate).toISOString(),
         }),
       });
       const data = await res.json();
-      if (data.ok && data.meetingLink) {
+      if (data.ok && data.meetUrl) {
         if (isInline) {
           setInlineStage((prev) =>
-            prev ? { ...prev, meetingLink: data.meetingLink } : null
+            prev ? { ...prev, meetingLink: data.meetUrl } : null
           );
         } else {
           setPendingStatusModal((prev) =>
-            prev ? { ...prev, meetingLink: data.meetingLink } : null
+            prev ? { ...prev, meetingLink: data.meetUrl } : null
           );
         }
       } else {
@@ -1303,10 +1308,20 @@ export default function AdminApplicationsPage() {
 
                       {inlineStage.targetStatus === "interview" && (
                         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                              <Video size={13} className="text-blue-600" /> Google Meet Video Call
-                            </span>
+                          <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                            <Video size={13} className="text-blue-600" /> Google Meet Video Call
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="datetime-local"
+                              value={inlineStage.interviewDate}
+                              onChange={(e) =>
+                                setInlineStage((prev) =>
+                                  prev ? { ...prev, interviewDate: e.target.value } : null
+                                )
+                              }
+                              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-navy outline-none focus:border-purple"
+                            />
                             <button
                               type="button"
                               onClick={() => handleGenerateMeetLink(true)}
