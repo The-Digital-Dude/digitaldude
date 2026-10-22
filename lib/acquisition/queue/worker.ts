@@ -108,6 +108,7 @@ async function housekeeping(db: Db) {
   await step("heartbeat", () => recordHeartbeat(db));
   if (GmailReader.configured()) await step("poll replies", () => pollReplies(db, new GmailReader()));
   await step("assignment digest", () => notifyAssignments(db));
+  await step("crm", async () => (await import("@/lib/crm/jobs")).runCrmHousekeeping(db));
   await step("health checks", () => runHealthChecks(db));
   await step("email notifications", () => emailPendingNotifications(db));
 }

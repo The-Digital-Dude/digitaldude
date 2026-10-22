@@ -3,6 +3,9 @@ import { normalizeEmail } from "../normalize";
 import { recordInboundReply } from "./process";
 import { alertAdmin, alertRep } from "../alerts";
 import { log } from "@/lib/logger";
+import { classifyByRules } from "./classify";
+import { recordReply } from "@/lib/crm/activity";
+import { refreshScoresForEmail } from "@/lib/crm/refresh";
 
 export interface InboundMail {
   id: string;
@@ -204,6 +207,13 @@ export async function pollReplies(db: Db, reader: MailReader, now = new Date(), 
         dedupeKey: `gmail:${item.id}`,
       });
       repNotified++;
+      // CRM: the reply goes on the lead's timeline and the rep gets a "reply to them" task.
+      try {
+        const cls = classifyByRules(mail.body)?.classification ?? "uncertain";
+        if (await recordReply(db, { email, classification: cls, snippet: mail.body })) await refreshScoresForEmail(db, email);
+      } catch (crmErr) {
+        log("warn", { message: "could not record the reply in the CRM", error: crmErr });
+      }
     } catch (e) {
       failed++;
       log("error", { message: "gmail reply could not be processed", context: { messageId: item.id }, error: e });

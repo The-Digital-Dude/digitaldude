@@ -32,10 +32,7 @@ import {
   HelpCircle,
   ChevronRight,
   Plus,
-  Search,
   Filter,
-  Trash2,
-  Edit3,
   Users,
   Menu,
   X,
@@ -53,6 +50,8 @@ import {
 import { SITE_URL } from "@/lib/utils";
 import { RepAnalyticsOverview } from "@/components/rep/RepAnalyticsOverview";
 import { RepPoolPanel } from "@/components/rep/PoolPanel";
+import { LeadsCrm } from "@/components/rep/crm/LeadsCrm";
+import type { CrmLead, Forecast } from "@/components/rep/crm/shared";
 import { NotificationBell } from "@/components/rep/NotificationBell";
 import { repTemplates } from "@/lib/industryTemplates";
 import { DESIGNS, DESIGN_LABELS, defaultDesignFor, type DesignId } from "@/lib/emailDesign";
@@ -125,25 +124,7 @@ interface OutreachLog {
   sent_at: string;
 }
 
-interface RepLead {
-  id: string;
-  employee_id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  company_name: string | null;
-  job_title: string | null;
-  lead_source: string;
-  stage: "new" | "contacted" | "meeting_booked" | "negotiation" | "won" | "lost";
-  estimated_deal_value: number;
-  currency: string;
-  notes: string | null;
-  last_contacted_at: string | null;
-  created_at: string;
-  /** Set for leads that came from the lead pool: "eligible" means cleared to email. */
-  pool_contact_status?: string | null;
-  email_check?: { status: "safe" | "risky" | "invalid" | "unknown"; reason: string; source: "builtin" | "reacher" } | null;
-}
+type RepLead = CrmLead;
 
 interface CustomTemplate {
   id: string;
@@ -231,16 +212,6 @@ const BUILTIN_TEMPLATES = [
   },
 ];
 
-const LEAD_STAGES = [
-  { id: "all", label: "All Leads", color: "bg-white/5 text-slate-300 border-white/10" },
-  { id: "new", label: "New Lead", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  { id: "contacted", label: "Contacted", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  { id: "meeting_booked", label: "Meeting Booked", color: "bg-purple/20 text-purple-300 border-purple/40" },
-  { id: "negotiation", label: "Negotiation", color: "bg-indigo-500/15 text-indigo-400 border-indigo-500/30" },
-  { id: "won", label: "Closed Won", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  { id: "lost", label: "Closed Lost", color: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
-];
-
 export default function RepDashboardPage() {
   const router = useRouter();
 
@@ -255,12 +226,11 @@ export default function RepDashboardPage() {
   const [bookings, setBookings] = useState<SourcedBooking[]>([]);
   const [outreachLogs, setOutreachLogs] = useState<OutreachLog[]>([]);
   const [leads, setLeads] = useState<RepLead[]>([]);
+  const [forecast, setForecast] = useState<Forecast[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
 
   // UI States
   const [copiedLink, setCopiedLink] = useState(false);
-  const [leadSearch, setLeadSearch] = useState("");
-  const [leadStageFilter, setLeadStageFilter] = useState("all");
   const [showAddLeadModal, setShowAddLeadModal] = useState(false);
   const [editingLead, setEditingLead] = useState<RepLead | null>(null);
 
@@ -686,13 +656,11 @@ export default function RepDashboardPage() {
 
       const data = await res.json();
       if (data.ok) {
-        if (editingLead) {
-          setLeads((prev) => prev.map((l) => (l.id === editingLead.id ? data.lead : l)));
-        } else {
-          setLeads((prev) => [data.lead, ...prev]);
-        }
+        // Reload so the scores, next steps and quiet-lead flags are the computed ones, not the bare row.
+        await fetchLeads();
         setShowAddLeadModal(false);
         resetLeadForm();
+        if (data.emailCheck?.status === "risky") alert(`Lead saved, but check the email address: ${data.emailCheck.reason}`);
       } else {
         alert(data.error || "Failed to save lead.");
       }
@@ -1002,16 +970,6 @@ export default function RepDashboardPage() {
   const repDisplayName = (profile.outreach_display_name || "").trim() || "The Digital Dude Partnerships";
   const referralLink = `${SITE_URL}/contact?ref=${profile.referral_code || "rep"}`;
 
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch =
-      lead.full_name.toLowerCase().includes(leadSearch.toLowerCase()) ||
-      lead.email.toLowerCase().includes(leadSearch.toLowerCase()) ||
-      (lead.company_name && lead.company_name.toLowerCase().includes(leadSearch.toLowerCase()));
-
-    const matchesStage = leadStageFilter === "all" || lead.stage === leadStageFilter;
-    return matchesSearch && matchesStage;
-  });
-
   return (
     <div className="min-h-screen bg-[#080C14] text-slate-100 flex flex-col md:flex-row antialiased selection:bg-purple selection:text-white">
       {/* Background Ambient Glow */}
@@ -1202,218 +1160,37 @@ export default function RepDashboardPage() {
         {/* VIEW 2: LEADS PIPELINE CRM */}
         {/* ===================================================================== */}
         {activeTab === "leads" && (
-          <div className="space-y-6">
-            {/* Search & Filter Pills */}
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-              <div className="relative flex-1 max-w-md">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="text"
-                  value={leadSearch}
-                  onChange={(e) => setLeadSearch(e.target.value)}
-                  placeholder="Search leads by name, email, company…"
-                  className="w-full rounded-xl bg-[#131B2E] border border-white/[0.08] py-2.5 pl-9 pr-3 text-xs text-white placeholder:text-slate-500 outline-none focus:border-purple focus:ring-2 focus:ring-purple/20 transition"
-                />
-              </div>
-
-              {/* Stage Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-                {LEAD_STAGES.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setLeadStageFilter(s.id)}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition ${
-                      leadStageFilter === s.id
-                        ? "bg-purple text-white shadow-md shadow-purple/20"
-                        : "bg-[#131B2E] text-slate-400 hover:text-white border border-white/[0.05]"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Leads Data Grid */}
-            <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 backdrop-blur-md overflow-hidden shadow-xl">
-              {filteredLeads.length === 0 ? (
-                <div className="text-center py-16 space-y-3">
-                  <Users size={32} className="mx-auto text-slate-500" />
-                  <p className="text-sm font-semibold text-slate-400">No leads found matching current filter.</p>
-                  <button
-                    onClick={() => {
-                      resetLeadForm();
-                      setShowAddLeadModal(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-purple px-4 py-2 text-xs font-bold text-white hover:brightness-110 transition shadow-md"
-                  >
-                    <Plus size={14} /> Add First Lead
-                  </button>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-white/[0.08] bg-white/[0.02] text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="py-3 px-3 w-10 text-center">
-                          <input
-                            type="checkbox"
-                            checked={filteredLeads.length > 0 && selectedLeadIds.length === filteredLeads.length}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedLeadIds(filteredLeads.map((l) => l.id));
-                              } else {
-                                setSelectedLeadIds([]);
-                              }
-                            }}
-                            className="rounded border-white/20 bg-slate-950 accent-purple cursor-pointer"
-                          />
-                        </th>
-                        <th className="py-3 px-4">Contact</th>
-                        <th className="py-3 px-4">Company &amp; Title</th>
-                        <th className="py-3 px-4">Pipeline Stage</th>
-                        <th className="py-3 px-4">Est. Deal Value</th>
-                        <th className="py-3 px-4">Notes</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
-                      {filteredLeads.map((lead) => (
-                        <tr
-                          key={lead.id}
-                          className={`hover:bg-white/[0.02] transition ${
-                            selectedLeadIds.includes(lead.id) ? "bg-purple/10" : ""
-                          }`}
-                        >
-                          <td className="py-3 px-3 text-center">
-                            <input
-                              type="checkbox"
-                              checked={selectedLeadIds.includes(lead.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedLeadIds((prev) => [...prev, lead.id]);
-                                } else {
-                                  setSelectedLeadIds((prev) => prev.filter((id) => id !== lead.id));
-                                }
-                              }}
-                              className="rounded border-white/20 bg-slate-950 accent-purple cursor-pointer"
-                            />
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="font-bold text-white block">{lead.full_name}</span>
-                            <span className="text-[11px] text-slate-400 font-mono">{lead.email}</span>
-                            {lead.email_check && (lead.email_check.status === "invalid" || lead.email_check.status === "risky") && (
-                              <span className={`mt-1 mr-1 inline-block w-fit rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${lead.email_check.status === "invalid" ? "bg-rose-500/15 text-rose-300" : "bg-amber-500/15 text-amber-300"}`} title={lead.email_check.reason}>
-                                email {lead.email_check.status}
-                              </span>
-                            )}
-                            {lead.pool_contact_status && lead.pool_contact_status !== "eligible" && (
-                              <span className="mt-1 block w-fit rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300" title="Record a lawful basis in Lead Pool before emailing this contact">
-                                needs lawful basis
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="text-white font-medium block">{lead.company_name || "—"}</span>
-                            <span className="text-[11px] text-slate-400">{lead.job_title || "Decision Maker"}</span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <select
-                              value={lead.stage}
-                              onChange={(e) => handleUpdateLeadStage(lead.id, e.target.value as RepLead["stage"])}
-                              className="rounded-lg bg-[#0D1322] border border-white/[0.08] px-2 py-1 text-xs font-semibold text-purple-300 outline-none focus:border-purple cursor-pointer"
-                            >
-                              <option value="new">New Lead</option>
-                              <option value="contacted">Contacted</option>
-                              <option value="meeting_booked">Meeting Booked</option>
-                              <option value="negotiation">Negotiation</option>
-                              <option value="won">Closed Won</option>
-                              <option value="lost">Closed Lost</option>
-                            </select>
-                          </td>
-                          <td className="py-3 px-4 font-mono font-bold text-white">
-                            {currencySymbol}{(lead.estimated_deal_value || 0).toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-slate-400 text-[11px] max-w-xs truncate">
-                            {lead.notes || "—"}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => handleEmailLeadShortcut(lead)}
-                                title="Send Direct Outreach"
-                                className="p-1.5 rounded-lg bg-purple/10 hover:bg-purple/20 text-purple-300 transition"
-                              >
-                                <Send size={13} />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingLead(lead);
-                                  setNewLeadName(lead.full_name);
-                                  setNewLeadEmail(lead.email);
-                                  setNewLeadPhone(lead.phone || "");
-                                  setNewLeadCompany(lead.company_name || "");
-                                  setNewLeadJobTitle(lead.job_title || "");
-                                  setNewLeadStage(lead.stage);
-                                  setNewLeadValue(lead.estimated_deal_value || 0);
-                                  setNewLeadNotes(lead.notes || "");
-                                  setShowAddLeadModal(true);
-                                }}
-                                title="Edit Prospect"
-                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition"
-                              >
-                                <Edit3 size={13} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteLead(lead.id)}
-                                title="Delete Prospect"
-                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            {/* Floating Bulk Action Bar */}
-            {selectedLeadIds.length > 0 && (
-              <div className="sticky bottom-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl bg-[#131B2E] border border-purple/40 p-4 shadow-2xl backdrop-blur-xl">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple text-xs font-bold text-white shadow-md">
-                    {selectedLeadIds.length}
-                  </span>
-                  <span className="text-xs font-bold text-white">
-                    {selectedLeadIds.length} prospect(s) selected
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setSelectedLeadIds([])}
-                    className="rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white"
-                  >
-                    Deselect All
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (campaigns.length > 0) {
-                        setEnrollTargetCampaignId(campaigns[0].id);
-                      }
-                      setShowEnrollModal(true);
-                    }}
-                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-purple to-[#7C3AED] px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-lg shadow-purple/20 transition active:scale-95"
-                  >
-                    <Layers size={14} /> Enroll in Campaign Sequence...
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <LeadsCrm
+            leads={leads}
+            forecast={forecast}
+            selectedIds={selectedLeadIds}
+            setSelectedIds={setSelectedLeadIds}
+            onRefresh={() => void fetchLeads()}
+            onAdd={() => {
+              resetLeadForm();
+              setShowAddLeadModal(true);
+            }}
+            onEdit={(lead) => {
+              setEditingLead(lead);
+              setNewLeadName(lead.full_name);
+              setNewLeadEmail(lead.email);
+              setNewLeadPhone(lead.phone || "");
+              setNewLeadCompany(lead.company_name || "");
+              setNewLeadJobTitle(lead.job_title || "");
+              setNewLeadStage(lead.stage);
+              setNewLeadValue(lead.estimated_deal_value || 0);
+              setNewLeadNotes(lead.notes || "");
+              setShowAddLeadModal(true);
+            }}
+            onDelete={(id) => void handleDeleteLead(id)}
+            onEmail={(lead) => handleEmailLeadShortcut(lead)}
+            onEnroll={() => {
+              if (campaigns.length > 0) {
+                setEnrollTargetCampaignId(campaigns[0].id);
+              }
+              setShowEnrollModal(true);
+            }}
+          />
         )}
 
         {/* ===================================================================== */}
@@ -2181,7 +1958,8 @@ export default function RepDashboardPage() {
                     <option value="meeting_booked">Meeting Booked</option>
                     <option value="negotiation">Negotiation</option>
                     <option value="won">Closed Won</option>
-                    <option value="lost">Closed Lost</option>
+                    {/* Closing a deal as lost needs a reason: use the stage menu in the lead list or board. */}
+                    {editingLead?.stage === "lost" && <option value="lost">Closed Lost</option>}
                   </select>
                 </div>
                 <div>

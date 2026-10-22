@@ -173,7 +173,7 @@ Brevo uses its own payloads authenticated by `ACQ_WEBHOOK_SECRET` (bearer header
 
 ## Replies, follow-ups, alerts and bulk work (migrations 0032-0035)
 
-**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0036, 0037, 0038, 0039, 0040`.
+**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0036, 0037, 0038, 0039, 0040, 0041`.
 Run each file whole. A half-applied file (for example only the last statements of `0029`) breaks the rep portal.
 
 **One contact per company at a time.** A first email to a contact is refused while a colleague at the same company has a
@@ -281,3 +281,5 @@ follow-up rules, daily cap, job queue).
   one table you must never lose, so export it regularly.
 - Scoring weights are hypotheses. The AI never sets `fit_score`; it is computed from verified evidence.
 - Removing an erroneous suppression requires a manual SQL change with the trigger disabled, by design.
+
+**Rep CRM (migration 0041).** Run after 0038-0040. Each rep lead now has a timeline (emails, replies, bookings, calls, notes, stage changes), tasks with due times, a status (new, attempted, connected, interested, bad timing, unqualified) next to the six stages, deal fields (value, currency from country, expected close date, win chance), a required reason when a deal is lost, tags, and two separate scores: fit (A-D) and engagement (hot/warm/cold; email opens are never used). Sending an email schedules a follow-up task 3 working days out; a reply creates a "reply to them" task and cancels follow-ups; a booking moves the lead to meeting booked and adds a preparation task; won, lost, opt-out and bounce close tasks. A contact a colleague already has cannot be added (reps see only a generic message). Manually added and imported leads have their email checked like any other. Reps can import and export CSV, keep saved views, use a board, and export or erase one person's data (erase adds the address to the do-not-contact list). Admin: Acquisition > Rep CRM has the report (weighted forecast, lost reasons, per-rep health, real win rates), all leads with search, reassign and merge, an all-leads CSV, and settings (quiet-lead days, stage probabilities, follow-up delay, retention of at least 6 months). The worker alerts due tasks, sends a daily quiet-leads digest (admin hears about leads quiet for twice as long), refreshes old scores, and anonymises inactive non-won leads past the retention period. Until 0041 is applied the lead list still loads, without the new features.

@@ -73,6 +73,14 @@ export async function applyClassification(db: Db, replyId: string, cls: Classifi
       await db.from("acq_companies").update({ pool_status: "replied" }).eq("id", company.id).eq("owner_employee_id", company.owner_employee_id).in("pool_status", ["assigned", "needs_contact", "contacted"]);
     }
   }
+  // CRM: mirror the reply onto any rep lead with this address (timeline, tasks, status, scores). Never blocks the classification.
+  try {
+    const { recordReply } = await import("@/lib/crm/activity");
+    const { refreshScoresForEmail } = await import("@/lib/crm/refresh");
+    if (await recordReply(db, { email: contact.email, classification: cls.classification, snippet: reply.body ?? "", replyId })) await refreshScoresForEmail(db, contact.email);
+  } catch {
+    /* the CRM mirror is best-effort */
+  }
   if (!humanBy && (cls.classification === "interested" || cls.classification === "uncertain")) {
     await alertAdmin(db, {
       kind: "reply",

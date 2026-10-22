@@ -5,6 +5,8 @@ import { assertCanEmail, assertEmailDeliverable, assertPoolContactAllowed, Outre
 import { sendBrevoEmail } from "@/lib/emailBrevo";
 import { buildRepEmail, contactInfoForEmail, resolveDesign, type RepEmployee } from "@/lib/repEmail";
 import { createBookLink } from "@/lib/bookLinks";
+import { recordEmailSent, safely } from "@/lib/crm/activity";
+import { refreshScoresForEmail } from "@/lib/crm/refresh";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { SITE_URL } from "@/lib/utils";
 import { log } from "@/lib/logger";
@@ -220,6 +222,11 @@ export async function POST(request: Request) {
     if (logError) {
       log("warn", { message: "Could not save rep outreach log", error: logError });
     }
+
+    // CRM: put the email on the lead's timeline, move a new lead forward, and schedule the follow-up (never blocks the send).
+    await safely("email sent", async () => {
+      if (await recordEmailSent(supabase, { employeeId: employee.id, email: cleanRecipientEmail, subject, stage })) await refreshScoresForEmail(supabase, cleanRecipientEmail);
+    });
 
     // A first email to a pool contact moves their company on to "contacted".
     try {

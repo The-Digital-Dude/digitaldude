@@ -194,6 +194,17 @@ export async function POST(request: Request) {
     }
   }
 
+  // CRM: the credited rep's lead moves to "meeting booked" and gets a preparation task (never blocks the booking).
+  if (sourcedByEmployeeId) {
+    try {
+      const { recordBooking } = await import("@/lib/crm/activity");
+      const { refreshScoresForEmail } = await import("@/lib/crm/refresh");
+      if (await recordBooking(supabase, { employeeId: sourcedByEmployeeId, email: workEmail, slotStart: start })) await refreshScoresForEmail(supabase, workEmail);
+    } catch (crmErr) {
+      log("warn", { message: "Could not record the booking in the CRM", error: crmErr });
+    }
+  }
+
   // Create Google Calendar event with dynamic Google Meet video link
   const calendarMeeting = await createGoogleCalendarMeeting({
     name,
