@@ -10,6 +10,8 @@ export interface SendBrevoEmailParams {
   to: EmailRecipient[];
   subject: string;
   htmlContent: string;
+  /** Optional plain-text part (sent alongside the HTML; recommended for deliverability). */
+  textContent?: string;
   senderName?: string;
   senderEmail?: string;
   sender?: EmailRecipient;
@@ -44,6 +46,7 @@ export async function sendBrevoEmail(params: SendBrevoEmailParams): Promise<{
         to: params.to,
         subject: params.subject,
         htmlContent: params.htmlContent,
+        ...(params.textContent ? { textContent: params.textContent } : {}),
       };
 
       if (params.replyTo) {

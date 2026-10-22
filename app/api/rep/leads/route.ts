@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthenticatedRep } from "@/lib/repAuth";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { recordRepAuditLog } from "@/lib/repAudit";
+import { loadChecks } from "@/lib/acquisition/verify/bulk";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,8 @@ export async function GET(request: Request) {
       const { data: cs } = await supabase.from("acq_contacts").select("id,status").in("id", contactIds);
       for (const c of (cs ?? []) as { id: string; status: string }[]) status.set(c.id, c.status);
     }
-    const out = rows.map((l) => ({ ...l, pool_contact_status: l.acq_contact_id ? (status.get(l.acq_contact_id) ?? null) : null }));
+    const checks = await loadChecks(supabase, (leads || []).map((l: { email?: string }) => l.email ?? "")).catch(() => ({}) as Awaited<ReturnType<typeof loadChecks>>);
+    const out = rows.map((l) => ({ ...l, pool_contact_status: l.acq_contact_id ? (status.get(l.acq_contact_id) ?? null) : null, email_check: checks[String((l as { email?: string }).email ?? "").trim().toLowerCase()] ?? null }));
     return NextResponse.json({ ok: true, leads: out });
   } catch (err) {
     return NextResponse.json({ ok: false, error: "Internal error" }, { status: 500 });

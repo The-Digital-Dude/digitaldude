@@ -85,6 +85,61 @@ export function discoveryYield(companies: CompanyRow[], markets: { id: string; n
   return [...out.values()].sort((a, b) => b.discovered - a.discovered);
 }
 
+export interface LinkRow {
+  employee_id: string | null;
+  industry: string | null;
+  stage: string;
+  template_used: string | null;
+  design: string | null;
+  views: number;
+  cta_clicks: number;
+  booking_id: string | null;
+}
+
+export interface LinkGroup {
+  key: string;
+  sent: number;
+  views: number;
+  opened: number;
+  clicks: number;
+  bookings: number;
+}
+
+/** Performance of the private booking links, grouped by one field. "opened" = links viewed at least once; rates are per sent link. */
+export function summariseLinks(rows: LinkRow[], by: (r: LinkRow) => string): LinkGroup[] {
+  const out = new Map<string, LinkGroup>();
+  for (const r of rows) {
+    const key = by(r) || "(none)";
+    const g = out.get(key) ?? { key, sent: 0, views: 0, opened: 0, clicks: 0, bookings: 0 };
+    g.sent++;
+    g.views += r.views;
+    if (r.views > 0) g.opened++;
+    g.clicks += r.cta_clicks;
+    if (r.booking_id) g.bookings++;
+    out.set(key, g);
+  }
+  return [...out.values()].sort((a, b) => b.bookings - a.bookings || b.opened - a.opened || b.sent - a.sent);
+}
+
+export async function loadLinkReport(db: Db, now = new Date()) {
+  const since = new Date(now.getTime() - 90 * 86_400_000).toISOString();
+  const [links, reps] = await Promise.all([
+    db.from("rep_book_links").select("employee_id,industry,stage,template_used,design,views,cta_clicks,booking_id").gte("created_at", since).limit(20000),
+    db.from("employees").select("id,full_name"),
+  ]);
+  if (links.error) return null; // the table is created by migration 0040; until then the report is simply absent
+  const rows = (links.data ?? []) as LinkRow[];
+  const names = new Map(((reps.data ?? []) as { id: string; full_name: string }[]).map((r) => [r.id, r.full_name]));
+  return {
+    total: rows.length,
+    byRep: summariseLinks(rows, (r) => (r.employee_id ? names.get(r.employee_id) ?? "Unknown rep" : "Admin campaigns")),
+    byIndustry: summariseLinks(rows, (r) => r.industry ?? ""),
+    byStage: summariseLinks(rows, (r) => (r.stage === "follow_up" ? "Follow-up" : "Cold outreach")),
+    byTemplate: summariseLinks(rows, (r) => r.template_used ?? ""),
+    byDesign: summariseLinks(rows, (r) => r.design ?? ""),
+  };
+}
+
 export async function loadReports(db: Db, now = new Date()) {
   const since30 = new Date(now.getTime() - 30 * 86_400_000).toISOString();
   const since90 = new Date(now.getTime() - 90 * 86_400_000).toISOString();

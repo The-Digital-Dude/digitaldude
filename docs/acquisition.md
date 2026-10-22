@@ -173,7 +173,7 @@ Brevo uses its own payloads authenticated by `ACQ_WEBHOOK_SECRET` (bearer header
 
 ## Replies, follow-ups, alerts and bulk work (migrations 0032-0035)
 
-**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0036, 0037`.
+**Migration order.** `0022, 0023, 0024 (with the real cron secret), 0025, 0026, 0027, 0029, 0030, 0031, 0032, 0033, 0034, 0035, 0036, 0037, 0038, 0039, 0040`.
 Run each file whole. A half-applied file (for example only the last statements of `0029`) breaks the rep portal.
 
 **One contact per company at a time.** A first email to a contact is refused while a colleague at the same company has a
@@ -235,6 +235,34 @@ used instead. Where it is available:
   editing it later pauses sending like any other approved content. Existing campaigns keep exactly the hash they had.
 
 **Override of the one-contact rule.** Admin only, per company (company page, "Several contacts at this company"). Audited. Reps cannot set it.
+
+**Email verification (migration 0038).** Free and built in (`lib/acquisition/verify/email.ts`). For every address it checks: syntax, no-reply
+mailboxes, disposable-email domains, likely domain typos ("gmial.com"), role accounts (info@, sales@; flagged, not blocked) and whether the
+domain has mail servers (MX records). It cannot confirm the individual mailbox: that needs a mail-server probe, which needs outbound port 25
+and so cannot run on Vercel. Results (`safe | risky | invalid | unknown`) are cached 30 days in `acq_email_checks`, per address.
+- **Invalid** (no such domain, no mail server, disposable, no-reply, bad syntax) is blocked everywhere: the rep composer, rep drips, admin
+  sends, and both database gates (`acq_reserve_send`, `acq_rep_can_email`). It is also refused when a contact is added, and dropped from website
+  and Hunter suggestions. Saying "send anyway" never overrides invalid.
+- **Risky** (a likely typo, or a probe result like catch-all) is a warning: the rep composer asks "Send anyway?"; automated sends are not stopped.
+- **Unknown** (a DNS hiccup) never blocks and is re-checked after about an hour.
+- Checked: when a contact is added or accepted, just before sending (re-checked when older than 30 days), and with the "Verify emails" buttons.
+- **Optional mailbox-level probe (Reacher).** Run the open-source Reacher backend on a small server where outbound port 25 is open, set
+  `REACHER_URL` (and `REACHER_SECRET`, sent as the `x-reacher-secret` header), and results gain real mailbox answers. If the service is down
+  or slow the free checks stand: it can never block or delay sending. Check Reacher's current licence and docs before deploying it.
+
+**Email design (migration 0039).** Rep outreach emails come in four designs: Minimal personal (default for a first email), Plain text (default for a
+follow-up), Branded card, and Industry-themed card. The admin "Email design" tab edits colours, button text and shape, font, logo, header/footer text and
+per-industry themes with a live preview; the rep composer has a design picker, a Preview that uses the same builder as sending, and a signature
+photo upload (JPEG/PNG/WebP up to 2 MB, checked by file content, stored in the public `rep-photos` bucket under an unguessable name). The sender
+identity and the unsubscribe link are in every design and cannot be removed. Cold emails carry the "Book a 30-minute call" button by default; follow-ups do not.
+
+**Personal booking link and page (migration 0040).** Each email with a button gets a short private link `/b/<code>` (10 random characters). The page
+looks up the rep, the recipient's first name, company and industry from the database (nothing personal is in the URL), shows the rep's photo and name,
+industry pain points and what we build, approved proof (case studies you pick, or results you type), and the real booking form pre-filled. A booking
+made from the page is credited to the rep who sent it and recorded on the link. Views (bots and link scanners excluded), button clicks and bookings are
+counted per link, and the Reports tab breaks them down by rep, industry, stage, template and design. Links expire after 180 days (the page then shows
+without personal details). The admin "Booking page" tab edits the default and per-industry text, colour and image with a live preview; everything is plain
+text, images must be https, and an empty industry field falls back to the built-in text. `/contact?ref=...` keeps working.
 
 ## Tests
 

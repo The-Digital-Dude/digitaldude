@@ -55,6 +55,7 @@ import { RepAnalyticsOverview } from "@/components/rep/RepAnalyticsOverview";
 import { RepPoolPanel } from "@/components/rep/PoolPanel";
 import { NotificationBell } from "@/components/rep/NotificationBell";
 import { repTemplates } from "@/lib/industryTemplates";
+import { DESIGNS, DESIGN_LABELS, defaultDesignFor, type DesignId } from "@/lib/emailDesign";
 
 interface ChecklistItem {
   task: string;
@@ -83,6 +84,7 @@ interface RepProfile {
   full_name: string;
   email: string;
   role_title: string;
+  photo_url?: string | null;
   employment_type: string;
   currency: string;
   referral_code?: string;
@@ -140,6 +142,7 @@ interface RepLead {
   created_at: string;
   /** Set for leads that came from the lead pool: "eligible" means cleared to email. */
   pool_contact_status?: string | null;
+  email_check?: { status: "safe" | "risky" | "invalid" | "unknown"; reason: string; source: "builtin" | "reacher" } | null;
 }
 
 interface CustomTemplate {
@@ -280,6 +283,12 @@ export default function RepDashboardPage() {
   // Stage: a first cold email (booking button on) or a follow-up (plain note, button off by default).
   const [outreachStage, setOutreachStage] = useState<"cold" | "follow_up">("cold");
   const [includeButton, setIncludeButton] = useState(true);
+  // Email design: "auto" = the stage's default (cold: minimal personal, follow-up: plain text). The preview uses the same builder as sending.
+  const [outreachDesign, setOutreachDesign] = useState<"auto" | DesignId>("auto");
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiResult, setAiResult] = useState<{ error?: string; general?: boolean; usedFacts?: { n: number; claim: string; sourceUrl: string }[]; blocked?: string | null } | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -290,6 +299,7 @@ export default function RepDashboardPage() {
   const [sendingOutreach, setSendingOutreach] = useState(false);
   const [outreachStatus, setOutreachStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [riskyWarning, setRiskyWarning] = useState<string | null>(null);
 
   // Template Manager Modal
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -717,6 +727,51 @@ export default function RepDashboardPage() {
     } catch {}
   }
 
+  async function handlePreviewEmail() {
+    setPreviewBusy(true);
+    try {
+      const res = await fetch("/api/rep/outreach/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ design: outreachDesign === "auto" ? undefined : outreachDesign, stage: outreachStage, subject: emailSubject, message: emailMessage, includeButton, recipientEmail }),
+      });
+      const data = await res.json();
+      setPreviewHtml(data.ok ? String(data.html) : null);
+      if (!data.ok) setOutreachStatus({ type: "error", message: data.error || "Could not build the preview." });
+    } catch {
+      setOutreachStatus({ type: "error", message: "Network error building the preview." });
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
+
+  async function handlePhotoUpload(file: File) {
+    setPhotoBusy(true);
+    setPhotoError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/rep/photo", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.ok) setProfile((p) => (p ? { ...p, photo_url: data.photoUrl } : p));
+      else setPhotoError(data.error || "Could not upload the photo.");
+    } catch {
+      setPhotoError("Network error uploading the photo.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function handlePhotoRemove() {
+    setPhotoBusy(true);
+    try {
+      const res = await fetch("/api/rep/photo", { method: "DELETE" });
+      if ((await res.json()).ok) setProfile((p) => (p ? { ...p, photo_url: null } : p));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
   async function handleWriteWithAI(emailArg?: string) {
     const email = (emailArg ?? recipientEmail).trim();
     if (!email) {
@@ -802,11 +857,12 @@ export default function RepDashboardPage() {
     }
   }
 
-  async function handleSendOutreach(e: React.FormEvent, forceSend = false) {
+  async function handleSendOutreach(e: React.FormEvent, forceSend = false, confirmRisky = false) {
     if (e) e.preventDefault();
     setSendingOutreach(true);
     setOutreachStatus(null);
     setDuplicateWarning(null);
+    setRiskyWarning(null);
 
     try {
       const res = await fetch("/api/rep/outreach", {
@@ -820,12 +876,20 @@ export default function RepDashboardPage() {
           message: emailMessage,
           templateUsed: selectedTemplateId,
           stage: outreachStage,
+          design: outreachDesign === "auto" ? undefined : outreachDesign,
           includeButton,
           forceSend,
+          confirmRisky,
         }),
       });
 
       const data = await res.json();
+
+      if (res.status === 409 && data.riskyWarning) {
+        setRiskyWarning(data.error);
+        setSendingOutreach(false);
+        return;
+      }
 
       if (res.status === 409 && (data.isDuplicate || data.duplicateWarning)) {
         setDuplicateWarning(data.error);
@@ -1238,6 +1302,11 @@ export default function RepDashboardPage() {
                           <td className="py-3 px-4">
                             <span className="font-bold text-white block">{lead.full_name}</span>
                             <span className="text-[11px] text-slate-400 font-mono">{lead.email}</span>
+                            {lead.email_check && (lead.email_check.status === "invalid" || lead.email_check.status === "risky") && (
+                              <span className={`mt-1 mr-1 inline-block w-fit rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${lead.email_check.status === "invalid" ? "bg-rose-500/15 text-rose-300" : "bg-amber-500/15 text-amber-300"}`} title={lead.email_check.reason}>
+                                email {lead.email_check.status}
+                              </span>
+                            )}
                             {lead.pool_contact_status && lead.pool_contact_status !== "eligible" && (
                               <span className="mt-1 block w-fit rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300" title="Record a lawful basis in Lead Pool before emailing this contact">
                                 needs lawful basis
@@ -1610,6 +1679,19 @@ export default function RepDashboardPage() {
               </div>
             )}
 
+            {riskyWarning && (
+              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-200 space-y-2">
+                <p>{riskyWarning}</p>
+                <button
+                  type="button"
+                  onClick={(e) => handleSendOutreach(e, false, true)}
+                  className="rounded-lg bg-amber-500 px-3 py-1 font-bold text-black hover:bg-amber-400"
+                >
+                  Send Anyway
+                </button>
+              </div>
+            )}
+
             {duplicateWarning && (
               <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-200 space-y-2">
                 <p>{duplicateWarning}</p>
@@ -1650,6 +1732,47 @@ export default function RepDashboardPage() {
                     Add the &ldquo;Book a 30-minute call&rdquo; button (uses your referral link)
                   </label>
                 </div>
+              </div>
+
+              {/* Design, preview and signature photo */}
+              <div className="rounded-xl border border-white/[0.08] bg-[#0D1322]/60 p-3 space-y-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="min-w-[14rem] flex-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Email design</label>
+                    <select
+                      value={outreachDesign}
+                      onChange={(e) => { setOutreachDesign(e.target.value as "auto" | DesignId); setPreviewHtml(null); }}
+                      className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                    >
+                      <option value="auto">Automatic: {DESIGN_LABELS[defaultDesignFor(outreachStage)].name} ({outreachStage === "cold" ? "first email" : "follow-up"})</option>
+                      {DESIGNS.map((d) => <option key={d} value={d}>{DESIGN_LABELS[d].name}</option>)}
+                    </select>
+                  </div>
+                  <button type="button" onClick={() => void handlePreviewEmail()} disabled={previewBusy} className="rounded-xl border border-white/10 px-3.5 py-2.5 text-xs font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-50 transition">
+                    {previewBusy ? "Building…" : "Preview email"}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {profile.photo_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={profile.photo_url} alt="Your signature photo" className="h-9 w-9 rounded-full object-cover border border-white/10" />
+                    ) : (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-purple/30 text-xs font-bold text-white">{(profile.outreach_display_name || profile.full_name || "?").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</span>
+                    )}
+                    <label className="cursor-pointer rounded-xl border border-white/10 px-3 py-2.5 text-xs font-semibold text-slate-200 hover:bg-white/5 transition">
+                      {photoBusy ? "Saving…" : profile.photo_url ? "Change photo" : "Add your photo"}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={photoBusy} onChange={(e) => { const f = e.target.files?.[0]; if (f) void handlePhotoUpload(f); e.target.value = ""; }} />
+                    </label>
+                    {profile.photo_url && <button type="button" onClick={() => void handlePhotoRemove()} disabled={photoBusy} className="text-[11px] text-slate-400 hover:text-white underline">Remove</button>}
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500">{DESIGN_LABELS[outreachDesign === "auto" ? defaultDesignFor(outreachStage) : outreachDesign].hint} Your photo (JPEG, PNG or WebP, up to 2 MB) shows in your signature on the designs that have one.</p>
+                {photoError && <p className="rounded-lg bg-rose-500/10 p-2 text-[11px] text-rose-300" role="alert">{photoError}</p>}
+                {previewHtml && (
+                  <div>
+                    <iframe title="Email preview" sandbox="" srcDoc={previewHtml} className="h-[460px] w-full rounded-xl border border-white/10 bg-white" />
+                    <button type="button" onClick={() => setPreviewHtml(null)} className="mt-1 text-[11px] text-slate-400 hover:text-white underline">Close preview</button>
+                  </div>
+                )}
               </div>
 
               {/* Template Selector */}

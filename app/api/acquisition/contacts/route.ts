@@ -4,6 +4,7 @@ import { jsonError, parseBody } from "@/lib/acquisition/http";
 import { contactInput } from "@/lib/acquisition/validation";
 import { UNIQUE_VIOLATION } from "@/lib/acquisition/db";
 import { logAudit } from "@/lib/acquisition/audit";
+import { verifyEmail } from "@/lib/acquisition/verify/email";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export const POST = adminRoute("create contact", async (request, { db }) => {
   const { data: company } = await db.from("acq_companies").select("id").eq("id", c.company_id).maybeSingle();
   if (!company) return jsonError("Company not found", 404);
 
+  const check = await verifyEmail(db, c.email);
+  if (check.status === "invalid") return jsonError(`That address cannot be added: ${check.reason}`, 422);
+
   const { data, error } = await db
     .from("acq_contacts")
     .insert({ company_id: c.company_id, name: c.name ?? null, role: c.role ?? null, email: c.email.trim(), source_url: c.source_url ?? null, source_type: c.source_type, status: "needs_review" })
@@ -26,5 +30,5 @@ export const POST = adminRoute("create contact", async (request, { db }) => {
     throw new Error(error.message);
   }
   await logAudit(db, "contact.created", "contact", data.id, { source_type: c.source_type, status: data.status });
-  return NextResponse.json({ ok: true, id: data.id, status: data.status }, { status: 201 });
+  return NextResponse.json({ ok: true, id: data.id, status: data.status, emailCheck: { status: check.status, reason: check.reason } }, { status: 201 });
 });

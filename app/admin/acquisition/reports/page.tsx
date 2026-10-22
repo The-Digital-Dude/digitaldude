@@ -1,5 +1,5 @@
 import { getDb } from "@/lib/acquisition/db";
-import { loadReports, POOL_ORDER } from "@/lib/acquisition/reports";
+import { loadLinkReport, loadReports, POOL_ORDER, type LinkGroup } from "@/lib/acquisition/reports";
 import { Card, Empty, PageHeader, Stat } from "@/components/acquisition/ui";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +8,7 @@ const label = (s: string) => s.replace(/_/g, " ");
 
 export default async function ReportsPage() {
   const r = await loadReports(getDb());
+  const links = await loadLinkReport(getDb()).catch(() => null);
   return (
     <>
       <PageHeader title="Pool reports" subtitle="How the lead pool is moving: by market, by rep, discovery yield and tool usage. Counts exclude archived companies." />
@@ -64,6 +65,29 @@ export default async function ReportsPage() {
           </table>
         )}
       </Card>
+
+      {links && links.total > 0 && (
+        <>
+          <Card title="Booking links (last 90 days)" className="mt-6">
+            <p className="mb-4 text-sm text-navy/60">Every rep email with a button carries a private link. This shows what happened after the email was sent: opened, clicked the button, booked. {links.total} link{links.total === 1 ? "" : "s"} sent. Views from link scanners and bots are not counted.</p>
+            <div className="grid gap-6 lg:grid-cols-2">
+              {([["By rep", links.byRep], ["By industry", links.byIndustry], ["By stage", links.byStage], ["By template", links.byTemplate], ["By design", links.byDesign]] as [string, LinkGroup[]][]).map(([title, rows]) => (
+                <div key={title}>
+                  <p className="mb-2 text-xs font-bold uppercase text-navy/50">{title}</p>
+                  <table className="w-full text-left text-sm">
+                    <thead className="text-xs uppercase text-navy/40"><tr><th className="py-1 pr-3"> </th><th className="pr-3">Sent</th><th className="pr-3">Opened</th><th className="pr-3">Clicked</th><th className="pr-3">Booked</th></tr></thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {rows.map((g) => (
+                        <tr key={g.key}><td className="py-1.5 pr-3 font-semibold">{g.key}</td><td className="pr-3">{g.sent}</td><td className="pr-3">{g.opened}</td><td className="pr-3">{g.clicks}</td><td className="pr-3 font-bold">{g.bookings}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </>
+      )}
     </>
   );
 }

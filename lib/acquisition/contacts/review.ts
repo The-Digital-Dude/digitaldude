@@ -1,6 +1,7 @@
 import { UNIQUE_VIOLATION, type Db } from "../db";
 import { logAudit } from "../audit";
 import { ensureRepLead } from "@/lib/repPool";
+import { verifyEmail } from "../verify/email";
 
 export interface SuggestionReview {
   id: string;
@@ -37,6 +38,12 @@ export async function reviewSuggestions(db: Db, ids: string[], action: "accept" 
     if (sup.data === true) {
       await db.from("acq_contact_suggestions").update({ status: "dismissed" }).eq("id", id);
       out.push({ id, status: "dismissed", note: "on the do-not-contact list" });
+      continue;
+    }
+    const check = await verifyEmail(db, s.email).catch(() => null);
+    if (check?.status === "invalid") {
+      await db.from("acq_contact_suggestions").update({ status: "dismissed" }).eq("id", id);
+      out.push({ id, status: "dismissed", note: `cannot receive mail: ${check.reason}` });
       continue;
     }
     const ins = await db

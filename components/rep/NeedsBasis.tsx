@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
-import { btn, btnGhost, call, card, Msg, type BasisDraft } from "./poolShared";
+import { btn, btnGhost, call, card, EmailBadge, Msg, type BasisDraft, type EmailCheckInfo } from "./poolShared";
 import { emptyQuick, quickBody, quickFromDraft, QuickBasisFields, type QuickState } from "./QuickBasis";
 
 interface Row {
-  id: string; name: string | null; role: string | null; email: string; sourceUrl: string | null; companyName: string; country: string | null;
+  id: string; name: string | null; role: string | null; email: string; sourceUrl: string | null; companyName: string; country: string | null; emailCheck?: EmailCheckInfo | null;
 }
 interface Edit { quick: QuickState; tick: boolean; draft?: BasisDraft }
 
@@ -109,6 +109,7 @@ export function NeedsBasisPanel({ onChanged }: { onChanged: () => void }) {
       <div className={`${card} flex flex-wrap items-center justify-between gap-3`}>
         <p className="text-xs text-slate-300">{rows.length} contact{rows.length === 1 ? "" : "s"} to confirm. {checking ? "AI is checking their websites…" : "Confirm each in one click."}</p>
         <div className="flex flex-wrap gap-2">
+          <button className={btnGhost} disabled={busy || checking} onClick={async () => { setBusy(true); const r = await call("/api/rep/pool/verify", "POST", { contactIds: rows.slice(0, 25).map((x) => x.id), force: true }); setBusy(false); if (r.ok) { setMsg({ note: `Checked ${(r.results as unknown[]).length}: ${r.safe as number} OK, ${r.risky as number} risky, ${r.invalid as number} invalid.` }); void load(); } else setMsg({ error: r.error ?? "Could not verify" }); }}>Verify emails</button>
           <button className={btnGhost} disabled={busy || checking} onClick={() => void runDraft(rows.map((r) => r.id))}><Sparkles size={12} className="mr-1 inline" />Check websites again</button>
           <button className={btn} disabled={busy || checking || ready === 0} onClick={() => void confirmTicked()}>Confirm ticked ({ready})</button>
         </div>
@@ -123,7 +124,7 @@ export function NeedsBasisPanel({ onChanged }: { onChanged: () => void }) {
                 <input type="checkbox" className="mt-1" checked={e.tick} onChange={() => patch(r.id, { tick: !e.tick })} aria-label={`Include ${r.email} in Confirm ticked`} />
                 <div className="min-w-0 flex-1 space-y-2">
                   <p className="font-bold text-white">{r.name || r.email}{r.role && <span className="font-normal text-slate-500"> · {r.role}</span>}</p>
-                  <p className="text-slate-400">{r.email} · {r.companyName}{r.country && ` · ${r.country}`}{r.sourceUrl && <> · <a className="text-purple-300 underline" href={r.sourceUrl} target="_blank" rel="noopener noreferrer">where it was found</a></>}</p>
+                  <p className="text-slate-400">{r.email} <EmailBadge check={r.emailCheck} /> · {r.companyName}{r.country && ` · ${r.country}`}{r.sourceUrl && <> · <a className="text-purple-300 underline" href={r.sourceUrl} target="_blank" rel="noopener noreferrer">where it was found</a></>}</p>
                   <QuickBasisFields value={e.quick} onChange={(quick) => patch(r.id, { quick })} draft={e.draft} sourceUrl={r.sourceUrl} />
                   <button className={btn} disabled={busy} onClick={() => void saveOne(r.id)}>{e.draft?.verified && e.quick.reason === "published" ? "Confirm & save" : "Save"}</button>
                   <Msg error={rowMsg[r.id]?.error} note={rowMsg[r.id]?.note} />

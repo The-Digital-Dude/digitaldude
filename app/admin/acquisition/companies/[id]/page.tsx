@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCompany } from "@/lib/acquisition/queries";
 import { evaluateEligibility, type ConsentRecord } from "@/lib/acquisition/compliance/eligibility";
-import { Card, Empty, PageHeader, StatusBadge, Badge, fmtDate } from "@/components/acquisition/ui";
-import { ConsentForm, ContactForm, FindContactsButton, MultiContactToggle, ResearchControls, ResearchNoteForm, SuggestionControls } from "@/components/acquisition/forms";
+import { Card, Empty, PageHeader, StatusBadge, Badge, EmailCheckBadge, fmtDate } from "@/components/acquisition/ui";
+import { getDb } from "@/lib/acquisition/db";
+import { loadChecks } from "@/lib/acquisition/verify/bulk";
+import { ConsentForm, ContactForm, FindContactsButton, MultiContactToggle, ResearchControls, VerifyContactsButton, ResearchNoteForm, SuggestionControls } from "@/components/acquisition/forms";
 
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
@@ -14,6 +16,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!data) notFound();
   const { company, research, contacts, suggestions, finderEnabled } = data;
   const missing = (company.missing_evidence ?? []) as string[];
+  const checks = await loadChecks(getDb(), (contacts as { email: string }[]).map((c) => c.email)).catch(() => ({}) as Awaited<ReturnType<typeof loadChecks>>);
 
   return (
     <>
@@ -74,7 +77,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         <MultiContactToggle companyId={company.id} allowed={!!company.allow_multiple_contacts} />
       </Card>
 
-      <Card title={`Contacts (${contacts.length})`} className="mt-6">
+      <Card title={`Contacts (${contacts.length})`} className="mt-6" action={<VerifyContactsButton contactIds={(contacts as { id: string }[]).map((c) => c.id)} />}>
         {contacts.length === 0 && <Empty>No contacts yet.</Empty>}
         <div className="space-y-4">
           {contacts.map((c: { id: string; name: string | null; role: string | null; email: string; source_url: string | null; source_type: string; status: string; acq_consent_records: ConsentRecord[] }) => {
@@ -85,7 +88,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-semibold text-navy">{c.name || c.email} {c.role && <span className="font-normal text-navy/50">· {c.role}</span>}</p>
-                    <p className="text-sm text-navy/60">{c.email} · {c.source_type.replace(/_/g, " ")}{c.source_url && <> · <a className="text-purple hover:underline" href={c.source_url} target="_blank" rel="noopener noreferrer">source</a></>}</p>
+                    <p className="text-sm text-navy/60">{c.email} <EmailCheckBadge check={checks[c.email.trim().toLowerCase()]} /> · {c.source_type.replace(/_/g, " ")}{c.source_url && <> · <a className="text-purple hover:underline" href={c.source_url} target="_blank" rel="noopener noreferrer">source</a></>}</p>
                   </div>
                   <StatusBadge status={c.status} />
                 </div>

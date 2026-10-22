@@ -90,3 +90,27 @@ describe("rep gate: closed companies (0036)", () => {
     expect(await can()).toMatchObject({ ok: true });
   });
 });
+
+describe("invalid addresses are refused by both database gates (0038)", () => {
+  it("acq_reserve_send and acq_rep_can_email refuse an address checked as invalid, and allow risky and unknown", async () => {
+    const rep = await one<{ id: string }>(db, `insert into employees (full_name, email, onboarding_completed) values ('Ivy','ivy@x.com',true) returning id`);
+    const c = await eligibleContact(db, "badmail@example.com.au");
+    const co = await one<{ company_id: string }>(db, `select company_id from acq_contacts where id=$1`, [c]);
+    await db.query(`update acq_companies set owner_employee_id=$1, pool_status='assigned' where id=$2`, [rep.id, co.company_id]);
+    const camp = await draftCampaign(db, [c], { dailyLimit: 10 });
+    await approveAndActivate(db, camp.campaignId);
+    await unpause(db);
+    const can = () => one<{ ok: boolean; reason: string | null }>(db, `select * from acq_rep_can_email($1,$2)`, [c, rep.id]);
+
+    for (const status of ["risky", "unknown", "safe"]) {
+      await db.query(`insert into acq_email_checks (email_normalized, status, reason, source) values ('badmail@example.com.au',$1,'x','builtin') on conflict (email_normalized) do update set status=excluded.status`, [status]);
+      expect(await can()).toMatchObject({ ok: true });
+    }
+    await db.query(`update acq_email_checks set status='invalid' where email_normalized='badmail@example.com.au'`);
+    expect(await can()).toMatchObject({ ok: false, reason: "email_invalid" });
+    expect(await one<{ ok: boolean; reason: string | null }>(db, `select * from acq_reserve_send($1)`, [camp.messages[0]])).toMatchObject({ ok: false, reason: "email_invalid" });
+    // It matters not how the address is written: the lookup is on the normalised form.
+    expect((await one<{ b: boolean }>(db, `select acq_email_is_invalid('  BadMail@Example.com.au ') as b`)).b).toBe(true);
+    expect((await one<{ b: boolean }>(db, `select acq_email_is_invalid('nobody@never-checked.com') as b`)).b).toBe(false);
+  });
+});

@@ -4,6 +4,7 @@ import { cleanLinkedinUrl, ownedCompany, repActor, repJsonError, repRoute, searc
 import { logAudit } from "@/lib/acquisition/audit";
 import { must } from "@/lib/acquisition/db";
 import { secretStatus } from "@/lib/acquisition/secrets";
+import { loadChecks } from "@/lib/acquisition/verify/bulk";
 import { log } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export const GET = repRoute<{ id: string }>("company detail", async (_request, {
     }
     return res.data ?? [];
   };
+  const checks = await loadChecks(db, ((contacts.data ?? []) as { email: string }[]).map((c) => c.email)).catch(() => ({}) as Awaited<ReturnType<typeof loadChecks>>);
   const rule = await db.from("acq_country_rules").select("email_allowed,requires_postal_address,notes,name").eq("country", company.country ?? "").maybeSingle();
   let finderEnabled = false;
   try {
@@ -53,7 +55,7 @@ export const GET = repRoute<{ id: string }>("company detail", async (_request, {
       fit_score: company.fit_score, pool_status: company.pool_status, linkedin_url: company.linkedin_url,
     },
     research: part(research, "research"),
-    contacts: part(contacts, "contacts"),
+    contacts: part(contacts, "contacts").map((c) => ({ ...c, emailCheck: checks[String((c as { email: string }).email).trim().toLowerCase()] ?? null })),
     suggestions: part(suggestions, "suggestions"),
     notes: part(notes, "notes"),
     countryRule: rule.data ?? null,

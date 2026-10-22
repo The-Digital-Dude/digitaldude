@@ -145,7 +145,8 @@ const okProvider = (send = vi.fn(async (_m: OutboundEmail) => ({ providerMessage
 
 describe("sendMessage", () => {
   const env = () => vi.stubEnv("ACQ_UNSUBSCRIBE_SECRET", "u".repeat(40));
-  const deps = { senderEmail: "hello@mail.digitaldude.co.uk", allowlist: null };
+  // Address verification is stubbed so these tests never touch real DNS.
+  const deps = { senderEmail: "hello@mail.digitaldude.co.uk", allowlist: null, verify: async () => ({ status: "safe", reason: "ok" }) };
 
   it("reserves, sends once, then records sent", async () => {
     env();
@@ -190,7 +191,7 @@ describe("sendMessage", () => {
     env();
     const provider = okProvider();
     const reserve = vi.fn(async () => ({ ok: true as const }));
-    expect(await sendMessage(fakeDb(baseMessage).db, "m1", { allowlist: null, senderEmail: null, provider, reserve })).toMatchObject({ status: "skipped", reason: "sender_not_configured" });
+    expect(await sendMessage(fakeDb(baseMessage).db, "m1", { allowlist: null, senderEmail: null, provider, reserve, verify: async () => ({ status: "safe", reason: "ok" }) })).toMatchObject({ status: "skipped", reason: "sender_not_configured" });
     expect(reserve).not.toHaveBeenCalled();
   });
 

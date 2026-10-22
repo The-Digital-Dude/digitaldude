@@ -47,7 +47,7 @@ export function fakeDb(seed: Record<string, Row[]> = {}, opts: { unique?: Record
         return { data: row, error: null };
       }
       if (this.op === "upsert") {
-        const key = this.payload.key !== undefined ? "key" : "id";
+        const key = this.payload.key !== undefined ? "key" : this.payload.email_normalized !== undefined ? "email_normalized" : "id";
         const ex = t.find((r) => r[key] === this.payload[key]);
         if (ex) Object.assign(ex, this.payload);
         else t.push({ ...this.payload });

@@ -1,4 +1,5 @@
 import type { Db } from "../db";
+import { verifyEmail } from "../verify/email";
 
 export interface SuggestionInput {
   email: string;
@@ -28,6 +29,8 @@ export async function insertSuggestions(db: Db, companyId: string, items: Sugges
     const { data: suppressed, error: se } = await db.rpc("acq_is_suppressed", { p_email: s.email });
     if (se) throw new Error(`suppression lookup: ${se.message}`);
     if (suppressed === true) continue;
+    // An address that cannot receive mail (no such domain, disposable, no-reply) is not worth anyone's time.
+    if ((await verifyEmail(db, s.email).catch(() => null))?.status === "invalid") continue;
     const ins = await db.from("acq_contact_suggestions").insert({
       company_id: companyId, email: s.email, name: s.name ?? null, role: s.role ?? null, source_url: s.source_url,
       evidence_excerpt: s.evidence_excerpt, origin: s.origin, confidence: s.confidence ?? null,

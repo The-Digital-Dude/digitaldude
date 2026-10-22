@@ -7,6 +7,7 @@ import { logAudit } from "../audit";
 import { notify } from "../providers/notifications";
 import { enqueueJob } from "./enqueue";
 import { log } from "@/lib/logger";
+import { verifyEmail } from "../verify/email";
 import type { Job } from "./worker";
 
 type Reserve = (db: Db, messageId: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
@@ -16,6 +17,8 @@ export interface SendDeps {
   reserve?: Reserve;
   allowlist?: string[] | null;
   senderEmail?: string | null;
+  /** Address check before the send gate (defaults to the cached free verifier). Injectable for tests. */
+  verify?: (db: Db, email: string) => Promise<{ status: string; reason: string }>;
 }
 
 export type SendOutcome =
@@ -66,6 +69,17 @@ export async function sendMessage(db: Db, messageId: string, deps: SendDeps = {}
   if (!isAllowedRecipient(to, deps.allowlist)) {
     await logAudit(db, "send.blocked_by_allowlist", "message", messageId, {});
     return { status: "skipped", reason: "not_in_allowlist" };
+  }
+
+  // Re-check the address if the saved result is over 30 days old. The database gate then refuses an "invalid" one.
+  try {
+    const check = await (deps.verify ?? ((d: Db, e: string) => verifyEmail(d, e)))(db, to);
+    if (check.status === "invalid") {
+      await logAudit(db, "send.email_invalid", "message", messageId, { reason: check.reason });
+      return { status: "skipped", reason: "email_invalid" };
+    }
+  } catch (e) {
+    log("warn", { message: "email verification failed before send; continuing with the saved result", error: e });
   }
 
   const gate = await reserve(db, messageId);

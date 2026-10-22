@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { getAuthenticatedRep, getOnboardedRep } from "@/lib/repAuth";
-import { assertCanEmail, assertPoolContactAllowed, loadSenderIdentity, OutreachBlockedError, repFooterHtml, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
-import { sendBrevoEmail, wrapInEmailTemplate } from "@/lib/emailBrevo";
+import { assertCanEmail, assertEmailDeliverable, assertPoolContactAllowed, OutreachBlockedError, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
+import { sendBrevoEmail } from "@/lib/emailBrevo";
+import { buildRepEmail, contactInfoForEmail, resolveDesign, type RepEmployee } from "@/lib/repEmail";
+import { createBookLink } from "@/lib/bookLinks";
 import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { SITE_URL } from "@/lib/utils";
 import { log } from "@/lib/logger";
@@ -84,8 +86,11 @@ export async function POST(request: Request) {
     try {
       await assertCanEmail(supabase, cleanRecipientEmail);
       await assertPoolContactAllowed(supabase, cleanRecipientEmail, repSession.id);
+      await assertEmailDeliverable(supabase, cleanRecipientEmail, { allowRisky: body.confirmRisky === true });
     } catch (e) {
       if (e instanceof OutreachBlockedError) {
+        // A risky address is a warning the rep can confirm; everything else is a hard stop.
+        if (e.reason === "email_risky") return NextResponse.json({ ok: false, riskyWarning: true, error: `${e.message} Send anyway?`, blocked: e.reason }, { status: 409 });
         return NextResponse.json({ ok: false, error: e.message, blocked: e.reason }, { status: 403 });
       }
       throw e;
@@ -94,7 +99,7 @@ export async function POST(request: Request) {
     // Fetch fresh employee data
     const { data: employee, error: empErr } = await supabase
       .from("employees")
-      .select("id, full_name, email, referral_code, assigned_outreach_email, outreach_display_name, role_title, daily_outreach_limit")
+      .select("id, full_name, email, referral_code, assigned_outreach_email, outreach_display_name, role_title, daily_outreach_limit, photo_url")
       .eq("id", repSession.id)
       .single();
 
@@ -160,48 +165,26 @@ export async function POST(request: Request) {
       : `${senderDisplayName} | The Digital Dude`;
     const replyToEmail = "info@digitaldude.co.uk";
 
-    const identity = await loadSenderIdentity(supabase);
     const unsubscribeUrl = repUnsubscribeUrl(cleanRecipientEmail);
     const oneClickUrl = repUnsubscribeApiUrl(cleanRecipientEmail);
 
-    const escHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-    const formattedBody = String(message)
-      .split("\n\n")
-      .map(
-        (paragraph: string) =>
-          `<p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #4a4a75;">${escHtml(paragraph).replace(
-            /\n/g,
-            "<br>"
-          )}</p>`
-      )
-      .join("");
-
-    const emailHtml = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        ${formattedBody}
-
-        ${wantButton ? `        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0 20px 0;">
-          <tr>
-            <td>
-              <a href="${repOutreachLink}" target="_blank" style="display: inline-block; background-color: #7b61ff; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 26px; border-radius: 12px; box-shadow: 0 4px 12px rgba(123, 97, 255, 0.25);">
-                Book a 30-minute call →
-              </a>
-            </td>
-          </tr>
-        </table>` : ""}
-
-        <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 24px;">
-          <p style="margin: 0; font-size: 13px; font-weight: 700; color: #1a1a4e;">${escHtml(senderDisplayName)}</p>
-          <p style="margin: 2px 0 0 0; font-size: 12px; color: #7b61ff; font-weight: 600;">${
-            escHtml(employee.role_title || "Outreach & Partnerships")
-          } · The Digital Dude</p>
-          <p style="margin: 6px 0 0 0; font-size: 11px; color: #6b6b90;">
-            <a href="${SITE_URL}" style="color: #7b61ff; text-decoration: none; font-weight: 600;">digitaldude.co.uk</a>
-          </p>
-        </div>
-        <div style="margin-top: 16px; font-size: 11px; color: #94a3b8; line-height: 1.4;">${repFooterHtml(identity, unsubscribeUrl)}</div>
-      </div>
-    `;
+    // The design the rep picked (or the stage's default). The same builder renders the preview, so what they saw is what is sent.
+    const design = resolveDesign(body.design, stage);
+    const contactInfo = await contactInfoForEmail(supabase, cleanRecipientEmail).catch(() => ({ contactId: null, industry: null }));
+    // The button opens a short private page (/b/<code>) personalised for this person, which credits THIS rep. If the link cannot be
+    // created for any reason, the email still goes out with the plain referral link.
+    const bookLink = wantButton
+      ? await createBookLink(supabase, { employeeId: employee.id, contactId: contactInfo.contactId, recipientEmail: cleanRecipientEmail, recipientName: recipientName || null, companyName: companyName || null, industry: contactInfo.industry, stage, templateUsed: templateUsed || "custom", design })
+      : null;
+    const { html: emailHtml, text: emailText } = await buildRepEmail(supabase, {
+      employee: employee as RepEmployee,
+      subject,
+      message: String(message),
+      design,
+      buttonUrl: wantButton ? (bookLink?.url ?? repOutreachLink) : null,
+      unsubscribeUrl,
+      industry: contactInfo.industry,
+    });
 
     // Send email through Brevo
     const emailResult = await sendBrevoEmail({
@@ -209,7 +192,8 @@ export async function POST(request: Request) {
       sender: { email: senderEmail, name: senderName },
       replyTo: { email: replyToEmail, name: "The Digital Dude" },
       subject,
-      htmlContent: wrapInEmailTemplate(subject, emailHtml),
+      htmlContent: emailHtml,
+      textContent: emailText,
       ...(oneClickUrl ? { headers: { "List-Unsubscribe": `<${oneClickUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}),
     });
 

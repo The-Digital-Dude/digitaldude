@@ -5,6 +5,7 @@ import { logAudit } from "@/lib/acquisition/audit";
 import { isValidEmail, normalizeEmail } from "@/lib/acquisition/normalize";
 import { UNIQUE_VIOLATION } from "@/lib/acquisition/db";
 import { rateLimit } from "@/lib/rateLimit";
+import { verifyEmail } from "@/lib/acquisition/verify/email";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,10 @@ export const POST = repRoute<{ id: string }>("add pool contact", async (request,
   if (sup.error) throw new Error(sup.error.message);
   if (sup.data === true) return repJsonError("This address is on the do-not-contact list and can't be added.", 409);
 
+  // Is this address real? Invalid ones (no such domain, disposable, no-reply) are refused; risky ones are added with a warning.
+  const check = await verifyEmail(db, email);
+  if (check.status === "invalid") return repJsonError(`That address cannot be added: ${check.reason}`, 422);
+
   const ins = await db
     .from("acq_contacts")
     .insert({ company_id: company.id, name: b.name || null, role: b.role || null, email, source_url: b.sourceUrl ?? b.basis.evidenceUrl ?? null, source_type: b.sourceType, status: "needs_review" })
@@ -63,5 +68,5 @@ export const POST = repRoute<{ id: string }>("add pool contact", async (request,
     const rule = await db.rpc("acq_country_allowed", { p_country: company.country ?? "" });
     blocked = rule.data === true ? "The contact was saved but is not ready to email yet." : `Outreach to ${company.country ?? "this country"} is not enabled yet. Ask the admin to enable it.`;
   }
-  return NextResponse.json({ ok: true, contactId: ins.data.id, eligible: result.eligible, readyToEmail, leadId, blocked }, { status: 201 });
+  return NextResponse.json({ ok: true, contactId: ins.data.id, eligible: result.eligible, readyToEmail, leadId, blocked, emailCheck: { status: check.status, reason: check.reason } }, { status: 201 });
 });

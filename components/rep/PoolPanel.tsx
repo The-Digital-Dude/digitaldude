@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, Loader2, Search, ShieldCheck, Sparkles, Undo2 } from "lucide-react";
-import { btn, btnGhost, call, card, input, Msg, type BasisDraft } from "./poolShared";
+import { btn, btnGhost, call, card, EmailBadge, input, Msg, type BasisDraft, type EmailCheckInfo } from "./poolShared";
 import { NeedsBasisPanel } from "./NeedsBasis";
 import { RepliesPanel } from "./Replies";
 import { emptyQuick, quickBody, quickFromDraft, QuickBasisFields, type QuickState } from "./QuickBasis";
@@ -15,7 +15,7 @@ interface Company {
 interface Detail {
   company: { id: string; name: string; domain: string | null; country: string | null; industry: string | null; summary: string | null; potential_opportunity: string | null; decision_maker_role: string | null; fit_score: number | null; pool_status: string; linkedin_url: string | null };
   research: { id: string; observed_fact: string; evidence_excerpt: string; source_url: string }[];
-  contacts: { id: string; name: string | null; role: string | null; email: string; status: string }[];
+  contacts: { id: string; name: string | null; role: string | null; email: string; status: string; emailCheck?: EmailCheckInfo | null }[];
   suggestions: { id: string; email: string; source_url: string; evidence_excerpt: string }[];
   notes: { id: string; author: string; note: string; created_at: string }[];
   countryRule: { email_allowed: boolean; requires_postal_address: boolean; notes: string; name: string } | null;
@@ -248,12 +248,15 @@ function CompanyWorkspace({ id, onChanged, onReleased, onWriteEmail }: { id: str
       )}
 
       <div>
-        <p className="mb-2 text-[10px] font-bold uppercase text-slate-500">Contacts ({d.contacts.length})</p>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] font-bold uppercase text-slate-500">Contacts ({d.contacts.length})</p>
+          {d.contacts.length > 0 && <button className={btnGhost} disabled={busy} onClick={() => void act(async () => { const r = await call("/api/rep/pool/verify", "POST", { contactIds: d.contacts.map((x) => x.id), force: true }); if (r.ok) r.blocked = `${r.safe as number} OK, ${r.risky as number} risky, ${r.invalid as number} invalid.`; return r; }, "Emails checked.")}>Verify emails</button>}
+        </div>
         {d.contacts.length === 0 && <p className="text-slate-500">No contacts yet. Find one with the search links above, then add it below.</p>}
         <ul className="space-y-2">{d.contacts.map((c) => (
           <li key={c.id} className="rounded-lg bg-white/[0.03] p-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span><strong className="text-white">{c.name || c.email}</strong>{c.role && <span className="text-slate-500"> · {c.role}</span>}<span className="block text-slate-500">{c.email}</span></span>
+              <span><strong className="text-white">{c.name || c.email}</strong>{c.role && <span className="text-slate-500"> · {c.role}</span>}<span className="block text-slate-500">{c.email} <EmailBadge check={c.emailCheck} /></span></span>
               <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${c.status === "eligible" ? "bg-emerald-500/15 text-emerald-300" : "bg-amber-500/15 text-amber-300"}`}>{c.status === "eligible" ? <><ShieldCheck size={10} className="mr-1 inline" />cleared to email</> : "needs lawful basis"}</span>
             </div>
             {c.status !== "eligible" && c.status !== "suppressed" && (

@@ -73,3 +73,12 @@ export function Empty({ children }: { children: React.ReactNode }) {
 
 export const fmtDate = (d: string | null | undefined) =>
   d ? new Date(d).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short", timeZone: "Australia/Sydney" }) : "—";
+
+
+/** Whether an address can receive mail. "domain OK" = the domain accepts mail, the mailbox itself is unconfirmed. */
+export function EmailCheckBadge({ check }: { check?: { status: string; reason: string; source: string } | null }) {
+  if (!check) return <span title="Not checked yet"><Badge tone="slate">email unchecked</Badge></span>;
+  const tone = check.status === "safe" ? "green" : check.status === "risky" ? "amber" : check.status === "invalid" ? "red" : "slate";
+  const label = check.status === "safe" ? (check.source === "reacher" ? "email verified" : "domain OK") : `email ${check.status}`;
+  return <span title={check.reason}><Badge tone={tone}>{label}</Badge></span>;
+}

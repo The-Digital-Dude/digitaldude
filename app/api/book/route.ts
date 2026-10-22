@@ -118,6 +118,25 @@ export async function POST(request: Request) {
     }
   }
 
+  // A private booking link (/b/<code>): credits the rep who sent it when there is no referral code, and records the booking on the link.
+  let linkCode: string | null = null;
+  if (supabase && typeof body?.linkCode === "string") {
+    try {
+      const { getBookLink, CODE_RE } = await import("@/lib/bookLinks");
+      const link = CODE_RE.test(body.linkCode) ? await getBookLink(supabase, body.linkCode) : null;
+      if (link) {
+        linkCode = link.code;
+        if (!sourcedByEmployeeId && link.employee_id) {
+          sourcedByEmployeeId = link.employee_id;
+          const { data: linkRep } = await supabase.from("employees").select("full_name").eq("id", link.employee_id).maybeSingle();
+          matchedEmployeeName = (linkRep?.full_name as string | null) ?? null;
+        }
+      }
+    } catch (linkErr) {
+      log("warn", { message: "Could not resolve booking link", error: linkErr });
+    }
+  }
+
   // No referral link: credit the rep who owns this prospect's company in the lead pool (exact contact-email match).
   let poolOwner: { employeeId: string; employeeName: string; companyId: string; companyName: string } | null = null;
   if (!sourcedByEmployeeId && supabase) {
@@ -147,7 +166,7 @@ export async function POST(request: Request) {
     slot_end: end.toISOString(),
     sourced_by_employee_id: sourcedByEmployeeId,
     employee_id: sourcedByEmployeeId,
-    referral_source: refCode || (poolOwner ? "lead_pool" : null),
+    referral_source: refCode || (linkCode ? "book_link" : poolOwner ? "lead_pool" : null),
   };
 
   const { error } = await supabase.from("bookings").insert(insertPayload);
@@ -166,6 +185,14 @@ export async function POST(request: Request) {
   }
 
   log("info", { message: "Booking saved successfully", context: { companyName, slotStart: start.toISOString() } });
+  if (linkCode) {
+    try {
+      const { markBooked } = await import("@/lib/bookLinks");
+      await markBooked(supabase, linkCode, bookingId);
+    } catch (markErr) {
+      log("warn", { message: "Could not record the booking on its link", error: markErr });
+    }
+  }
 
   // Create Google Calendar event with dynamic Google Meet video link
   const calendarMeeting = await createGoogleCalendarMeeting({

@@ -1,10 +1,13 @@
 import { pendingApprovals } from "@/lib/acquisition/queries";
 import { checkCampaignCompliance } from "@/lib/acquisition/compliance/templates";
-import { Badge, Card, Empty, PageHeader, StatusBadge } from "@/components/acquisition/ui";
+import { Badge, Card, Empty, EmailCheckBadge, PageHeader, StatusBadge } from "@/components/acquisition/ui";
+import { getDb } from "@/lib/acquisition/db";
+import { loadChecks } from "@/lib/acquisition/verify/bulk";
 import { ApprovalControls } from "@/components/acquisition/forms";
 
 export default async function ApprovalsPage() {
   const items = await pendingApprovals();
+  const checks = await loadChecks(getDb(), items.flatMap((i) => i.leads.map((l: { acq_contacts: { email: string } }) => l.acq_contacts.email))).catch(() => ({}) as Awaited<ReturnType<typeof loadChecks>>);
   return (
     <>
       <PageHeader title="Campaign approvals" subtitle="Review the segment, the evidence, each message and the safeguards. Approving freezes this exact version." />
@@ -29,7 +32,7 @@ export default async function ApprovalsPage() {
                   const facts = research.filter((r: { company_id: string }) => r.company_id === l.acq_contacts.acq_companies?.id).slice(0, 3);
                   return (
                     <div key={l.id} className="rounded-xl border border-slate-200 p-4">
-                      <p className="font-semibold text-navy">{l.acq_contacts.name || l.acq_contacts.email} <span className="font-normal text-navy/50">· {l.acq_contacts.acq_companies?.name} · {l.acq_contacts.email}</span></p>
+                      <p className="font-semibold text-navy">{l.acq_contacts.name || l.acq_contacts.email} <span className="font-normal text-navy/50">· {l.acq_contacts.acq_companies?.name} · {l.acq_contacts.email}</span> <EmailCheckBadge check={checks[l.acq_contacts.email.trim().toLowerCase()]} /></p>
                       {basis ? (
                         <p className="mt-1 text-xs text-navy/60"><Badge tone="green">{basis.consent_type.replace(/_/g, " ")}</Badge> reviewed by {basis.reviewed_by} · {basis.legal_basis}{basis.evidence_url && <> · <a className="text-purple hover:underline" href={basis.evidence_url} target="_blank" rel="noopener noreferrer">evidence</a></>}</p>
                       ) : <p className="mt-1 text-xs text-red-700">No consent record found!</p>}

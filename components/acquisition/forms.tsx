@@ -793,3 +793,18 @@ export function SuggestReply({ replyId, classification }: { replyId: string; cla
     </div>
   );
 }
+
+
+/** Re-checks whether these contacts' email addresses can receive mail, then refreshes the page. */
+export function VerifyContactsButton({ contactIds }: { contactIds: string[] }) {
+  const { run, busy, result } = useAction();
+  const [note, setNote] = useState<string | null>(null);
+  if (contactIds.length === 0) return null;
+  return (
+    <div>
+      <button className={btnGhostCls} disabled={busy} onClick={() => void run("/api/acquisition/contacts/verify", "POST", { contactIds: contactIds.slice(0, 100), force: true }, (r) => setNote(`${r.safe as number} OK, ${r.risky as number} risky, ${r.invalid as number} invalid.`))}>{busy ? "Checking…" : "Verify emails"}</button>
+      {note && <span className="ml-3 text-sm font-medium text-emerald-700">{note}</span>}
+      <Feedback result={result && !result.ok ? result : null} />
+    </div>
+  );
+}

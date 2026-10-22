@@ -21,6 +21,21 @@ export function Msg({ error, note }: { error?: string | null; note?: string | nu
   return null;
 }
 
+export interface EmailCheckInfo { status: "safe" | "risky" | "invalid" | "unknown"; reason: string; source: "builtin" | "reacher" }
+
+/** Small chip showing whether an address can receive mail. "Domain OK" means the domain accepts mail but the mailbox is unconfirmed. */
+export function EmailBadge({ check }: { check?: EmailCheckInfo | null }) {
+  if (!check) return <span className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-500" title="Not checked yet">unchecked</span>;
+  const map = {
+    safe: check.source === "reacher" ? ["verified", "bg-emerald-500/15 text-emerald-300"] : ["domain OK", "bg-emerald-500/10 text-emerald-300"],
+    risky: ["risky", "bg-amber-500/15 text-amber-300"],
+    invalid: ["invalid", "bg-rose-500/15 text-rose-300"],
+    unknown: ["unknown", "bg-white/5 text-slate-400"],
+  } as const;
+  const [label, cls] = map[check.status];
+  return <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${cls}`} title={check.reason}>{label}</span>;
+}
+
 /** What the AI drafter returns for one contact (see /api/rep/pool/basis/draft). */
 export interface BasisDraft {
   contactId: string;

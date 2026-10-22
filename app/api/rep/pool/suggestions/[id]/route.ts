@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ensureRepLead, repActor, repJsonError, repRoute } from "@/lib/repPool";
 import { logAudit } from "@/lib/acquisition/audit";
 import { UNIQUE_VIOLATION } from "@/lib/acquisition/db";
+import { verifyEmail } from "@/lib/acquisition/verify/email";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,12 @@ export const PATCH = repRoute<{ id: string }>("review suggestion", async (reques
   if (sup.data === true) {
     await db.from("acq_contact_suggestions").update({ status: "dismissed" }).eq("id", s.id);
     return repJsonError("This address is on the do-not-contact list.", 409);
+  }
+  // An address that cannot receive mail is dismissed instead of becoming a contact.
+  const check = await verifyEmail(db, s.email).catch(() => null);
+  if (check?.status === "invalid") {
+    await db.from("acq_contact_suggestions").update({ status: "dismissed" }).eq("id", s.id);
+    return repJsonError(`This address cannot receive mail (${check.reason}), so it was dismissed.`, 409);
   }
   const ins = await db
     .from("acq_contacts")

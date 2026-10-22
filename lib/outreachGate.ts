@@ -3,11 +3,12 @@ import { createUnsubscribeToken } from "@/lib/acquisition/compliance/unsubscribe
 import { unsubscribeSecret } from "@/lib/acquisition/env";
 import { SITE_URL } from "@/lib/utils";
 import { log } from "@/lib/logger";
+import { verifyEmail } from "@/lib/acquisition/verify/email";
 
 type Db = SupabaseClient;
 
 export class OutreachBlockedError extends Error {
-  constructor(readonly reason: "suppressed" | "legacy_unsubscribed" | "pool_not_allowed", message: string) {
+  constructor(readonly reason: "suppressed" | "legacy_unsubscribed" | "pool_not_allowed" | "email_invalid" | "email_risky", message: string) {
     super(message);
     this.name = "OutreachBlockedError";
   }
@@ -34,7 +35,21 @@ export async function assertCanEmail(db: Db, email: string): Promise<void> {
   }
 }
 
+/**
+ * Deliverability gate. An address that cannot receive mail (no such domain, disposable, no-reply) is never emailed; it would only
+ * bounce and hurt the sender reputation. A "risky" address (likely typo, or a mail server that gave a risky answer) is blocked
+ * unless the caller says the person has confirmed it (`allowRisky`). "Unknown" (a lookup hiccup) never blocks. The result is
+ * cached for 30 days, so this is cheap on repeat sends.
+ */
+export async function assertEmailDeliverable(db: Db, email: string, opts: { allowRisky?: boolean } = {}): Promise<{ status: string; reason: string }> {
+  const check = await verifyEmail(db, email);
+  if (check.status === "invalid") throw new OutreachBlockedError("email_invalid", `${check.email} cannot be emailed: ${check.reason}`);
+  if (check.status === "risky" && !opts.allowRisky) throw new OutreachBlockedError("email_risky", `${check.email} looks risky: ${check.reason}`);
+  return { status: check.status, reason: check.reason };
+}
+
 const POOL_REASONS: Record<string, string> = {
+  email_invalid: "This email address cannot receive mail (it would only bounce).",
   not_your_company: "This contact belongs to a company you do not own.",
   contact_not_eligible: "This contact has no valid recorded lawful basis yet.",
   consent_invalid: "The recorded lawful basis is missing, expired or withdrawn.",
@@ -93,6 +108,11 @@ export function repUnsubscribeApiUrl(email: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** Plain-text version of the compliance footer (who sends, where, how to opt out). */
+export function repFooterText(identity: SenderIdentity, unsubscribeUrl: string): string {
+  return `${identity.business}${identity.postalAddress ? `, ${identity.postalAddress}` : ""}. If you would prefer not to receive further commercial emails from us, unsubscribe here: ${unsubscribeUrl}`;
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);

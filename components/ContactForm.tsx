@@ -83,7 +83,7 @@ function maxDateIso() {
   return maxUtc.toISOString().slice(0, 10);
 }
 
-export function ContactForm() {
+export function ContactForm({ refCode: refProp, linkCode, prefill }: { refCode?: string; linkCode?: string; prefill?: { name?: string; email?: string; company?: string } } = {}) {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1: Qualification State
@@ -100,9 +100,9 @@ export function ContactForm() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
   // Step 3: Contact Details
-  const [name, setName] = useState("");
-  const [workEmail, setWorkEmail] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [name, setName] = useState(prefill?.name ?? "");
+  const [workEmail, setWorkEmail] = useState(prefill?.email ?? "");
+  const [companyName, setCompanyName] = useState(prefill?.company ?? "");
   const [country, setCountry] = useState("United Kingdom");
   const [message, setMessage] = useState("");
   const [honeypot, setHoneypot] = useState("");
@@ -352,7 +352,7 @@ export function ContactForm() {
     let refCode = "";
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
-      refCode = (urlParams.get("ref") || "").trim().toLowerCase();
+      refCode = (refProp || urlParams.get("ref") || "").trim().toLowerCase();
       if (!refCode && pseoContext) {
         refCode = `pseo:${(pseoContext.location || "global").toLowerCase()}:${(pseoContext.service || "custom-system").toLowerCase()}`;
       }
@@ -376,6 +376,7 @@ export function ContactForm() {
       company: honeypot,
       eventId,
       ref: refCode || undefined,
+      linkCode: linkCode || undefined,
       fbp: browserData.fbp,
       fbc: browserData.fbc,
       userAgent: browserData.clientUserAgent,
