@@ -39,6 +39,9 @@ export interface CrmLead {
   /** Set for leads that came from the lead pool: "eligible" means cleared to email. */
   pool_contact_status?: string | null;
   email_check?: { status: "safe" | "risky" | "invalid" | "unknown"; reason: string; source: "builtin" | "reacher" } | null;
+  proposal_status?: "draft" | "sent" | "viewed" | "accepted" | null;
+  proposal_slug?: string | null;
+  proposal_views?: number;
 }
 
 export interface CrmTask {

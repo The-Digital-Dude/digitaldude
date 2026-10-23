@@ -25,6 +25,7 @@ import {
   AlertCircle,
   X,
   Building,
+  CreditCard,
 } from "lucide-react";
 import { Pagination } from "@/components/admin/Pagination";
 
@@ -35,6 +36,14 @@ interface RepScorecard {
   role_title: string;
   assigned_outreach_email: string | null;
   outreach_display_name?: string | null;
+  payout_details?: {
+    method?: string;
+    account_number?: string;
+    bank_name?: string;
+    branch_name?: string;
+    routing_number?: string;
+    notes?: string;
+  } | null;
   totalEmailsSent: number;
   emailsSentToday: number;
   totalLeads: number;
@@ -602,6 +611,59 @@ export default function AdminRepsProductivityPage() {
                       ${selectedRep.pipelineValue.toLocaleString()}
                     </span>
                   </div>
+                </div>
+
+                {/* Banking & Payout Profile */}
+                <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="font-bold text-navy flex items-center gap-1.5">
+                      <CreditCard size={14} className="text-purple" /> Banking &amp; Payout Profile
+                    </span>
+                    {selectedRep.payout_details?.method ? (
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                        {selectedRep.payout_details.method}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                        Not Configured
+                      </span>
+                    )}
+                  </div>
+                  {selectedRep.payout_details?.account_number ? (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Account / Wallet Number:</span>
+                        <span className="font-mono font-bold text-navy select-all">
+                          {selectedRep.payout_details.account_number}
+                        </span>
+                      </div>
+                      {selectedRep.payout_details.bank_name && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Bank &amp; Branch:</span>
+                          <span className="font-medium text-navy">
+                            {selectedRep.payout_details.bank_name}
+                            {selectedRep.payout_details.branch_name ? ` (${selectedRep.payout_details.branch_name})` : ""}
+                          </span>
+                        </div>
+                      )}
+                      {selectedRep.payout_details.routing_number && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-500">Routing Number:</span>
+                          <span className="font-mono text-navy">{selectedRep.payout_details.routing_number}</span>
+                        </div>
+                      )}
+                      {selectedRep.payout_details.notes && (
+                        <div className="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100 mt-1">
+                          <span className="font-semibold text-navy">Notes: </span>
+                          {selectedRep.payout_details.notes}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic pt-1">
+                      This rep has not added any payout details yet.
+                    </p>
+                  )}
                 </div>
 
                 {/* Recent Actions Timeline */}

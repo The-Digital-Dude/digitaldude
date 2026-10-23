@@ -21,11 +21,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { data: lead } = await supabase.from("rep_leads").select("*").eq("id", id).eq("employee_id", rep.id).maybeSingle();
     if (!lead) return NextResponse.json({ ok: false, error: "Lead not found" }, { status: 404 });
 
-    const [{ data: activities }, { data: tasks }] = await Promise.all([
+    const [{ data: activities }, { data: tasks }, { data: proposals }] = await Promise.all([
       supabase.from("rep_lead_activities").select("id,type,outcome,summary,details,occurred_at,employee_id").eq("lead_id", id).order("occurred_at", { ascending: false }).limit(TIMELINE_LIMIT),
       supabase.from("rep_lead_tasks").select("id,title,due_at,status,kind,auto,cancel_reason,completed_at").eq("lead_id", id).order("due_at", { ascending: true }).limit(100),
+      supabase.from("proposals").select("*").eq("lead_id", id).order("created_at", { ascending: false }),
     ]);
-    return NextResponse.json({ ok: true, lead, activities: activities ?? [], tasks: tasks ?? [] });
+    return NextResponse.json({ ok: true, lead, activities: activities ?? [], tasks: tasks ?? [], proposals: proposals ?? [] });
   } catch {
     return NextResponse.json({ ok: false, error: "Failed to load lead" }, { status: 500 });
   }

@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CURRENCIES, LOST_REASONS, LOST_REASON_LABELS, STAGES, STAGE_LABELS, STATUSES, STATUS_LABELS, CALL_OUTCOMES, MEETING_OUTCOMES, MESSAGE_OUTCOMES, type Stage } from "@/lib/crm/model";
+import { Proposal } from "@/lib/content/proposals";
+import { ProposalDraftModal } from "./ProposalDraftModal";
 import { CrmLead, GRADE_STYLE, HEAT_STYLE, crm, dueLabel, when } from "./shared";
+import { ExternalLink, Copy, FileCheck2, Eye, FileText, Send, Globe, Linkedin, Zap, Check } from "lucide-react";
+import { parseLeadIntelligence, generateExecutivePitch, generateDirectMessagePitch } from "@/lib/crm/intelligence";
 
 interface Activity { id: string; type: string; outcome: string | null; summary: string; occurred_at: string }
 interface Task { id: string; title: string; due_at: string; status: string; kind: string; auto: boolean; cancel_reason?: string | null }
@@ -24,9 +28,28 @@ const tomorrowInput = () => toLocalInput(new Date(Date.now() + DAY_MS));
 /** One day after the later of now and the task's due time (so snoozing an overdue task moves it to tomorrow, not yesterday). */
 const snoozedDue = (dueIso: string) => new Date(Math.max(Date.now(), new Date(dueIso).getTime()) + DAY_MS).toISOString();
 
-export function LeadDrawer({ lead, onClose, onChanged, onEmail, onEditContact, onErased }: { lead: CrmLead; onClose: () => void; onChanged: () => void; onEmail: (l: CrmLead) => void; onEditContact: (l: CrmLead) => void; onErased: () => void }) {
+export function LeadDrawer({
+  lead,
+  onClose,
+  onChanged,
+  onEmail,
+  onEditContact,
+  onErased,
+}: {
+  lead: CrmLead;
+  onClose: () => void;
+  onChanged: () => void;
+  onEmail: (l: CrmLead, pitch?: { subject: string; body: string }) => void;
+  onEditContact: (l: CrmLead) => void;
+  onErased: () => void;
+}) {
+  const intel = parseLeadIntelligence(lead.notes);
+  const [copiedPitch, setCopiedPitch] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,10 +73,11 @@ export function LeadDrawer({ lead, onClose, onChanged, onEmail, onEditContact, o
   const [tDue, setTDue] = useState(tomorrowInput);
 
   const load = useCallback(async () => {
-    const r = await crm<{ activities: Activity[]; tasks: Task[] }>(`/api/rep/leads/${lead.id}`);
+    const r = await crm<{ activities: Activity[]; tasks: Task[]; proposals?: Proposal[] }>(`/api/rep/leads/${lead.id}`);
     if (r.ok) {
       setActivities(r.activities ?? []);
       setTasks(r.tasks ?? []);
+      if (r.proposals) setProposals(r.proposals);
     }
   }, [lead.id]);
   useEffect(() => { void load(); }, [load]);
@@ -134,6 +158,34 @@ export function LeadDrawer({ lead, onClose, onChanged, onEmail, onEditContact, o
             <h2 className="text-lg font-extrabold text-white">{lead.full_name}</h2>
             <p className="text-xs text-slate-400 font-mono">{lead.email}</p>
             <p className="text-xs text-slate-400">{[lead.job_title, lead.company_name].filter(Boolean).join(" · ") || "No company yet"}</p>
+            {(intel.website || intel.linkedinUrl || intel.location || intel.industry) && (
+              <div className="flex flex-wrap items-center gap-2.5 pt-1.5 text-[11px]">
+                {intel.website && (
+                  <a
+                    href={intel.website.startsWith("http") ? intel.website : `https://${intel.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300 hover:underline"
+                    title="Open company website"
+                  >
+                    <Globe size={11} /> {intel.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
+                  </a>
+                )}
+                {intel.linkedinUrl && (
+                  <a
+                    href={intel.linkedinUrl.startsWith("http") ? intel.linkedinUrl : `https://${intel.linkedinUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 hover:underline"
+                    title="View LinkedIn profile"
+                  >
+                    <Linkedin size={11} /> LinkedIn
+                  </a>
+                )}
+                {intel.location && <span className="text-slate-400">📍 {intel.location}</span>}
+                {intel.industry && <span className="text-slate-400">🏢 {intel.industry}</span>}
+              </div>
+            )}
           </div>
           <button onClick={onClose} className={btnGhost} aria-label="Close">Close</button>
         </div>
@@ -151,6 +203,120 @@ export function LeadDrawer({ lead, onClose, onChanged, onEmail, onEditContact, o
           <button className={btnGhost} onClick={() => onEditContact(lead)}>Edit contact details</button>
           <a className={btnGhost} href={`/api/rep/leads/${lead.id}/export`} title="Download everything held about this person">Export their data</a>
         </div>
+
+        {/* ========================================================================= */}
+        {/* RESEARCH INTELLIGENCE & STRATEGIC PITCH CARD */}
+        {/* ========================================================================= */}
+        {intel.hasIntelligence && (
+          <section className="space-y-3.5 rounded-2xl border border-purple/30 bg-gradient-to-br from-purple/10 via-[#131B2E] to-[#0D1322] p-4 shadow-lg shadow-purple/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple/20 text-purple-300">
+                  <Zap size={15} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-white">
+                    Research Intelligence &amp; Pitch
+                  </h3>
+                  <p className="text-[10px] text-purple-300/80">Audit facts &amp; tailored solution ready to send</p>
+                </div>
+              </div>
+              {intel.fitScore != null && (
+                <span className="rounded-md bg-purple/20 border border-purple/40 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+                  Research Fit: {intel.fitScore}/100
+                </span>
+              )}
+            </div>
+
+            {/* Known Tech Stack */}
+            {intel.techStack.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Known Tech Stack</span>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {intel.techStack.map((tech, idx) => (
+                    <span key={idx} className="rounded-md bg-white/5 border border-white/10 px-2 py-0.5 text-[11px] font-medium text-slate-300">
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pain Points */}
+            {intel.painPoints && (
+              <div className="space-y-1 rounded-xl bg-black/30 border border-white/[0.06] p-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1">
+                  ⚠ Identified Bottlenecks / Triggers
+                </span>
+                <p className="text-xs text-slate-300 whitespace-pre-line leading-relaxed">
+                  {intel.painPoints}
+                </p>
+              </div>
+            )}
+
+            {/* Proposed Solution */}
+            {intel.solution && (
+              <div className="space-y-1 rounded-xl bg-purple/10 border border-purple/20 p-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-200 flex items-center gap-1">
+                  ✨ Tailored Solution &amp; Pitch
+                </span>
+                <p className="text-xs text-purple-100 whitespace-pre-line leading-relaxed">
+                  {intel.solution}
+                </p>
+              </div>
+            )}
+
+            {/* Quick Action Buttons */}
+            <div className="flex flex-wrap gap-2 pt-1 border-t border-white/[0.06]">
+              <button
+                type="button"
+                onClick={() => {
+                  const pitch = generateExecutivePitch({
+                    fullName: lead.full_name,
+                    companyName: lead.company_name,
+                    jobTitle: lead.job_title,
+                    intel,
+                  });
+                  flash(true, "Executive pitch generated! Opening outreach composer…");
+                  onEmail(lead, pitch);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-purple px-3 py-1.5 text-xs font-bold text-white hover:brightness-110 transition shadow-sm"
+                title="Open outreach composer pre-filled with this tailored pitch"
+              >
+                <Send size={12} /> Pitch this Lead
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const dm = generateDirectMessagePitch({
+                    fullName: lead.full_name,
+                    companyName: lead.company_name,
+                    intel,
+                  });
+                  navigator.clipboard.writeText(dm);
+                  setCopiedPitch(true);
+                  flash(true, "LinkedIn / WhatsApp pitch copied to clipboard!");
+                  setTimeout(() => setCopiedPitch(false), 2500);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/10 transition"
+                title="Copy short direct message pitch for LinkedIn or WhatsApp"
+              >
+                {copiedPitch ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                {copiedPitch ? "Copied DM Pitch!" : "Copy DM Pitch"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowProposalModal(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:text-white hover:bg-white/10 transition"
+                title="Draft a full technical specification with this solution"
+              >
+                <FileText size={12} /> Draft Proposal from Solution
+              </button>
+            </div>
+          </section>
+        )}
 
         {msg && <p className={`rounded-lg p-2 text-xs font-semibold ${msg.ok ? "bg-emerald-500/10 text-emerald-300" : "bg-rose-500/10 text-rose-300"}`} role="status">{msg.text}</p>}
 
@@ -174,6 +340,117 @@ export function LeadDrawer({ lead, onClose, onChanged, onEmail, onEditContact, o
             <div><label className={label}>Tags (comma separated)</label><input className={field} value={tags} onChange={(e) => setTags(e.target.value)} placeholder="warm, referral" /></div>
           </div>
           <button className={btn} disabled={busy} onClick={saveDeal}>{busy ? "Saving…" : "Save deal details"}</button>
+        </section>
+
+        {/* Proposals & Closing */}
+        <section className="space-y-3 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                <FileText size={14} className="text-purple" /> Proposals &amp; Closing
+              </h3>
+              <p className="text-[11px] text-slate-400">Specifications, live client views &amp; digital signatures</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowProposalModal(true)}
+              className="inline-flex items-center gap-1 rounded-lg bg-purple px-2.5 py-1.5 text-xs font-bold text-white hover:brightness-110 shadow-xs transition"
+            >
+              + Draft Proposal
+            </button>
+          </div>
+
+          {proposals.length === 0 ? (
+            <p className="text-xs text-slate-500 py-1">
+              No technical specification drafted yet. Generate one to share an unguessable link with live view tracking and 1-click legal e-signatures.
+            </p>
+          ) : (
+            <div className="space-y-2 pt-1">
+              {proposals.map((p) => {
+                const isSigned = Boolean(p.signed_at);
+                const views = p.view_count || 0;
+                return (
+                  <div key={p.id} className="rounded-lg border border-white/[0.06] bg-[#0D1322] p-2.5 text-xs space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-white flex items-center gap-1.5">
+                          <span>{p.project_title}</span>
+                          {p.is_active && <span className="rounded-md bg-purple/20 px-1.5 py-0.2 text-[9px] font-bold text-purple uppercase">Active</span>}
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                          {p.budget_range} · {p.target_timeline}
+                        </div>
+                      </div>
+
+                      <div>
+                        {isSigned ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                            <FileCheck2 size={11} /> Executed &amp; Won
+                          </span>
+                        ) : views > 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-purple/20 border border-purple/30 px-2 py-0.5 text-[10px] font-bold text-purple">
+                            <Eye size={11} /> Viewed {views}x
+                          </span>
+                        ) : p.status === "sent" ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 text-[10px] font-bold text-sky-400">
+                            Ready to Share
+                          </span>
+                        ) : (
+                          <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-400">
+                            Draft
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/[0.04] pt-2 text-[11px]">
+                      <span className="text-slate-500 font-mono text-[10px] truncate max-w-[140px]">
+                        {p.slug}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = `${window.location.origin}/proposals/${p.slug}`;
+                            navigator.clipboard.writeText(url);
+                            setCopiedSlug(p.slug);
+                            flash(true, "Proposal link copied to clipboard!");
+                            setTimeout(() => setCopiedSlug(null), 2000);
+                          }}
+                          className="inline-flex items-center gap-1 text-slate-300 hover:text-white transition"
+                          title="Copy secure link to clipboard"
+                        >
+                          <Copy size={11} /> {copiedSlug === p.slug ? "Copied!" : "Copy Link"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = `${window.location.origin}/proposals/${p.slug}`;
+                            const draftText = `Hi ${lead.full_name},\n\nFollowing our discussion, I have prepared our bespoke technical architecture specification and milestone proposal for ${lead.company_name || 'your project'}:\n\n${url}\n\nPlease review the scope, architecture modules, and roadmap. You can digitally execute the specification directly on the page whenever you are ready to kick off.\n\nBest regards,`;
+                            navigator.clipboard.writeText(draftText);
+                            flash(true, "Proposal email pitch copied! Opening outreach composer…");
+                            onEmail(lead);
+                          }}
+                          className="inline-flex items-center gap-1 text-purple-300 hover:text-white transition"
+                          title="Copy proposal email template and open composer"
+                        >
+                          <Send size={11} /> Compose Email
+                        </button>
+                        <a
+                          href={`/proposals/${p.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-purple hover:underline font-semibold"
+                        >
+                          <ExternalLink size={11} /> Open Spec
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Tasks */}
@@ -234,6 +511,17 @@ export function LeadDrawer({ lead, onClose, onChanged, onEmail, onEditContact, o
           <button className="text-xs font-semibold text-rose-300 hover:underline" onClick={erase}>Erase this person&apos;s data…</button>
         </section>
       </div>
+
+      <ProposalDraftModal
+        lead={lead}
+        isOpen={showProposalModal}
+        onClose={() => setShowProposalModal(false)}
+        onCreated={(newProp) => {
+          setProposals((prev) => [newProp, ...prev]);
+          onChanged();
+          void load();
+        }}
+      />
     </div>
   );
 }

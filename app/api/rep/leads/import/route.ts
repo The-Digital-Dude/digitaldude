@@ -26,12 +26,17 @@ export async function POST(request: Request) {
     if ("response" in ctx) return ctx.response;
     const { rep, db } = ctx;
 
-    const body = (await request.json().catch(() => null)) as { csv?: unknown; commit?: unknown } | null;
+    const body = (await request.json().catch(() => null)) as {
+      csv?: unknown;
+      commit?: unknown;
+      mapping?: Record<string, string>;
+    } | null;
     if (!body || typeof body.csv !== "string" || !body.csv.trim()) return fail("Choose a CSV file first.");
     if (body.csv.length > MAX_BYTES) return fail("That file is too large. Import up to 300 leads at a time.");
     const commit = body.commit === true;
+    const mapping = body.mapping && typeof body.mapping === "object" ? body.mapping : undefined;
 
-    const plan = planImport(parseCsvText(body.csv), { currency: rep.currency || undefined });
+    const plan = planImport(parseCsvText(body.csv), { currency: rep.currency || undefined }, mapping);
     if (plan.error) return fail(plan.error);
 
     const results: ResultRow[] = [];
@@ -80,7 +85,21 @@ export async function POST(request: Request) {
     let added = 0;
     if (commit && accepted.length > 0) {
       const now = new Date().toISOString();
-      const payload = accepted.map((c) => ({ stage: "new", estimated_deal_value: 0, ...c.lead, employee_id: rep.id, email: c.email, created_at: now, updated_at: now }));
+      const payload = accepted.map((c) => {
+        const lead = c.lead ?? {};
+        const tags = Array.isArray(lead.tags) ? lead.tags : [];
+        return {
+          stage: "new",
+          status: "new",
+          estimated_deal_value: 0,
+          ...lead,
+          tags,
+          employee_id: rep.id,
+          email: c.email,
+          created_at: now,
+          updated_at: now,
+        };
+      });
       const { data: inserted, error } = await db.from("rep_leads").insert(payload).select("*");
       if (error) return fail(`Could not save the leads: ${error.message}`, 500);
       added = inserted?.length ?? 0;

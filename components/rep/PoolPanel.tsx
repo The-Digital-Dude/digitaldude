@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Loader2, Search, ShieldCheck, Sparkles, Undo2 } from "lucide-react";
 import { btn, btnGhost, call, card, EmailBadge, input, Msg, type BasisDraft, type EmailCheckInfo } from "./poolShared";
 import { NeedsBasisPanel } from "./NeedsBasis";
 import { RepliesPanel } from "./Replies";
 import { emptyQuick, quickBody, quickFromDraft, QuickBasisFields, type QuickState } from "./QuickBasis";
+import { Pagination } from "@/components/admin/Pagination";
 
 interface Summary { held: number; cap: number; markets: { id: string; name: string; country: string; claimCap: number }[] }
 interface Company {
@@ -38,8 +39,17 @@ export function RepPoolPanel({ onUseReply, onLeadsChanged, onWriteEmail }: { onU
   const [msg, setMsg] = useState<{ error?: string; note?: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  const paginatedCompanies = useMemo(() => {
+    const from = (page - 1) * pageSize;
+    return companies.slice(from, from + pageSize);
+  }, [companies, page, pageSize]);
+
   const hasRows = useRef(false);
-  useEffect(() => { hasRows.current = companies.length > 0; }, [companies]);
+  useEffect(() => { hasRows.current = companies.length > 0; setPage(1); }, [companies]);
   const load = useCallback(async () => {
     // Only show the spinner on the first load: a refresh must not unmount an open workspace and lose what the rep typed.
     if (!hasRows.current) setLoading(true);
@@ -118,29 +128,42 @@ export function RepPoolPanel({ onUseReply, onLeadsChanged, onWriteEmail }: { onU
           {view === "mine" ? "You don't own any companies yet. Claim some from “Available to claim”, or ask the admin to assign you some." : summary && summary.markets.length === 0 ? "You haven't been given access to any markets yet. Ask the admin." : "Nothing is available to claim in your markets right now."}
         </div>
       ) : (
-        <ul className="space-y-3">
-          {companies.map((c) => (
-            <li key={c.id} className={card}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                {view === "mine" && <input type="checkbox" className="mt-1" checked={selected.has(c.id)} onChange={() => toggleSel(c.id)} aria-label={`Select ${c.name}`} />}
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white">{c.name}{c.possible_duplicate_of && <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">possible duplicate</span>}</p>
-                  <p className="text-[11px] text-slate-400">{c.domain ?? "no website"} · {[c.acq_markets?.name, c.region, c.country].filter(Boolean).join(" · ")}{c.fit_score !== null && <> · fit {c.fit_score}</>}</p>
-                </div>
-                {view === "available" ? (
-                  <button className={btn} disabled={busyId === c.id} onClick={() => void claim(c.id)}>{busyId === c.id ? "Claiming…" : "Claim"}</button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-300">{label(c.pool_status)}</span>
-                    {c.contact_count === 0 && <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-300">needs contact</span>}
-                    <button className={btnGhost} onClick={() => setOpenId(openId === c.id ? null : c.id)}>{openId === c.id ? "Close" : "Work this company"}</button>
+        <div className="space-y-4">
+          <ul className="space-y-3">
+            {paginatedCompanies.map((c) => (
+              <li key={c.id} className={card}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  {view === "mine" && <input type="checkbox" className="mt-1" checked={selected.has(c.id)} onChange={() => toggleSel(c.id)} aria-label={`Select ${c.name}`} />}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-white">{c.name}{c.possible_duplicate_of && <span className="ml-2 rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">possible duplicate</span>}</p>
+                    <p className="text-[11px] text-slate-400">{c.domain ?? "no website"} · {[c.acq_markets?.name, c.region, c.country].filter(Boolean).join(" · ")}{c.fit_score !== null && <> · fit {c.fit_score}</>}</p>
                   </div>
-                )}
-              </div>
-              {view === "mine" && openId === c.id && <CompanyWorkspace id={c.id} onWriteEmail={onWriteEmail} onChanged={() => { void load(); onLeadsChanged?.(); }} onReleased={() => { setOpenId(null); void load(); }} />}
-            </li>
-          ))}
-        </ul>
+                  {view === "available" ? (
+                    <button className={btn} disabled={busyId === c.id} onClick={() => void claim(c.id)}>{busyId === c.id ? "Claiming…" : "Claim"}</button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-300">{label(c.pool_status)}</span>
+                      {c.contact_count === 0 && <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-bold uppercase text-amber-300">needs contact</span>}
+                      <button className={btnGhost} onClick={() => setOpenId(openId === c.id ? null : c.id)}>{openId === c.id ? "Close" : "Work this company"}</button>
+                    </div>
+                  )}
+                </div>
+                {view === "mine" && openId === c.id && <CompanyWorkspace id={c.id} onWriteEmail={onWriteEmail} onChanged={() => { void load(); onLeadsChanged?.(); }} onReleased={() => { setOpenId(null); void load(); }} />}
+              </li>
+            ))}
+          </ul>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={companies.length}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              setPage(1);
+            }}
+            variant="dark"
+          />
+        </div>
       )}
     </div>
   );

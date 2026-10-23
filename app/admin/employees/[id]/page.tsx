@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { Pagination } from "@/components/admin/Pagination";
 import {
   CheckCircle2,
   Circle,
@@ -23,6 +24,7 @@ import {
   UserCheck,
   Star,
   FileText,
+  CreditCard,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/utils";
 
@@ -81,6 +83,14 @@ interface Employee {
   status: string;
   source_application_id?: string | null;
   onboarding_checklist: ChecklistItem[];
+  payout_details?: {
+    method?: string;
+    account_number?: string;
+    bank_name?: string;
+    branch_name?: string;
+    routing_number?: string;
+    notes?: string;
+  };
 }
 
 interface CommissionSummary {
@@ -126,6 +136,13 @@ export default function EmployeeDetailPage() {
   const [commission, setCommission] = useState<CommissionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [bookingPage, setBookingPage] = useState(1);
+  const [bookingPageSize, setBookingPageSize] = useState(25);
+
+  const paginatedBookings = useMemo(() => {
+    const from = (bookingPage - 1) * bookingPageSize;
+    return sourcedBookings.slice(from, from + bookingPageSize);
+  }, [sourcedBookings, bookingPage, bookingPageSize]);
 
   // Profile & Commission Settings State
   const [rates, setRates] = useState({
@@ -141,6 +158,18 @@ export default function EmployeeDetailPage() {
   });
   const [savingRates, setSavingRates] = useState(false);
   const [ratesSuccess, setRatesSuccess] = useState(false);
+
+  // Banking & Payout Details State
+  const [payoutDetails, setPayoutDetails] = useState({
+    method: "bkash",
+    account_number: "",
+    bank_name: "",
+    branch_name: "",
+    routing_number: "",
+    notes: "",
+  });
+  const [savingPayout, setSavingPayout] = useState(false);
+  const [payoutSuccess, setPayoutSuccess] = useState(false);
 
   // New Onboarding Task State
   const [newTaskInput, setNewTaskInput] = useState("");
@@ -174,6 +203,16 @@ export default function EmployeeDetailPage() {
           deal_commission_percent_min: data.employee.deal_commission_percent_min ?? "",
           deal_commission_percent_max: data.employee.deal_commission_percent_max ?? "",
         });
+        if (data.employee.payout_details) {
+          setPayoutDetails({
+            method: data.employee.payout_details.method || "bkash",
+            account_number: data.employee.payout_details.account_number || "",
+            bank_name: data.employee.payout_details.bank_name || "",
+            branch_name: data.employee.payout_details.branch_name || "",
+            routing_number: data.employee.payout_details.routing_number || "",
+            notes: data.employee.payout_details.notes || "",
+          });
+        }
       }
     } finally {
       setLoading(false);
@@ -267,6 +306,37 @@ export default function EmployeeDetailPage() {
       }
     } finally {
       setSavingRates(false);
+    }
+  }
+
+  async function savePayout() {
+    setSavingPayout(true);
+    setPayoutSuccess(false);
+    try {
+      const res = await fetch(`/api/admin/employees/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payout_details: {
+            method: payoutDetails.method,
+            account_number: payoutDetails.account_number.trim(),
+            bank_name: payoutDetails.bank_name.trim(),
+            branch_name: payoutDetails.branch_name.trim(),
+            routing_number: payoutDetails.routing_number.trim(),
+            notes: payoutDetails.notes.trim(),
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPayoutSuccess(true);
+        fetchEmployee();
+        setTimeout(() => setPayoutSuccess(false), 3000);
+      } else {
+        alert(data.error || "Failed to save payout details.");
+      }
+    } finally {
+      setSavingPayout(false);
     }
   }
 
@@ -611,7 +681,7 @@ export default function EmployeeDetailPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {sourcedBookings.map((b) => (
+                {paginatedBookings.map((b) => (
                   <tr key={b.id} className="hover:bg-slate-50/50">
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-navy">{b.name}</div>
@@ -677,6 +747,16 @@ export default function EmployeeDetailPage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={bookingPage}
+            pageSize={bookingPageSize}
+            totalCount={sourcedBookings.length}
+            onPageChange={setBookingPage}
+            onPageSizeChange={(s) => {
+              setBookingPageSize(s);
+              setBookingPage(1);
+            }}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -894,6 +974,140 @@ export default function EmployeeDetailPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Banking & Payout Details Card */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple/10 text-purple">
+                <CreditCard size={18} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-bold text-navy">Banking &amp; Payout Method</h2>
+                  {employee.payout_details?.account_number ? (
+                    <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                      Active Details ({employee.payout_details.method || "Custom"})
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                      Pending Rep Setup
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-navy/50">
+                  Rep banking or mobile wallet credentials for monthly commission &amp; bonus disbursements.
+                </p>
+              </div>
+            </div>
+            {payoutSuccess && (
+              <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                <Check size={14} /> Payout Details Saved!
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/60 mb-1">
+                Payout Channel / Method
+              </label>
+              <select
+                value={payoutDetails.method}
+                onChange={(e) => setPayoutDetails((p) => ({ ...p, method: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs font-bold text-navy outline-none focus:border-purple focus:bg-white"
+              >
+                <option value="bkash">bKash (Mobile Wallet)</option>
+                <option value="nagad">Nagad (Mobile Wallet)</option>
+                <option value="rocket">Rocket</option>
+                <option value="bank">Direct Bank Transfer</option>
+                <option value="paypal">PayPal</option>
+                <option value="wise">Wise / International</option>
+                <option value="crypto">Cryptocurrency / USDT</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/60 mb-1">
+                Account / Wallet Number
+              </label>
+              <input
+                type="text"
+                value={payoutDetails.account_number}
+                onChange={(e) => setPayoutDetails((p) => ({ ...p, account_number: e.target.value }))}
+                placeholder="e.g. 017xxxxxxxx or Bank Account #"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs font-mono font-bold text-navy outline-none focus:border-purple focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/60 mb-1">
+                Bank Name (if Bank Transfer)
+              </label>
+              <input
+                type="text"
+                value={payoutDetails.bank_name}
+                onChange={(e) => setPayoutDetails((p) => ({ ...p, bank_name: e.target.value }))}
+                placeholder="e.g. City Bank / HSBC"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs text-navy outline-none focus:border-purple focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/60 mb-1">
+                Branch Name
+              </label>
+              <input
+                type="text"
+                value={payoutDetails.branch_name}
+                onChange={(e) => setPayoutDetails((p) => ({ ...p, branch_name: e.target.value }))}
+                placeholder="e.g. Gulshan Branch"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs text-navy outline-none focus:border-purple focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/60 mb-1">
+                Routing / Sort Code / SWIFT
+              </label>
+              <input
+                type="text"
+                value={payoutDetails.routing_number}
+                onChange={(e) => setPayoutDetails((p) => ({ ...p, routing_number: e.target.value }))}
+                placeholder="e.g. 225271928"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs font-mono text-navy outline-none focus:border-purple focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-navy/60 mb-1">
+                Special Instructions / Notes
+              </label>
+              <input
+                type="text"
+                value={payoutDetails.notes}
+                onChange={(e) => setPayoutDetails((p) => ({ ...p, notes: e.target.value }))}
+                placeholder="e.g. Personal bKash or IBAN info"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs text-navy outline-none focus:border-purple focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100">
+            <p className="text-[11px] text-navy/40">
+              Reps can also update their own payout credentials anytime from their Rep Portal dashboard.
+            </p>
+            <button
+              type="button"
+              onClick={savePayout}
+              disabled={savingPayout}
+              className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-2xs transition disabled:opacity-50"
+            >
+              {savingPayout ? <Loader2 size={13} className="animate-spin" /> : <Save size={14} />}
+              {savingPayout ? "Saving…" : "Save Banking & Payout Details"}
+            </button>
           </div>
         </div>
       </div>

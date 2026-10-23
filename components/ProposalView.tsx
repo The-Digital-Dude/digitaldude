@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Printer,
@@ -19,15 +19,35 @@ import {
   ExternalLink,
   ChevronRight,
   Zap,
-  Check
+  Check,
+  FileCheck2,
+  Lock,
+  PenTool,
 } from "lucide-react";
 import { Proposal, ArchitectureModule, DeliverablePhase } from "@/lib/content/proposals";
+import { ProposalSignatureModal } from "@/components/ProposalSignatureModal";
 
 import Image from "next/image";
 import { ViewContentTracker } from "@/components/ViewContentTracker";
 
 export function ProposalView({ proposal }: { proposal: Proposal }) {
   const [copied, setCopied] = useState(false);
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [signed, setSigned] = useState(Boolean(proposal.signed_at));
+  const [sigData, setSigData] = useState({
+    signedByName: proposal.signed_by_name || "",
+    signedByTitle: proposal.signed_by_title || "",
+    signedAt: proposal.signed_at || "",
+    agreementHash: proposal.legal_agreement_hash || "",
+  });
+
+  // 3-second human engagement view beacon
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetch(`/api/proposals/${proposal.slug}/view`, { method: "POST" }).catch(() => {});
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [proposal.slug]);
 
   const handlePrint = () => {
     if (typeof window !== "undefined") {
@@ -105,11 +125,29 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
 
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-purple px-4 py-1.5 text-xs font-bold text-white hover:bg-purple/90 transition shadow-xs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-navy/70 hover:bg-slate-50 hover:text-navy transition shadow-2xs"
             >
               <Printer size={13} />
-              Save as PDF / Print
+              PDF / Print
             </button>
+
+            {signed ? (
+              <Link
+                href="/portal/login"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition shadow-xs"
+              >
+                <FileCheck2 size={13} />
+                Portal Workspace <ArrowRight size={13} />
+              </Link>
+            ) : (
+              <button
+                onClick={() => setSignModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-purple px-4 py-1.5 text-xs font-bold text-white hover:bg-purple/90 transition shadow-xs"
+              >
+                <PenTool size={13} />
+                Accept &amp; Sign
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -117,6 +155,39 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
       {/* Main Printable Document Container */}
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12 print:max-w-none print:p-0">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-12 print:rounded-none print:border-none print:p-0 print:shadow-none">
+          
+          {/* Executed Agreement Certificate Banner */}
+          {signed && (
+            <div className="mb-8 rounded-2xl border-2 border-emerald-300 bg-emerald-50/80 p-5 text-xs sm:text-sm text-emerald-950 shadow-xs print:border-emerald-700">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                    <FileCheck2 size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-emerald-950 text-sm sm:text-base">Legally Executed Specification &amp; Agreement</h4>
+                    <p className="text-xs text-emerald-800 mt-0.5">
+                      Digitally signed by <strong>{sigData.signedByName || proposal.client_name}</strong> ({sigData.signedByTitle || "Authorized Signer"}) on{" "}
+                      {new Date(sigData.signedAt || proposal.signed_at || Date.now()).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 print:hidden">
+                  <Link
+                    href="/portal/login"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 text-xs font-bold transition shadow-xs"
+                  >
+                    Open Client Portal <ArrowRight size={13} />
+                  </Link>
+                </div>
+              </div>
+              {sigData.agreementHash && (
+                <div className="mt-3 pt-3 border-t border-emerald-200/80 font-mono text-[10px] text-emerald-800 truncate">
+                  Cryptographic Audit Hash: {sigData.agreementHash}
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Printable Official Letterhead Header (Visible in PDF / Print) */}
           <div className="hidden print:flex items-center justify-between pb-6 mb-6 border-b-2 border-slate-900">
@@ -354,12 +425,16 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
             </div>
           </div>
 
-          {/* Section 6: Next Steps & Booking Confirmation */}
+          {/* Section 6: Next Steps & Acceptance */}
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-6 print:hidden">
             <div>
-              <h3 className="text-base font-bold text-navy">Ready to kick off or discuss adjustments?</h3>
+              <h3 className="text-base font-bold text-navy">
+                {signed ? "Specification Executed & Onboarding Ready" : "Ready to kick off or execute this specification?"}
+              </h3>
               <p className="text-xs sm:text-sm text-navy/70 mt-1">
-                We review this specification line-by-line on our discovery call and tailor all milestones to your exact operational schedule.
+                {signed
+                  ? "Your project workspace has been created. Access real-time milestone delivery in the Client Portal."
+                  : "Execute online with our cryptographic digital signature to lock in your engineering sprint roadmap immediately."}
               </p>
             </div>
 
@@ -371,14 +446,34 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
                 <Printer size={14} /> Print / Save PDF
               </button>
 
-              <Link
-                href="/contact"
-                className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-xs transition"
-              >
-                Book Discovery Call <ArrowRight size={14} />
-              </Link>
+              {signed ? (
+                <Link
+                  href="/portal/login"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-xs transition"
+                >
+                  Go to Client Portal <ArrowRight size={14} />
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setSignModalOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple px-5 py-2.5 text-xs font-bold text-white hover:bg-purple/90 shadow-md shadow-purple/20 transition"
+                >
+                  <PenTool size={14} /> Accept &amp; Sign Specification
+                </button>
+              )}
             </div>
           </div>
+
+          <ProposalSignatureModal
+            proposal={proposal}
+            isOpen={signModalOpen}
+            onClose={() => setSignModalOpen(false)}
+            onSigned={(data) => {
+              setSigned(true);
+              setSigData(data);
+              setSignModalOpen(false);
+            }}
+          />
 
           {/* Print Footer */}
           <div className="hidden print:block pt-8 text-center text-[11px] text-slate-500 border-t border-slate-200 mt-8">

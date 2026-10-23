@@ -37,6 +37,20 @@ export interface Proposal {
   valid_until: string;
   created_at: string;
   updated_at: string;
+  lead_id?: string | null;
+  created_by_rep_id?: string | null;
+  is_active?: boolean;
+  version?: number;
+  view_count?: number;
+  last_viewed_at?: string | null;
+  signed_at?: string | null;
+  signed_by_name?: string | null;
+  signed_by_title?: string | null;
+  signed_signature_data?: string | null;
+  signed_ip?: string | null;
+  signed_user_agent?: string | null;
+  legal_agreement_hash?: string | null;
+  project_id?: string | null;
 }
 
 export const DEMO_PROPOSAL: Proposal = {

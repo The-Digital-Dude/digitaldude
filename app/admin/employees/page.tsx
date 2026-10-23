@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import {
@@ -42,6 +42,11 @@ interface Employee {
   referral_code?: string;
   assigned_outreach_email?: string;
   currency?: string;
+  payout_details?: {
+    method?: string;
+    account_number?: string;
+    bank_name?: string;
+  } | null;
   created_at: string;
 }
 
@@ -152,6 +157,8 @@ export default function AdminEmployeesPage() {
   const [loadingPayouts, setLoadingPayouts] = useState(false);
   const [payoutStatusFilter, setPayoutStatusFilter] = useState<"all" | "pending" | "paid">("pending");
   const [payoutRepFilter, setPayoutRepFilter] = useState("all");
+  const [payoutPage, setPayoutPage] = useState(1);
+  const [payoutPageSize, setPayoutPageSize] = useState(25);
   const [approvingItem, setApprovingItem] = useState<PayoutItem | null>(null);
 
   // Approval Modal Inputs
@@ -165,6 +172,8 @@ export default function AdminEmployeesPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [timeRange, setTimeRange] = useState<"all_time" | "this_month">("all_time");
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [leaderboardPageSize, setLeaderboardPageSize] = useState(25);
 
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<RepAuditLog[]>([]);
@@ -172,6 +181,8 @@ export default function AdminEmployeesPage() {
   const [auditSearch, setAuditSearch] = useState("");
   const [auditRepFilter, setAuditRepFilter] = useState("all");
   const [auditActionFilter, setAuditActionFilter] = useState("all");
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(25);
   const [inspectingLog, setInspectingLog] = useState<RepAuditLog | null>(null);
 
   async function fetchEmployees() {
@@ -293,12 +304,34 @@ export default function AdminEmployeesPage() {
     }
   }
 
+  useEffect(() => {
+    setPayoutPage(1);
+  }, [payoutStatusFilter, payoutRepFilter]);
+
+  useEffect(() => {
+    setLeaderboardPage(1);
+  }, [timeRange]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [auditSearch, auditRepFilter, auditActionFilter]);
+
   // Filtered lists
   const filteredPayouts = payoutItems.filter((item) => {
     const matchesStatus = payoutStatusFilter === "all" || item.payoutStatus === payoutStatusFilter;
     const matchesRep = payoutRepFilter === "all" || item.employee?.id === payoutRepFilter;
     return matchesStatus && matchesRep;
   });
+
+  const paginatedPayouts = useMemo(() => {
+    const from = (payoutPage - 1) * payoutPageSize;
+    return filteredPayouts.slice(from, from + payoutPageSize);
+  }, [filteredPayouts, payoutPage, payoutPageSize]);
+
+  const paginatedLeaderboard = useMemo(() => {
+    const from = (leaderboardPage - 1) * leaderboardPageSize;
+    return leaderboard.slice(from, from + leaderboardPageSize);
+  }, [leaderboard, leaderboardPage, leaderboardPageSize]);
 
   const filteredAuditLogs = auditLogs.filter((log) => {
     if (!auditSearch) return true;
@@ -309,6 +342,11 @@ export default function AdminEmployeesPage() {
       (log.employee?.full_name && log.employee.full_name.toLowerCase().includes(q))
     );
   });
+
+  const paginatedAuditLogs = useMemo(() => {
+    const from = (auditPage - 1) * auditPageSize;
+    return filteredAuditLogs.slice(from, from + auditPageSize);
+  }, [filteredAuditLogs, auditPage, auditPageSize]);
 
   return (
     <AdminLayout>
@@ -454,6 +492,7 @@ export default function AdminEmployeesPage() {
                         <th className="py-3 px-4">Official Role</th>
                         <th className="py-3 px-4">Rep Referral Tag</th>
                         <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Payout Profile</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -482,6 +521,23 @@ export default function AdminEmployeesPage() {
                             >
                               {emp.status}
                             </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {emp.payout_details?.account_number ? (
+                              <div>
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                                  <CreditCard size={11} />
+                                  {emp.payout_details.method || "Active"}
+                                </span>
+                                <span className="text-[10px] text-navy/50 font-mono block mt-0.5 max-w-[120px] truncate">
+                                  {emp.payout_details.account_number}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                                Pending Setup
+                              </span>
+                            )}
                           </td>
                           <td className="py-3.5 px-4 text-right">
                             <Link
@@ -591,7 +647,7 @@ export default function AdminEmployeesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {filteredPayouts.map((item) => (
+                      {paginatedPayouts.map((item) => (
                         <tr key={item.id} className="hover:bg-slate-50/50 transition">
                           <td className="py-3.5 px-4">
                             <span className="font-bold text-navy block">{item.employee?.full_name}</span>
@@ -606,7 +662,7 @@ export default function AdminEmployeesPage() {
                             <span
                               className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 item.milestoneType === "meeting_bonus"
-                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
                                   : "bg-purple/10 text-purple border border-purple/20"
                               }`}
                             >
@@ -659,6 +715,16 @@ export default function AdminEmployeesPage() {
                   </table>
                 </div>
               )}
+              <Pagination
+                page={payoutPage}
+                pageSize={payoutPageSize}
+                totalCount={filteredPayouts.length}
+                onPageChange={setPayoutPage}
+                onPageSizeChange={(s) => {
+                  setPayoutPageSize(s);
+                  setPayoutPage(1);
+                }}
+              />
             </div>
           </div>
         )}
@@ -721,8 +787,8 @@ export default function AdminEmployeesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {leaderboard.map((rep, idx) => {
-                        const rank = idx + 1;
+                      {paginatedLeaderboard.map((rep, idx) => {
+                        const rank = (leaderboardPage - 1) * leaderboardPageSize + idx + 1;
                         return (
                           <tr key={rep.employeeId} className="hover:bg-slate-50/50 transition">
                             <td className="py-3.5 px-4 font-black text-sm">
@@ -772,6 +838,16 @@ export default function AdminEmployeesPage() {
                   </table>
                 </div>
               )}
+              <Pagination
+                page={leaderboardPage}
+                pageSize={leaderboardPageSize}
+                totalCount={leaderboard.length}
+                onPageChange={setLeaderboardPage}
+                onPageSizeChange={(s) => {
+                  setLeaderboardPageSize(s);
+                  setLeaderboardPage(1);
+                }}
+              />
             </div>
           </div>
         )}
@@ -849,7 +925,7 @@ export default function AdminEmployeesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {filteredAuditLogs.map((log) => {
+                      {paginatedAuditLogs.map((log) => {
                         const badge = actionTypeBadge(log.action_type);
                         const IconComponent = badge.icon;
                         return (
@@ -893,6 +969,16 @@ export default function AdminEmployeesPage() {
                   </table>
                 </div>
               )}
+              <Pagination
+                page={auditPage}
+                pageSize={auditPageSize}
+                totalCount={filteredAuditLogs.length}
+                onPageChange={setAuditPage}
+                onPageSizeChange={(s) => {
+                  setAuditPageSize(s);
+                  setAuditPage(1);
+                }}
+              />
             </div>
           </div>
         )}

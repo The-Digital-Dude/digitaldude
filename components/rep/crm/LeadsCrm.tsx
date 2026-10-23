@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, Edit3, Layers, Plus, Search, Send, Trash2, Upload, Users } from "lucide-react";
+import { Download, Edit3, Layers, Plus, Search, Send, Trash2, Upload, Users, FileCheck2, FileText, Eye } from "lucide-react";
 import { LOST_REASONS, LOST_REASON_LABELS, STAGES, STAGE_LABELS, STATUSES, STATUS_LABELS, type Stage } from "@/lib/crm/model";
+import { parseLeadIntelligence } from "@/lib/crm/intelligence";
+import { Pagination } from "@/components/admin/Pagination";
 import { CrmLead, Forecast, GRADE_STYLE, HEAT_STYLE, SavedView, ViewFilters, applyFilters, crm, dueLabel, money } from "./shared";
 import { LeadDrawer } from "./LeadDrawer";
 import { TasksPanel } from "./TasksPanel";
@@ -22,7 +24,7 @@ interface Props {
   onAdd: () => void;
   onEdit: (l: CrmLead) => void;
   onDelete: (id: string) => void;
-  onEmail: (l: CrmLead) => void;
+  onEmail: (l: CrmLead, pitch?: { subject: string; body: string }) => void;
   onEnroll: () => void;
 }
 
@@ -36,6 +38,15 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
   const [lostFor, setLostFor] = useState<{ lead: CrmLead; reason: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [columnLimits, setColumnLimits] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters, sort]);
 
   useEffect(() => {
     void crm<{ views: SavedView[] }>("/api/rep/views").then((r) => r.ok && setViews(r.views ?? []));
@@ -52,6 +63,11 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
     };
     return [...list].sort(by[sort]);
   }, [leads, filters, sort]);
+
+  const paginated = useMemo(() => {
+    const from = (page - 1) * pageSize;
+    return filtered.slice(from, from + pageSize);
+  }, [filtered, page, pageSize]);
 
   const tags = useMemo(() => [...new Set(leads.flatMap((l) => l.tags ?? []))].sort(), [leads]);
   const countries = useMemo(() => [...new Set(leads.map((l) => l.country).filter((c): c is string => !!c))].sort(), [leads]);
@@ -85,7 +101,7 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
   }
 
   const filtersActive = Object.values(filters).some((v) => v !== undefined && v !== "" && v !== false);
-  const allSelected = filtered.length > 0 && filtered.every((l) => selectedIds.includes(l.id));
+  const allSelected = paginated.length > 0 && paginated.every((l) => selectedIds.includes(l.id));
 
   const scoreChips = (l: CrmLead) => (
     <div className="flex flex-wrap gap-1">
@@ -190,24 +206,68 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-white/[0.08] bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <th className="w-10 px-3 py-3 text-center"><input type="checkbox" checked={allSelected} onChange={(e) => setSelectedIds(e.target.checked ? filtered.map((l) => l.id) : [])} className="cursor-pointer rounded border-white/20 bg-slate-950 accent-purple" aria-label="Select all" /></th>
+                      <th className="w-10 px-3 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={(e) =>
+                            setSelectedIds(
+                              e.target.checked
+                                ? [...new Set([...selectedIds, ...paginated.map((l) => l.id)])]
+                                : selectedIds.filter((id) => !paginated.some((l) => l.id === id))
+                            )
+                          }
+                          className="cursor-pointer rounded border-white/20 bg-slate-950 accent-purple"
+                          aria-label="Select all on page"
+                        />
+                      </th>
                       <th className="px-4 py-3">Contact</th><th className="px-4 py-3">Company &amp; title</th><th className="px-4 py-3">Stage</th><th className="px-4 py-3">Score</th><th className="px-4 py-3">Deal</th><th className="px-4 py-3">Next step</th><th className="px-4 py-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
-                    {filtered.map((l) => (
+                    {paginated.map((l) => (
                       <tr key={l.id} className={`transition hover:bg-white/[0.02] ${selectedIds.includes(l.id) ? "bg-purple/10" : ""}`}>
                         <td className="px-3 py-3 text-center"><input type="checkbox" checked={selectedIds.includes(l.id)} onChange={(e) => setSelectedIds(e.target.checked ? [...selectedIds, l.id] : selectedIds.filter((x) => x !== l.id))} className="cursor-pointer rounded border-white/20 bg-slate-950 accent-purple" aria-label={`Select ${l.full_name}`} /></td>
                         <td className="px-4 py-3">
                           <button className="block text-left font-bold text-white hover:text-purple-300" onClick={() => setOpenId(l.id)}>{l.full_name}</button>
                           <span className="font-mono text-[11px] text-slate-400">{l.email}</span>
-                          <div className="mt-1 flex flex-wrap gap-1">
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            {l.proposal_status && (
+                              <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                l.proposal_status === "accepted" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" :
+                                l.proposal_status === "viewed" ? "bg-purple/20 text-purple border border-purple/30" :
+                                "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                              }`}>
+                                {l.proposal_status === "accepted" ? <><FileCheck2 size={10} /> Signed</> :
+                                 l.proposal_status === "viewed" ? <><Eye size={10} /> Viewed ({l.proposal_views}x)</> :
+                                 <><FileText size={10} /> Ready to Share</>}
+                              </span>
+                            )}
                             {l.email_check && (l.email_check.status === "invalid" || l.email_check.status === "risky") && <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${l.email_check.status === "invalid" ? "bg-rose-500/15 text-rose-300" : "bg-amber-500/15 text-amber-300"}`} title={l.email_check.reason}>email {l.email_check.status}</span>}
                             {l.pool_contact_status && l.pool_contact_status !== "eligible" && <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300" title="Record a lawful basis in Lead Pool before emailing this contact">needs lawful basis</span>}
                             {(l.tags ?? []).map((t) => <button key={t} onClick={() => set({ tag: t })} className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold text-slate-300 hover:bg-white/10">{t}</button>)}
                           </div>
                         </td>
-                        <td className="px-4 py-3"><span className="block font-medium text-white">{l.company_name || "—"}</span><span className="text-[11px] text-slate-400">{l.job_title || "—"}</span></td>
+                        <td className="px-4 py-3">
+                          <span className="block font-medium text-white">{l.company_name || "—"}</span>
+                          <span className="text-[11px] text-slate-400">{l.job_title || "—"}</span>
+                          {(() => {
+                            const intel = parseLeadIntelligence(l.notes);
+                            if (!intel.hasIntelligence) return null;
+                            return (
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                <span className="inline-flex items-center gap-0.5 rounded bg-purple/20 border border-purple/30 px-1.5 py-0.5 text-[9px] font-bold text-purple-300">
+                                  ⚡ Research Ready
+                                </span>
+                                {intel.techStack.slice(0, 2).map((t, idx) => (
+                                  <span key={idx} className="rounded bg-white/5 border border-white/10 px-1 py-0.5 text-[9px] text-slate-400">
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </td>
                         <td className="px-4 py-3">
                           <select value={l.stage} onChange={(e) => changeStage(l, e.target.value as Stage)} aria-label={`Stage for ${l.full_name}`} className="cursor-pointer rounded-lg border border-white/[0.08] bg-[#0D1322] px-2 py-1 text-xs font-semibold text-purple-300 outline-none focus:border-purple">
                             {STAGES.map((s) => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
@@ -229,11 +289,24 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
                   </tbody>
                 </table>
               </div>
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalCount={filtered.length}
+                onPageChange={setPage}
+                onPageSizeChange={(s) => {
+                  setPageSize(s);
+                  setPage(1);
+                }}
+                variant="dark"
+              />
             </div>
           ) : (
             <div className="grid auto-cols-[minmax(230px,1fr)] grid-flow-col gap-3 overflow-x-auto pb-3">
               {STAGES.map((stage) => {
                 const col = filtered.filter((l) => l.stage === stage);
+                const limit = columnLimits[stage] || 30;
+                const visibleCol = col.slice(0, limit);
                 const total = col.reduce((s, l) => s + (l.estimated_deal_value || 0), 0);
                 const cur = col[0]?.currency;
                 return (
@@ -243,10 +316,39 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
                       {cur && total > 0 && col.every((l) => l.currency === cur) && <span className="text-[10px] font-bold text-slate-400">{money(total, cur)}</span>}
                     </div>
                     <div className="space-y-2">
-                      {col.map((l) => (
+                      {visibleCol.map((l) => (
                         <div key={l.id} draggable onDragStart={() => setDragId(l.id)} onDragEnd={() => setDragId(null)} className={`cursor-grab rounded-xl border bg-[#0D1322] p-3 active:cursor-grabbing ${l.stale ? "border-amber-500/40" : "border-white/[0.06]"}`}>
                           <button className="block text-left text-sm font-bold text-white hover:text-purple-300" onClick={() => setOpenId(l.id)}>{l.full_name}</button>
                           <div className="text-[11px] text-slate-400">{l.company_name || l.email}</div>
+                          {(() => {
+                            const intel = parseLeadIntelligence(l.notes);
+                            if (!intel.hasIntelligence) return null;
+                            return (
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                <span className="inline-flex items-center gap-0.5 rounded bg-purple/20 border border-purple/30 px-1 py-0.2 text-[9px] font-bold text-purple-300">
+                                  ⚡ Research
+                                </span>
+                                {intel.techStack.slice(0, 2).map((t, idx) => (
+                                  <span key={idx} className="rounded bg-white/5 border border-white/10 px-1 py-0.2 text-[9px] text-slate-400">
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                          {l.proposal_status && (
+                            <div className="mt-1.5 flex items-center gap-1">
+                              <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                                l.proposal_status === "accepted" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" :
+                                l.proposal_status === "viewed" ? "bg-purple/20 text-purple border border-purple/30" :
+                                "bg-sky-500/15 text-sky-400 border border-sky-500/30"
+                              }`}>
+                                {l.proposal_status === "accepted" ? <><FileCheck2 size={10} /> Signed</> :
+                                 l.proposal_status === "viewed" ? <><Eye size={10} /> Viewed ({l.proposal_views}x)</> :
+                                 <><FileText size={10} /> Ready to Share</>}
+                              </span>
+                            </div>
+                          )}
                           <div className="mt-2 flex items-center justify-between gap-2">{scoreChips(l)}<span className="font-mono text-[11px] font-bold text-white">{money(l.estimated_deal_value, l.currency)}</span></div>
                           <div className="mt-1.5 text-[10px]">{nextStep(l)}{l.stale && <span className="ml-1 font-bold text-amber-300">quiet {l.days_quiet}d</span>}</div>
                           <select value={l.stage} onChange={(e) => changeStage(l, e.target.value as Stage)} aria-label={`Move ${l.full_name} to a stage`} className="mt-2 w-full rounded-md border border-white/[0.06] bg-[#131B2E] px-1.5 py-1 text-[10px] text-slate-300 md:hidden">
@@ -254,6 +356,15 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
                           </select>
                         </div>
                       ))}
+                      {col.length > visibleCol.length && (
+                        <button
+                          type="button"
+                          onClick={() => setColumnLimits((prev) => ({ ...prev, [stage]: limit + 30 }))}
+                          className="w-full mt-2 rounded-xl border border-white/10 bg-white/[0.04] py-2 text-xs font-semibold text-purple-300 hover:bg-white/[0.08] transition"
+                        >
+                          Load more ({col.length - visibleCol.length} remaining)
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -299,7 +410,7 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
           lead={openLead}
           onClose={() => setOpenId(null)}
           onChanged={onRefresh}
-          onEmail={(l) => { setOpenId(null); onEmail(l); }}
+          onEmail={(l, pitch) => { setOpenId(null); onEmail(l, pitch); }}
           onEditContact={(l) => { setOpenId(null); onEdit(l); }}
           onErased={() => { setOpenId(null); onRefresh(); }}
         />

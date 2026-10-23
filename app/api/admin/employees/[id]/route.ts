@@ -128,6 +128,7 @@ export async function PUT(
     if (deal_commission_percent_min !== undefined) updateData.deal_commission_percent_min = deal_commission_percent_min;
     if (deal_commission_percent_max !== undefined) updateData.deal_commission_percent_max = deal_commission_percent_max;
     if (onboarding_checklist !== undefined) updateData.onboarding_checklist = onboarding_checklist;
+    if (body.payout_details !== undefined) updateData.payout_details = body.payout_details;
 
     const wasStatusChangeToActive = status !== undefined;
     if (status !== undefined) updateData.status = status;

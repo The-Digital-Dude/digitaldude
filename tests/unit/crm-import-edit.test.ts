@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { csvCell, mapHeaders, parseCsvText, planImport, MAX_IMPORT_ROWS } from "@/lib/crm/csv";
+import { csvCell, mapHeaders, parseCsvText, planImport, MAX_IMPORT_ROWS, detectColumnMapping } from "@/lib/crm/csv";
 import { prepareLeadUpdate } from "@/lib/crm/leads";
 import { buildStaleDigests } from "@/lib/crm/jobs";
 import { DEFAULT_CRM_SETTINGS } from "@/lib/crm/settings";
@@ -32,6 +32,28 @@ describe("import planning", () => {
     expect(m.fields.company_name).toBe(4);
     expect(m.fields.job_title).toBe(5);
     expect(m.unmapped).toEqual(["Misc"]);
+  });
+
+  it("supports interactive custom header mapping overrides", () => {
+    const custom = {
+      "Custom Client": "full_name",
+      "Direct Mailbox": "email",
+      "Stack": "tech_stack",
+      "Random Col": "ignore",
+    };
+    const m = mapHeaders(["Custom Client", "Direct Mailbox", "Stack", "Random Col"], custom);
+    expect(m.fields.full_name).toBe(0);
+    expect(m.fields.email).toBe(1);
+    expect(m.intel.tech_stack).toBe(2);
+    expect(m.unmapped).toEqual([]);
+  });
+
+  it("auto-detects column mappings using alias dictionary", () => {
+    const detected = detectColumnMapping(["Decision Maker Title", "Work Email", "Tech Stack Known", "Irrelevant Column"]);
+    expect(detected["Decision Maker Title"]).toBe("job_title");
+    expect(detected["Work Email"]).toBe("email");
+    expect(detected["Tech Stack Known"]).toBe("tech_stack");
+    expect(detected["Irrelevant Column"]).toBe("ignore");
   });
 
   it("accepts good rows and explains each bad one", () => {
@@ -69,6 +91,35 @@ describe("import planning", () => {
     expect(planImport([["Name", "Email"]]).error).toMatch(/at least one lead/i);
     const big = [["Name", "Email"], ...Array.from({ length: MAX_IMPORT_ROWS + 1 }, (_, i) => [`P${i}`, `p${i}@x.com`])];
     expect(planImport(big).error).toMatch(/up to 300/);
+  });
+
+  it("extracts research intelligence fields and sanitizes tags from complex CSVs", () => {
+    const csv = [
+      "Company Name,Website,Industry,Country, Name,Decision Maker Title,Email,Tech Stack (known),Pain Points / Trigger,Solution,Fit Score (0-100),Estimated Deal Size (USD),Tags",
+      'Oasis Rental,https://oasis.com,Real Estate,US,Steven Pini,Chief Financial Officer,steve@oasis.com,"AWS, Nginx",Booking portal old,Build custom portal,63,5000,"property rental & services, custom management"',
+      'No Tag LLC,https://notags.com,Software,US,Jane Doe,CEO,jane@notags.com,React,Needs mobile app,Build mobile app,80,10000,',
+    ].join("\n");
+    const rows = parseCsvText(csv);
+    const plan = planImport(rows);
+    expect(plan.error).toBeUndefined();
+    expect(plan.rows).toHaveLength(2);
+
+    const r1 = plan.rows[0];
+    expect(r1.ok).toBe(true);
+    expect(r1.lead?.full_name).toBe("Steven Pini");
+    expect(r1.lead?.job_title).toBe("Chief Financial Officer");
+    expect(r1.lead?.estimated_deal_value).toBe(5000);
+    expect(r1.lead?.fit_score).toBe(63);
+    expect(r1.lead?.tags).toEqual(["property rental and services", "custom management"]);
+    expect(r1.lead?.notes).toContain("Website: https://oasis.com");
+    expect(r1.lead?.notes).toContain("[PAIN POINTS / TRIGGERS]\nBooking portal old");
+    expect(r1.lead?.notes).toContain("[PROPOSED SOLUTION]\nBuild custom portal");
+
+    const r2 = plan.rows[1];
+    expect(r2.ok).toBe(true);
+    expect(r2.lead?.tags).toEqual([]);
+    expect(r2.lead?.fit_score).toBe(80);
+    expect(r2.lead?.notes).toContain("Website: https://notags.com");
   });
 });
 

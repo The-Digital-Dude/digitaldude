@@ -29,14 +29,14 @@ export async function GET(request: Request) {
     try {
       const { data: repData, error: repErr } = await supabase
         .from("employees")
-        .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, created_at")
+        .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, payout_details, created_at")
         .order("created_at", { ascending: true });
       if (!repErr && repData) {
         reps = repData;
       } else {
         const { data: fallbackReps } = await supabase
           .from("employees")
-          .select("id, full_name, email, role_title, status, assigned_outreach_email, referral_code, created_at")
+          .select("id, full_name, email, role_title, status, assigned_outreach_email, referral_code, payout_details, created_at")
           .order("created_at", { ascending: true });
         reps = fallbackReps || [];
       }
@@ -157,6 +157,7 @@ export async function GET(request: Request) {
         role_title: rep.role_title,
         assigned_outreach_email: rep.assigned_outreach_email,
         outreach_display_name: rep.outreach_display_name,
+        payout_details: rep.payout_details || null,
         totalEmailsSent,
         emailsSentToday,
         totalLeads,

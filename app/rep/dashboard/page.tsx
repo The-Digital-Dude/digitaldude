@@ -768,10 +768,15 @@ export default function RepDashboardPage() {
     }
   }
 
-  function handleEmailLeadShortcut(lead: RepLead) {
+  function handleEmailLeadShortcut(lead: RepLead, pitch?: { subject: string; body: string }) {
     setRecipientName(lead.full_name);
     setRecipientEmail(lead.email);
     setCompanyName(lead.company_name || "");
+    if (pitch) {
+      replyDraft.current = { subject: pitch.subject, message: pitch.body };
+      setEmailSubject(pitch.subject);
+      setEmailMessage(pitch.body);
+    }
     setActiveTab("outreach");
   }
 
@@ -1183,7 +1188,7 @@ export default function RepDashboardPage() {
               setShowAddLeadModal(true);
             }}
             onDelete={(id) => void handleDeleteLead(id)}
-            onEmail={(lead) => handleEmailLeadShortcut(lead)}
+            onEmail={(lead, pitch) => handleEmailLeadShortcut(lead, pitch)}
             onEnroll={() => {
               if (campaigns.length > 0) {
                 setEnrollTargetCampaignId(campaigns[0].id);

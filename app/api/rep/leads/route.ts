@@ -73,6 +73,26 @@ export async function GET(request: Request) {
     const needScores = rows.filter((l) => !scoresAreFresh(l, now)).slice(0, MAX_SCORE_REFRESH);
     const fresh = needScores.length ? ((await safely("score leads", () => computeScores(supabase, needScores, now))) ?? new Map()) : new Map();
 
+    // Proposals per lead: show active specification status and view counts.
+    const proposalInfo = new Map<string, { slug: string; status: "draft" | "sent" | "viewed" | "accepted"; views: number }>();
+    if (rows.length) {
+      const { data: props } = await supabase
+        .from("proposals")
+        .select("lead_id, slug, status, view_count, signed_at, is_active")
+        .in("lead_id", rows.map((l) => l.id));
+      for (const p of (props ?? []) as { lead_id: string; slug: string; status: string; view_count: number; signed_at: string | null; is_active: boolean }[]) {
+        const cur = proposalInfo.get(p.lead_id);
+        if (!cur || p.is_active || p.signed_at) {
+          const st = p.signed_at ? "accepted" : (p.view_count || 0) > 0 ? "viewed" : p.status === "sent" ? "sent" : "draft";
+          proposalInfo.set(p.lead_id, {
+            slug: p.slug,
+            status: st,
+            views: p.view_count || 0,
+          });
+        }
+      }
+    }
+
     const out = rows.map((l) => {
       const s = fresh.get(l.id);
       const fit = s?.fit ?? l.fit_score ?? null;
@@ -81,6 +101,7 @@ export async function GET(request: Request) {
       const label = engagement === null ? null : engagement >= 60 ? "hot" : engagement >= 30 ? "warm" : "cold";
       const t = taskInfo.get(l.id) ?? { open: 0, nextDue: null, overdue: false };
       const stale = staleness(l as never, now, settings);
+      const pInfo = proposalInfo.get(l.id);
       return {
         ...l,
         fit_score: fit,
@@ -98,6 +119,9 @@ export async function GET(request: Request) {
         needs_next_step: needsNextStep(l as never, t.open),
         pool_contact_status: l.acq_contact_id ? (status.get(l.acq_contact_id) ?? null) : null,
         email_check: checks[String(l.email ?? "").trim().toLowerCase()] ?? null,
+        proposal_status: pInfo?.status ?? null,
+        proposal_slug: pInfo?.slug ?? null,
+        proposal_views: pInfo?.views ?? 0,
       };
     });
 

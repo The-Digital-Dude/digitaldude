@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Calendar,
   DollarSign,
@@ -14,6 +14,7 @@ import {
   Info,
   Layers,
 } from "lucide-react";
+import { Pagination } from "@/components/admin/Pagination";
 
 export interface ChecklistItem {
   task: string;
@@ -121,6 +122,8 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
   setActiveTab,
 }) => {
   const [timeHorizon, setTimeHorizon] = useState<TimeHorizon>("30d");
+  const [bookingPage, setBookingPage] = useState(1);
+  const [bookingPageSize, setBookingPageSize] = useState(25);
   const [hoveredPoint, setHoveredPoint] = useState<{
     label: string;
     calls: number;
@@ -128,6 +131,10 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
     x: number;
     y: number;
   } | null>(null);
+
+  useEffect(() => {
+    setBookingPage(1);
+  }, [timeHorizon]);
 
   const bonusMin = Number(profile?.meeting_bonus_min) || 0;
   const bonusMax = Number(profile?.meeting_bonus_max) || bonusMin || 0;
@@ -181,6 +188,11 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
       filteredBookings,
     };
   }, [timeHorizon, bookings, outreachLogs, bonusMin, bonusMax, commPctMin, commPctMax]);
+
+  const paginatedBookings = useMemo(() => {
+    const from = (bookingPage - 1) * bookingPageSize;
+    return filteredData.filteredBookings.slice(from, from + bookingPageSize);
+  }, [filteredData.filteredBookings, bookingPage, bookingPageSize]);
 
   // 2. Daily Outreach Streak Computation
   const streakDays = useMemo(() => {
@@ -784,7 +796,7 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04]">
-                {filteredData.filteredBookings.map((b) => (
+                {paginatedBookings.map((b) => (
                   <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3 px-3">
                       <span className="font-bold text-white block">{b.name}</span>
@@ -830,6 +842,17 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
                 ))}
               </tbody>
             </table>
+            <Pagination
+              page={bookingPage}
+              pageSize={bookingPageSize}
+              totalCount={filteredData.filteredBookings.length}
+              onPageChange={setBookingPage}
+              onPageSizeChange={(s) => {
+                setBookingPageSize(s);
+                setBookingPage(1);
+              }}
+              variant="dark"
+            />
           </div>
         )}
       </div>
