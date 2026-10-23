@@ -174,6 +174,12 @@ export function parseLeadIntelligence(notesText: string | null | undefined): Lea
   };
 }
 
+/** New CRM leads need enough research to support a useful, honest pitch. */
+export function hasRequiredLeadIntelligence(notesText: string | null | undefined): boolean {
+  const intelligence = parseLeadIntelligence(notesText);
+  return Boolean(intelligence.painPoints?.trim() && intelligence.solution?.trim());
+}
+
 /** Generates an executive, problem-solving outreach email pitch based on the lead's research. */
 export function generateExecutivePitch(params: {
   fullName: string;

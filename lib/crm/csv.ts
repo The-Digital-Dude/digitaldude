@@ -179,6 +179,8 @@ export function planImport(
   if (map.fields.full_name === undefined && map.first === undefined && map.last === undefined) return { rows: [], error: "No name column found. Add a column called Name (or First name and Last name).", unmapped: map.unmapped };
   const data = rows.slice(1);
   if (data.length > MAX_IMPORT_ROWS) return { rows: [], error: `Import up to ${MAX_IMPORT_ROWS} leads at a time (this file has ${data.length}).`, unmapped: map.unmapped };
+  if (map.intel.pain_points === undefined) return { rows: [], error: "No Pain Points column found. Map a column to Pain Points / Triggers.", unmapped: map.unmapped };
+  if (map.intel.solution === undefined) return { rows: [], error: "No Solution column found. Map a column to Proposed Solution / Pitch.", unmapped: map.unmapped };
 
   const seen = new Set<string>();
   const get = (r: string[], i: number | undefined) => (i === undefined ? "" : (r[i] ?? "").trim());
@@ -215,6 +217,8 @@ export function planImport(
     const techStack = get(r, map.intel?.tech_stack);
     const painPoints = get(r, map.intel?.pain_points);
     const solution = get(r, map.intel?.solution);
+    if (!painPoints) return { line, ok: false, email, reason: "Pain Points / Triggers are required" };
+    if (!solution) return { line, ok: false, email, reason: "Proposed Solution / Pitch is required" };
     const city = get(r, map.intel?.city);
     const industry = get(r, map.intel?.industry);
     const subIndustry = get(r, map.intel?.sub_industry);
@@ -273,4 +277,4 @@ export function csvCell(v: unknown): string {
 
 /** The columns a rep gets back when they export, and the template they can fill in to import. */
 export const EXPORT_HEADERS = ["Name", "Email", "Phone", "Company", "Job title", "Country", "Stage", "Status", "Deal value", "Currency", "Expected close", "Probability", "Tags", "Fit score", "Engagement score", "Last activity", "Created"];
-export const IMPORT_TEMPLATE = "Name,Email,Phone,Company,Job title,Country,Tags,Source,Deal value,Notes\nJane Smith,jane@example.com,,Example Pty Ltd,Managing Director,AU,warm;referral,Referral,5000,Met at the expo\n";
+export const IMPORT_TEMPLATE = "Name,Email,Phone,Company,Job title,Country,Tags,Source,Deal value,Pain Points / Triggers,Proposed Solution / Pitch,Notes\nJane Smith,jane@example.com,,Example Pty Ltd,Managing Director,AU,warm;referral,Referral,5000,Manual follow-ups are slowing the team,Build a focused CRM automation,Met at the expo\n";

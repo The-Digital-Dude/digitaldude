@@ -97,7 +97,7 @@ export function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: 
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-extrabold text-white">Import leads from a CSV</h2>
-            <p className="text-xs text-slate-400">Map your CSV columns, preview duplicate and bounce checks, then import up to 300 leads.</p>
+            <p className="text-xs text-slate-400">Map your CSV columns, including required Pain Points and Proposed Solution fields, preview duplicate and bounce checks, then import up to 300 leads.</p>
           </div>
           <button className={btnGhost} onClick={onClose}>Close</button>
         </div>

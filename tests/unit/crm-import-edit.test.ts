@@ -59,14 +59,14 @@ describe("import planning", () => {
   it("accepts good rows and explains each bad one", () => {
     const rows = parseCsvText(
       [
-        "Name,Email,Country,Tags,Deal value,Stage",
-        "Jane Smith,Jane@Example.com,au,warm; referral,\"$5,000\",contacted",
-        "No Email,,AU,,,",
-        "Bad Email,not-an-email,,,,",
-        "Dup,jane@example.com,,,,",
-        ",nobody@example.com,,,,",
-        "Wrong Country,w@example.com,Australia,,,",
-        "Lost Start,l@example.com,,,,lost",
+        "Name,Email,Country,Tags,Deal value,Stage,Pain Points,Solution",
+        "Jane Smith,Jane@Example.com,au,warm; referral,\"$5,000\",contacted,Manual work,Automate it",
+        "No Email,,AU,,,,Manual work,Automate it",
+        "Bad Email,not-an-email,,,,,Manual work,Automate it",
+        "Dup,jane@example.com,,,,,Manual work,Automate it",
+        ",nobody@example.com,,,,,Manual work,Automate it",
+        "Wrong Country,w@example.com,Australia,,,,Manual work,Automate it",
+        "Lost Start,l@example.com,,,,lost,Manual work,Automate it",
       ].join("\n")
     );
     const plan = planImport(rows, { currency: "GBP" });
@@ -89,8 +89,15 @@ describe("import planning", () => {
     expect(planImport([["Name"], ["x"]]).error).toMatch(/email column/i);
     expect(planImport([["Email"], ["a@b.co"]]).error).toMatch(/name column/i);
     expect(planImport([["Name", "Email"]]).error).toMatch(/at least one lead/i);
-    const big = [["Name", "Email"], ...Array.from({ length: MAX_IMPORT_ROWS + 1 }, (_, i) => [`P${i}`, `p${i}@x.com`])];
+    const big = [["Name", "Email", "Pain Points", "Solution"], ...Array.from({ length: MAX_IMPORT_ROWS + 1 }, (_, i) => [`P${i}`, `p${i}@x.com`, "Manual work", "Automate it"])];
     expect(planImport(big).error).toMatch(/up to 300/);
+  });
+
+  it("requires the pain point and solution columns and values", () => {
+    expect(planImport(parseCsvText("Name,Email\nJane,jane@example.com"))).toMatchObject({ error: expect.stringMatching(/pain points/i) });
+    const plan = planImport(parseCsvText("Name,Email,Pain Points,Solution\nJane,jane@example.com,,Build a CRM\nJohn,john@example.com,Manual reporting,"));
+    expect(plan.rows[0]).toMatchObject({ ok: false, reason: "Pain Points / Triggers are required" });
+    expect(plan.rows[1]).toMatchObject({ ok: false, reason: "Proposed Solution / Pitch is required" });
   });
 
   it("extracts research intelligence fields and sanitizes tags from complex CSVs", () => {

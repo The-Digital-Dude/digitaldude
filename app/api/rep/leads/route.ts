@@ -11,6 +11,7 @@ import { loadCrmSettings } from "@/lib/crm/settings";
 import { needsNextStep, staleness, weightedPipeline } from "@/lib/crm/health";
 import { gradeFor, nextMove, priorityScore } from "@/lib/crm/scoring";
 import { logActivity, safely } from "@/lib/crm/activity";
+import { hasRequiredLeadIntelligence } from "@/lib/crm/intelligence";
 
 export const dynamic = "force-dynamic";
 
@@ -148,6 +149,9 @@ export async function POST(request: Request) {
     const parsed = leadPatchSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ? `${parsed.error.issues[0].path.join(".") || "lead"}: ${parsed.error.issues[0].message}` : "Invalid lead details" }, { status: 400 });
+    }
+    if (!hasRequiredLeadIntelligence(parsed.data.notes)) {
+      return NextResponse.json({ ok: false, error: "Pain Point / Trigger and Proposed Solution are required for every new CRM lead." }, { status: 400 });
     }
 
     const supabase = getSupabaseServerClient();

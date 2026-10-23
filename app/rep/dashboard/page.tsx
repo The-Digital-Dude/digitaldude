@@ -55,6 +55,7 @@ import type { CrmLead, Forecast } from "@/components/rep/crm/shared";
 import { NotificationBell } from "@/components/rep/NotificationBell";
 import { repTemplates } from "@/lib/industryTemplates";
 import { DESIGNS, DESIGN_LABELS, defaultDesignFor, type DesignId } from "@/lib/emailDesign";
+import { formatLeadIntelligenceNotes, parseLeadIntelligence } from "@/lib/crm/intelligence";
 
 interface ChecklistItem {
   task: string;
@@ -242,6 +243,8 @@ export default function RepDashboardPage() {
   const [newLeadJobTitle, setNewLeadJobTitle] = useState("");
   const [newLeadStage, setNewLeadStage] = useState<RepLead["stage"]>("new");
   const [newLeadValue, setNewLeadValue] = useState<number>(0);
+  const [newLeadPainPoints, setNewLeadPainPoints] = useState("");
+  const [newLeadSolution, setNewLeadSolution] = useState("");
   const [newLeadNotes, setNewLeadNotes] = useState("");
   const [savingLead, setSavingLead] = useState(false);
 
@@ -260,7 +263,7 @@ export default function RepDashboardPage() {
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
-  const [aiResult, setAiResult] = useState<{ error?: string; general?: boolean; usedFacts?: { n: number; claim: string; sourceUrl: string }[]; blocked?: string | null } | null>(null);
+  const [aiResult, setAiResult] = useState<{ error?: string; general?: boolean; crmResearch?: boolean; usedFacts?: { n: number; claim: string; sourceUrl: string }[]; blocked?: string | null } | null>(null);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -633,12 +636,30 @@ export default function RepDashboardPage() {
   async function handleSaveLead(e: React.FormEvent) {
     e.preventDefault();
     if (!newLeadName || !newLeadEmail) return;
+    if (!newLeadPainPoints.trim() || !newLeadSolution.trim()) {
+      alert("Add both a Pain Point / Trigger and a Proposed Solution before saving this lead.");
+      return;
+    }
 
     setSavingLead(true);
     try {
       const url = editingLead ? `/api/rep/leads/${editingLead.id}` : "/api/rep/leads";
       const method = editingLead ? "PUT" : "POST";
 
+      const previous = parseLeadIntelligence(editingLead?.notes);
+      const researchNotes = formatLeadIntelligenceNotes({
+        website: previous.website,
+        linkedinUrl: previous.linkedinUrl,
+        location: previous.location,
+        industry: previous.industry,
+        techStack: previous.techStack.join(", "),
+        painPoints: newLeadPainPoints,
+        solution: newLeadSolution,
+        qcBy: previous.qcBy,
+        priority: previous.priority,
+        fitScore: previous.fitScore,
+        notes: newLeadNotes,
+      });
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -650,7 +671,7 @@ export default function RepDashboardPage() {
           job_title: newLeadJobTitle,
           stage: newLeadStage,
           estimated_deal_value: newLeadValue,
-          notes: newLeadNotes,
+          notes: researchNotes,
         }),
       });
 
@@ -680,6 +701,8 @@ export default function RepDashboardPage() {
     setNewLeadJobTitle("");
     setNewLeadStage("new");
     setNewLeadValue(0);
+    setNewLeadPainPoints("");
+    setNewLeadSolution("");
     setNewLeadNotes("");
   }
 
@@ -760,7 +783,7 @@ export default function RepDashboardPage() {
       setEmailMessage(data.body);
       if (data.name && !recipientName.trim()) setRecipientName(data.name);
       if (data.company && !companyName.trim()) setCompanyName(data.company);
-      setAiResult({ general: data.general, usedFacts: data.usedFacts, blocked: data.sendBlocked });
+      setAiResult({ general: data.general, crmResearch: data.crmResearch, usedFacts: data.usedFacts, blocked: data.sendBlocked });
     } catch {
       setAiResult({ error: "Network error. Please try again." });
     } finally {
@@ -1176,6 +1199,7 @@ export default function RepDashboardPage() {
               setShowAddLeadModal(true);
             }}
             onEdit={(lead) => {
+              const research = parseLeadIntelligence(lead.notes);
               setEditingLead(lead);
               setNewLeadName(lead.full_name);
               setNewLeadEmail(lead.email);
@@ -1184,7 +1208,9 @@ export default function RepDashboardPage() {
               setNewLeadJobTitle(lead.job_title || "");
               setNewLeadStage(lead.stage);
               setNewLeadValue(lead.estimated_deal_value || 0);
-              setNewLeadNotes(lead.notes || "");
+              setNewLeadPainPoints(research.painPoints || "");
+              setNewLeadSolution(research.solution || "");
+              setNewLeadNotes(research.generalNotes || "");
               setShowAddLeadModal(true);
             }}
             onDelete={(id) => void handleDeleteLead(id)}
@@ -1591,12 +1617,14 @@ export default function RepDashboardPage() {
                   <button type="button" disabled={aiBusy} onClick={() => void handleWriteWithAI()} className="rounded-xl bg-purple px-3.5 py-2 text-xs font-bold text-white hover:brightness-110 disabled:opacity-50 transition">
                     {aiBusy ? "Writing from the research…" : outreachStage === "follow_up" ? "Write follow-up with AI" : "Write first email with AI"}
                   </button>
-                  <span className="text-[11px] text-slate-400">Uses only verified facts about this company from your Lead Pool. You can edit everything before sending.</span>
+                  <span className="text-[11px] text-slate-400">Uses verified Lead Pool facts when available, or your CRM research as a non-factual pitch hypothesis. You can edit everything before sending.</span>
                 </div>
                 {aiResult?.error && <p className="mt-2 rounded-lg bg-rose-500/10 p-2 text-[11px] text-rose-300" role="alert">{aiResult.error}</p>}
                 {aiResult && !aiResult.error && (
                   <div className="mt-2 space-y-1 text-[11px]">
-                    {aiResult.general ? (
+                    {aiResult.crmResearch ? (
+                      <p className="text-amber-300">Drafted from this lead&apos;s Pain Point and Proposed Solution as hypotheses; no unverified claim was stated as fact.</p>
+                    ) : aiResult.general ? (
                       <p className="text-amber-300">No verified facts about this company yet, so the AI wrote a general note and claimed nothing about them.</p>
                     ) : (
                       <div className="text-emerald-300">
@@ -1982,13 +2010,41 @@ export default function RepDashboardPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Notes / Pain Points
+                  Pain Point / Trigger *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={newLeadPainPoints}
+                  onChange={(e) => setNewLeadPainPoints(e.target.value)}
+                  placeholder="What visible workflow, revenue, reporting, or system bottleneck makes this lead relevant?"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Proposed Solution / Pitch *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={newLeadSolution}
+                  onChange={(e) => setNewLeadSolution(e.target.value)}
+                  placeholder="What specific CRM, inventory, automation, or custom system would address it?"
+                  className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  General Notes
                 </label>
                 <textarea
                   rows={2}
                   value={newLeadNotes}
                   onChange={(e) => setNewLeadNotes(e.target.value)}
-                  placeholder="Context on current tech stack or budget..."
+                  placeholder="Optional context, budget, timing, or next steps..."
                   className="w-full rounded-xl bg-[#0D1322] border border-white/[0.08] p-2.5 text-xs text-white outline-none focus:border-purple"
                 />
               </div>

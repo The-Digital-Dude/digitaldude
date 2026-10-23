@@ -5,8 +5,8 @@ import { CURRENCIES, LOST_REASONS, LOST_REASON_LABELS, STAGES, STAGE_LABELS, STA
 import { Proposal } from "@/lib/content/proposals";
 import { ProposalDraftModal } from "./ProposalDraftModal";
 import { CrmLead, GRADE_STYLE, HEAT_STYLE, crm, dueLabel, when } from "./shared";
-import { ExternalLink, Copy, FileCheck2, Eye, FileText, Send, Globe, Linkedin, Zap, Check } from "lucide-react";
-import { parseLeadIntelligence, generateExecutivePitch, generateDirectMessagePitch } from "@/lib/crm/intelligence";
+import { ExternalLink, Copy, FileCheck2, Eye, FileText, Send, Globe, Linkedin, Zap, Check, Pencil } from "lucide-react";
+import { formatLeadIntelligenceNotes, parseLeadIntelligence, generateExecutivePitch, generateDirectMessagePitch } from "@/lib/crm/intelligence";
 
 interface Activity { id: string; type: string; outcome: string | null; summary: string; occurred_at: string }
 interface Task { id: string; title: string; due_at: string; status: string; kind: string; auto: boolean; cancel_reason?: string | null }
@@ -52,6 +52,20 @@ export function LeadDrawer({
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingResearch, setEditingResearch] = useState(false);
+  const [researchDraft, setResearchDraft] = useState({
+    website: intel.website ?? "",
+    linkedinUrl: intel.linkedinUrl ?? "",
+    location: intel.location ?? "",
+    industry: intel.industry ?? "",
+    techStack: intel.techStack.join(", "),
+    painPoints: intel.painPoints ?? "",
+    solution: intel.solution ?? "",
+    qcBy: intel.qcBy ?? "",
+    priority: intel.priority ?? "",
+    fitScore: intel.fitScore == null ? "" : String(intel.fitScore),
+    generalNotes: intel.generalNotes ?? "",
+  });
 
   // Deal fields (edited together and saved with one button).
   const [stage, setStage] = useState<Stage>(lead.stage);
@@ -79,8 +93,24 @@ export function LeadDrawer({
       setTasks(r.tasks ?? []);
       if (r.proposals) setProposals(r.proposals);
     }
-  }, [lead.id]);
+  }, [lead.id, setActivities, setTasks, setProposals]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const next = parseLeadIntelligence(lead.notes);
+    setResearchDraft({
+      website: next.website ?? "",
+      linkedinUrl: next.linkedinUrl ?? "",
+      location: next.location ?? "",
+      industry: next.industry ?? "",
+      techStack: next.techStack.join(", "),
+      painPoints: next.painPoints ?? "",
+      solution: next.solution ?? "",
+      qcBy: next.qcBy ?? "",
+      priority: next.priority ?? "",
+      fitScore: next.fitScore == null ? "" : String(next.fitScore),
+      generalNotes: next.generalNotes ?? "",
+    });
+  }, [lead.id, lead.notes]);
 
   const flash = (ok: boolean, text: string) => setMsg({ ok, text });
 
@@ -103,6 +133,24 @@ export function LeadDrawer({
     flash(true, "Saved.");
     onChanged();
     void load();
+  }
+
+  async function saveResearch() {
+    if (!researchDraft.painPoints.trim() || !researchDraft.solution.trim()) return flash(false, "Pain Point / Trigger and Proposed Solution are both required.");
+    const fitScore = researchDraft.fitScore.trim() === "" ? undefined : Number(researchDraft.fitScore);
+    if (fitScore !== undefined && (!Number.isInteger(fitScore) || fitScore < 0 || fitScore > 100)) return flash(false, "Research fit score must be a whole number from 0 to 100.");
+    setBusy(true);
+    const notes = formatLeadIntelligenceNotes({
+      ...researchDraft,
+      fitScore,
+      notes: researchDraft.generalNotes,
+    });
+    const r = await crm(`/api/rep/leads/${lead.id}`, "PATCH", { notes });
+    setBusy(false);
+    if (!r.ok) return flash(false, r.error ?? "Could not save the research");
+    setEditingResearch(false);
+    flash(true, "Research intelligence saved.");
+    onChanged();
   }
 
   async function logActivity() {
@@ -207,7 +255,7 @@ export function LeadDrawer({
         {/* ========================================================================= */}
         {/* RESEARCH INTELLIGENCE & STRATEGIC PITCH CARD */}
         {/* ========================================================================= */}
-        {intel.hasIntelligence && (
+        {
           <section className="space-y-3.5 rounded-2xl border border-purple/30 bg-gradient-to-br from-purple/10 via-[#131B2E] to-[#0D1322] p-4 shadow-lg shadow-purple/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -221,12 +269,38 @@ export function LeadDrawer({
                   <p className="text-[10px] text-purple-300/80">Audit facts &amp; tailored solution ready to send</p>
                 </div>
               </div>
-              {intel.fitScore != null && (
-                <span className="rounded-md bg-purple/20 border border-purple/40 px-2 py-0.5 text-[10px] font-bold text-purple-300">
-                  Research Fit: {intel.fitScore}/100
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {intel.fitScore != null && (
+                  <span className="rounded-md bg-purple/20 border border-purple/40 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+                    Research Fit: {intel.fitScore}/100
+                  </span>
+                )}
+                <button type="button" className={btnGhost} onClick={() => setEditingResearch((value) => !value)}>
+                  <Pencil size={11} className="inline mr-1" /> {editingResearch ? "Cancel" : intel.hasIntelligence ? "Edit" : "Add research"}
+                </button>
+              </div>
             </div>
+
+            {editingResearch && (
+              <div className="space-y-3 rounded-xl border border-white/[0.08] bg-black/20 p-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div><label className={label}>Website</label><input className={field} value={researchDraft.website} onChange={(e) => setResearchDraft((d) => ({ ...d, website: e.target.value }))} /></div>
+                  <div><label className={label}>LinkedIn URL</label><input className={field} value={researchDraft.linkedinUrl} onChange={(e) => setResearchDraft((d) => ({ ...d, linkedinUrl: e.target.value }))} /></div>
+                  <div><label className={label}>Location</label><input className={field} value={researchDraft.location} onChange={(e) => setResearchDraft((d) => ({ ...d, location: e.target.value }))} /></div>
+                  <div><label className={label}>Industry</label><input className={field} value={researchDraft.industry} onChange={(e) => setResearchDraft((d) => ({ ...d, industry: e.target.value }))} /></div>
+                  <div><label className={label}>Tech stack</label><input className={field} value={researchDraft.techStack} onChange={(e) => setResearchDraft((d) => ({ ...d, techStack: e.target.value }))} placeholder="HubSpot, Excel, WordPress" /></div>
+                  <div><label className={label}>Research fit (0–100)</label><input type="number" min={0} max={100} className={field} value={researchDraft.fitScore} onChange={(e) => setResearchDraft((d) => ({ ...d, fitScore: e.target.value }))} /></div>
+                  <div><label className={label}>QC / Researcher</label><input className={field} value={researchDraft.qcBy} onChange={(e) => setResearchDraft((d) => ({ ...d, qcBy: e.target.value }))} /></div>
+                  <div><label className={label}>Priority</label><input className={field} value={researchDraft.priority} onChange={(e) => setResearchDraft((d) => ({ ...d, priority: e.target.value }))} placeholder="High, Medium, or Low" /></div>
+                </div>
+                <div><label className={label}>Pain Point / Trigger *</label><textarea required rows={4} className={field} value={researchDraft.painPoints} onChange={(e) => setResearchDraft((d) => ({ ...d, painPoints: e.target.value }))} /></div>
+                <div><label className={label}>Proposed Solution / Pitch *</label><textarea required rows={4} className={field} value={researchDraft.solution} onChange={(e) => setResearchDraft((d) => ({ ...d, solution: e.target.value }))} /></div>
+                <div><label className={label}>General notes</label><textarea rows={3} className={field} value={researchDraft.generalNotes} onChange={(e) => setResearchDraft((d) => ({ ...d, generalNotes: e.target.value }))} /></div>
+                <button type="button" className={btn} disabled={busy} onClick={saveResearch}>{busy ? "Saving…" : "Save research"}</button>
+              </div>
+            )}
+
+            {!intel.hasIntelligence && !editingResearch && <p className="text-xs text-slate-400">No structured research yet. Add the required pain point and solution before drafting outreach.</p>}
 
             {/* Known Tech Stack */}
             {intel.techStack.length > 0 && (
@@ -316,7 +390,7 @@ export function LeadDrawer({
               </button>
             </div>
           </section>
-        )}
+        }
 
         {msg && <p className={`rounded-lg p-2 text-xs font-semibold ${msg.ok ? "bg-emerald-500/10 text-emerald-300" : "bg-rose-500/10 text-rose-300"}`} role="status">{msg.text}</p>}
 
