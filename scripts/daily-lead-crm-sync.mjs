@@ -309,13 +309,18 @@ async function checkBrevoContactBlocklist(email) {
 
 async function checkSuppression(email) {
   try {
-    const supRes = await supabase.rpc("acq_is_suppressed", { p_email: email });
+    const clean = (email || "").toLowerCase().trim();
+    const supRes = await supabase.rpc("acq_is_suppressed", { p_email: clean });
     if (supRes.data === true) {
       return { ok: false, reason: "Email address or domain is on the global suppression / do-not-contact list." };
     }
-    const unsubRes = await supabase.from("rep_unsubscribes").select("id").eq("email", email).limit(1);
+    const unsubRes = await supabase.from("rep_unsubscribes").select("id").eq("email", clean).limit(1);
     if ((unsubRes.data || []).length > 0) {
-      return { ok: false, reason: "Recipient previously unsubscribed from The Digital Dude outreach." };
+      return { ok: false, reason: "Recipient previously unsubscribed or bounced from The Digital Dude outreach." };
+    }
+    const checkRes = await supabase.from("acq_email_checks").select("status, reason").eq("email_normalized", clean).maybeSingle();
+    if (checkRes.data && checkRes.data.status === "invalid") {
+      return { ok: false, reason: checkRes.data.reason || "Email address is flagged as invalid or undeliverable." };
     }
     return { ok: true };
   } catch (e) {
@@ -571,6 +576,60 @@ async function sendBrevoOutreach({ toEmail, toName, subject, bodyText, rep }) {
   }
 }
 
+async function syncBrevoBouncesToDatabase() {
+  if (!BREVO_API_KEY) return;
+  console.log("[Deliverability Protection] Syncing live bounce events from Brevo API...");
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/statistics/events?event=bounces&limit=100", {
+      headers: {
+        "api-key": BREVO_API_KEY,
+        "Accept": "application/json"
+      }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const events = data.events || [];
+    let synced = 0;
+    for (const ev of events) {
+      const email = (ev.email || "").toLowerCase().trim();
+      if (!email) continue;
+      const reason = ev.reason || "Hard bounced in Brevo";
+
+      // 1. Update rep_leads
+      await supabase
+        .from("rep_leads")
+        .update({
+          status: "unqualified",
+          lost_reason: "not_a_fit",
+          lost_note: `Hard bounced in Brevo: ${reason}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq("email", email);
+
+      // 2. Add to rep_unsubscribes
+      await supabase
+        .from("rep_unsubscribes")
+        .upsert({ email, reason: `Hard bounced: ${reason}` }, { onConflict: "email" });
+
+      // 3. Mark in acq_email_checks as invalid
+      await supabase
+        .from("acq_email_checks")
+        .upsert({
+          email_normalized: email,
+          status: "invalid",
+          reason: `Hard bounced: ${reason}`,
+          source: "builtin",
+          checked_at: new Date().toISOString()
+        }, { onConflict: "email_normalized" });
+
+      synced++;
+    }
+    console.log(`[Deliverability Protection] Auto-suppressed ${synced} bounced recipients from Brevo.`);
+  } catch (err) {
+    console.warn("[Deliverability Protection] Brevo bounce sync skipped:", err.message);
+  }
+}
+
 async function main() {
   console.log("==================================================================");
   console.log(" The Digital Dude — Multi-Rep Time-Optimized Outreach Engine      ");
@@ -578,6 +637,9 @@ async function main() {
   console.log(`Operating Headquarters: ${HEADQUARTERS_FOOTER}`);
   console.log(`Target Country Mode:    ${TARGET_COUNTRY_ARG}`);
   console.log(`Mode:                   ${AUTO_SEND ? "AUTO-SEND (Brevo Active with 5-10s Cooldown)" : "CRM REVIEW / DRY RUN ONLY"}`);
+
+  // Deliverability pre-flight: Sync and suppress all live bounces from Brevo
+  await syncBrevoBouncesToDatabase();
 
   const targetCountries = resolveTargetCountries(TARGET_COUNTRY_ARG);
   console.log(`Active Target Filter:   ${targetCountries ? targetCountries.join(", ") : "ALL COUNTRIES"}`);
