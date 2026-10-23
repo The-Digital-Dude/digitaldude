@@ -297,15 +297,26 @@ function renderMinimalPersonalEmail({ bodyText, bookingUrl, unsubscribeUrl }) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>The Digital Dude</title></head><body style="margin:0;padding:24px 16px;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><div style="max-width:580px;margin:0 auto;">${paragraphsHtml}${buttonHtml}${signatureHtml}${footerHtml}</div></body></html>`;
 }
 
+function stripRedundantBookingLinks(text) {
+  if (!text) return "";
+  return text
+    // Remove "Book a 30-minute discovery call: https://..." or any digitaldude booking URL
+    .replace(/(?:Book a [^\n]*call[^\n]*:?\s*)?https?:\/\/(?:www\.)?digitaldude\.co\.uk\/contact\S*/gi, "")
+    // Remove standalone "Book a 30-minute discovery call" line if left behind
+    .replace(/^\s*Book a (?:30-minute )?discovery call:?\s*$/gim, "")
+    .trim();
+}
+
 async function sendOutreachEmail({ toEmail, toName, subject, bodyText }) {
   if (!BREVO_API_KEY) {
     console.log(`[DRY RUN] No BREVO_API_KEY set. Would send email to ${toEmail}`);
     return { ok: true, messageId: "dry-run" };
   }
 
+  const cleanBody = stripRedundantBookingLinks(bodyText);
   const unsubscribeUrl = `https://www.digitaldude.co.uk/api/outreach/unsubscribe?email=${encodeURIComponent(toEmail)}`;
   const htmlContent = renderMinimalPersonalEmail({
-    bodyText,
+    bodyText: cleanBody,
     bookingUrl: BOOKING_URL,
     unsubscribeUrl
   });
@@ -315,7 +326,7 @@ async function sendOutreachEmail({ toEmail, toName, subject, bodyText }) {
     to: [{ email: toEmail, name: toName }],
     replyTo: { name: "The Digital Dude", email: REPLY_TO_EMAIL },
     subject: subject,
-    textContent: `${bodyText}\n\nBook a 30-minute discovery call: ${BOOKING_URL}\n\nFarhad Hossain\nFounder & CEO | The Digital Dude\nhttps://www.digitaldude.co.uk\n\nUnsubscribe: ${unsubscribeUrl}`,
+    textContent: `${cleanBody}\n\nBook a 30-minute discovery call: ${BOOKING_URL}\n\nFarhad Hossain\nFounder & CEO | The Digital Dude\nhttps://www.digitaldude.co.uk\n\nUnsubscribe: ${unsubscribeUrl}`,
     htmlContent: htmlContent
   };
 
@@ -542,6 +553,20 @@ ${emailBody}`;
         subject: subject,
         body_content: emailBody,
         template_used: (lead.tags && lead.tags[2]) || "custom"
+      });
+
+      // 2b. Log in rep_audit_logs (for Admin Productivity & Real-Time Dashboard)
+      await supabase.from("rep_audit_logs").insert({
+        employee_id: FARHAD_EMPLOYEE_ID,
+        action_type: "outreach_sent",
+        description: `Sent cold outreach email to ${lead.full_name} (${cleanEmail}) via alias ${SENDER_EMAIL}.`,
+        target_identifier: cleanEmail,
+        metadata: {
+          subject,
+          company: lead.company_name,
+          source: "daily_lead_pipeline"
+        },
+        created_at: nowIso
       });
 
       // 3. Log activity in rep_lead_activities

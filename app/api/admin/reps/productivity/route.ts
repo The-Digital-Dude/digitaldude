@@ -55,6 +55,35 @@ export async function GET(request: Request) {
       .gte("created_at", thirtyDaysAgo)
       .order("created_at", { ascending: false });
 
+    // 2b. Fetch all outreach logs to ensure pipeline and background sends are counted
+    const { data: outreachLogs } = await supabase
+      .from("rep_outreach_logs")
+      .select("id, employee_id, recipient_email, recipient_name, sent_at")
+      .gte("sent_at", thirtyDaysAgo)
+      .order("sent_at", { ascending: false });
+
+    // Deduplicate and merge audit logs with outreach logs
+    const existingAuditKeys = new Set(
+      (recentLogs || [])
+        .filter((l) => l.action_type === "outreach_sent" || l.action_type === "drip_dispatched")
+        .map((l) => `${l.employee_id}:${(l.created_at || "").slice(0, 16)}`)
+    );
+
+    const mergedLogs: any[] = [...(recentLogs || [])];
+    (outreachLogs || []).forEach((o) => {
+      const key = `${o.employee_id}:${(o.sent_at || "").slice(0, 16)}`;
+      if (!existingAuditKeys.has(key)) {
+        mergedLogs.push({
+          id: o.id,
+          employee_id: o.employee_id,
+          action_type: "outreach_sent",
+          created_at: o.sent_at,
+          description: `Sent cold outreach email to ${o.recipient_name || o.recipient_email} (${o.recipient_email}).`,
+        });
+      }
+    });
+    mergedLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
     // 3. Fetch all leads
     const { data: allLeads } = await supabase
       .from("rep_leads")
@@ -66,7 +95,7 @@ export async function GET(request: Request) {
       .select("id, sourced_by_employee_id, employee_id, status, created_at, deal_value");
 
     const totalReps = reps?.length || 0;
-    const logs = recentLogs || [];
+    const logs = mergedLogs;
     const leads = allLeads || [];
     const bookings = allBookings || [];
 
