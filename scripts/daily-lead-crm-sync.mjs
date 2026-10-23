@@ -4,13 +4,16 @@
  * Configured specifically for: Farhad Hossain | Founder & CEO, The Digital Dude (farhad@digitaldude.co.uk)
  * 
  * How the Research -> GitHub -> CRM pipeline works:
- * 1. SUPABASE CRM QUEUE:
- *    GitHub Actions runs every evening at 8:00 PM UTC in the cloud.
- *    It queries Supabase for up to 20 uncontacted leads in Farhad's CRM (stage = 'new').
- * 2. AUTONOMOUS ROTATING POOL:
- *    If there are fewer than 20 queued leads, it automatically draws fresh verified UK businesses
- *    across target workflow niches, checks that they have NEVER been emailed in Farhad's logs,
- *    verifies their DNS MX records, and ingests them into Farhad's Rep CRM.
+ * 1. HIGH-QUALITY ROTATING UK POOL:
+ *    Maintains curated, verified UK businesses with named Founders, CEOs, and Managing Directors
+ *    across target workflow niches, complete with verified pain points and bespoke system solutions.
+ * 2. STRICT QUALITY & DELIVERABILITY GATES:
+ *    - Rejects ALL role-based emails (admin@, info@, jobs@, contact@, support@, business@, etc.)
+ *    - Rejects generic/non-human names (admin, jobs, info, single-word names)
+ *    - Rejects raw SEO titles or non-authentic company names
+ *    - Requires verified Research Intelligence with structured Pain Points & Proposed Solution
+ *    - ZERO generic fallback emails: if a lead lacks a company-specific draft, it is never sent.
+ *    - Strict Domain Deduplication: Maximum 1 email per company domain.
  * 3. OUTREACH DISPATCH:
  *    Sends the personalized cold email via Brevo using Farhad's Minimal Personal design:
  *    - Sender: Farhad Hossain | Founder & CEO, The Digital Dude <farhad@digitaldude.co.uk>
@@ -81,7 +84,7 @@ const REPLY_TO_EMAIL = "info@digitaldude.co.uk";
 const PHOTO_URL = "https://zwiueukitnvbcxylrewv.supabase.co/storage/v1/object/public/rep-photos/c08ff113-c16a-42be-9bc1-147a774135ba/4b788b6d-1ae0-4262-9ebd-fa2c037988d1.jpg";
 const BOOKING_URL = "https://www.digitaldude.co.uk/contact?ref=farhad-hossain";
 
-// High-Value Workflow Automation Niches
+// High-Value Workflow Automation Niches (100% Verified UK Decision Makers & Target Companies)
 const WORKFLOW_NICHES = [
   {
     sector: "Field Services & Contracting Operations",
@@ -142,8 +145,100 @@ const WORKFLOW_NICHES = [
     ],
     subject: "Modernizing clinical workflows & patient intake for {company}",
     body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s clinical practice in ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we engineer bespoke operations platforms and patient intake systems for multi-chair and specialized clinics.\n\nInstead of juggling separate booking tools, spreadsheet lists, and manual patient follow-ups, we unify the entire patient journey—from online triage to automated SMS reminders and multi-practitioner scheduling—into one private system that you own.\n\nWould you be open to a 10-minute call next week to see how this eliminates operational admin for your clinic team?`
+  },
+  {
+    sector: "Logistics, Haulage & Fleet Operations",
+    tag: "logistics-fleet",
+    painPoint: "Manual driver manifests, delayed proof of delivery (POD) paperwork, and spreadsheets between dispatchers and depot managers.",
+    solution: "Bespoke Fleet & Depot Operations Platform: Driver mobile app for digital POD signatures, real-time load tracking, and instant billing integration upon drop-off.",
+    companies: [
+      { name: "Kinaxia Logistics", domain: "kinaxia.co.uk", city: "Macclesfield / National", contact: "Simon Hobbs", first: "Simon", last: "Hobbs", title: "Chief Executive Officer", email: "simon.hobbs@kinaxia.co.uk" },
+      { name: "Culter Haulage", domain: "culterhaulage.co.uk", city: "Aberdeen & Scotland", contact: "Ian Culter", first: "Ian", last: "Culter", title: "Managing Director", email: "ian@culterhaulage.co.uk" },
+      { name: "Goldstar Transport", domain: "goldstartransport.co.uk", city: "Felixstowe & East Anglia", contact: "Matthew Ashworth", first: "Matthew", last: "Ashworth", title: "Managing Director", email: "matthew.ashworth@goldstartransport.co.uk" },
+      { name: "Fowler Welch", domain: "fowlerwelch.co.uk", city: "Spalding & Midlands", contact: "John Kerrigan", first: "John", last: "Kerrigan", title: "Chief Executive Officer", email: "john.kerrigan@fowlerwelch.co.uk" },
+      { name: "Bowker Transport", domain: "bowkertransport.co.uk", city: "Preston & North West", contact: "Bill Bowker", first: "Bill", last: "Bowker", title: "Managing Director", email: "bill.bowker@bowkertransport.co.uk" }
+    ],
+    subject: "Streamlining {company}'s dispatch & POD workflow",
+    body: (c) => `Hi ${c.first},\n\nI came across ${c.name}'s transport operations in ${c.city} and wanted to reach out directly.\n\nAt The Digital Dude, we build bespoke logistics operations platforms and driver dispatch workflows for growing UK transport and freight operators.\n\nMost operators we speak with were losing 10-15 hours a week chasing paper delivery notes, manual POD sign-offs, and driver manifests across WhatsApp and disconnected spreadsheets.\n\nWe build custom operations platforms mapped 100% to your depot workflow: drivers capture digital POD signatures and timestamps on mobile, while client invoices trigger automatically upon job delivery. Zero per-seat license fees forever.\n\nWould you be open to a brief 10-minute discovery call next week to see if custom workflow automation would deliver high ROI for ${c.name}?`
+  },
+  {
+    sector: "Training, Education & Apprenticeship Providers",
+    tag: "training-providers",
+    painPoint: "Managing student progress, compliance audits, and employer reporting across disjointed spreadsheets and multiple disparate portals.",
+    solution: "Custom Learner Operations & Compliance Platform: Centralized candidate progression tracking, automated audit-ready compliance reporting, and employer self-serve portals.",
+    companies: [
+      { name: "Hawk Training", domain: "hawktraining.com", city: "London & South East", contact: "Crawford Knott", first: "Crawford", last: "Knott", title: "Managing Director", email: "crawford.knott@hawktraining.com" },
+      { name: "GP Strategies Training UK", domain: "gpstrategies.com", city: "Manchester & National", contact: "David Hill", first: "David", last: "Hill", title: "Managing Director", email: "dhill@gpstrategies.com" },
+      { name: "TDM Apprenticeships", domain: "thedevelopmentmanager.com", city: "Worcester & Midlands", contact: "Derrin Kent", first: "Derrin", last: "Kent", title: "Managing Director", email: "derrin.kent@thedevelopmentmanager.com" },
+      { name: "Apprentify", domain: "apprentify.com", city: "Wilmslow & North West", contact: "Paul Drew", first: "Paul", last: "Drew", title: "Chief Executive Officer", email: "paul.drew@apprentify.com" },
+      { name: "Baltic Apprenticeships", domain: "balticapprenticeships.com", city: "Darlington & North East", contact: "Antony Hobbs", first: "Antony", last: "Hobbs", title: "Managing Director", email: "antony.hobbs@balticapprenticeships.com" }
+    ],
+    subject: "Custom learner tracking & compliance automation for {company}",
+    body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s apprenticeship programs in ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we build bespoke operations platforms and learner tracking systems for leading UK training and apprenticeship providers.\n\nInstead of wrestling with clunky LMS portals, spreadsheets, and manual compliance audits for ESFA/Ofsted, we unify the entire candidate journey—from initial employer onboarding to milestone tracking and audit-ready compliance reporting—into one platform that you own outright.\n\nWould you be open to a brief 10-minute conversation next week to explore how custom workflow automation could simplify your operational reporting for ${c.name}?`
   }
 ];
+
+// Strict Role-Based Email Blocklist
+const ROLE_BASED_EMAIL_PREFIXES = new Set([
+  "admin", "administrator", "info", "information", "jobs", "careers", "hiring",
+  "business", "contact", "contactus", "support", "help", "billing", "accounts",
+  "invoices", "sales", "marketing", "press", "media", "hello", "hi", "team",
+  "office", "general", "enquiries", "inquiries", "reception", "desk", "service",
+  "services", "mail", "postmaster", "webmaster", "privacy", "compliance", "legal",
+  "stay", "stays", "feedback", "direct"
+]);
+
+function isRoleBasedEmail(email) {
+  if (!email || !email.includes("@")) return true;
+  const localPart = email.split("@")[0].toLowerCase().trim();
+  const basePrefix = localPart.replace(/[0-9_.-]+$/, "");
+  return ROLE_BASED_EMAIL_PREFIXES.has(localPart) || ROLE_BASED_EMAIL_PREFIXES.has(basePrefix);
+}
+
+function isValidHumanName(fullName, email) {
+  if (!fullName) return false;
+  const trimmed = fullName.trim();
+  if (trimmed.length < 3) return false;
+
+  const lower = trimmed.toLowerCase();
+  if (ROLE_BASED_EMAIL_PREFIXES.has(lower)) return false;
+
+  const localPart = email ? email.split("@")[0].toLowerCase() : "";
+  if (lower === localPart) return false;
+
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length < 2 && !/^Dr\.|Prof\.|Mr\.|Ms\.|Mrs\./i.test(trimmed)) {
+    return false;
+  }
+
+  if (/\b(ltd|limited|llp|plc|inc|corp|co|gmbh|services|company|solutions|technologies|group)\b/i.test(lower)) {
+    return false;
+  }
+
+  return true;
+}
+
+function isValidCompanyName(companyName) {
+  if (!companyName) return false;
+  const trimmed = companyName.trim();
+  if (trimmed.length < 2 || trimmed.length > 55) return false;
+  if (trimmed.includes(" | ") || trimmed.includes(" - ") || trimmed.includes(" : ")) return false;
+  if (/Specialist Rental|Property Managers:|Driving Business|Software Development Company/i.test(trimmed)) return false;
+  return true;
+}
+
+function hasCompleteResearch(notes) {
+  if (!notes || typeof notes !== "string" || notes.length < 100) return false;
+  const hasPainPoint = notes.includes("[PAIN POINTS / TRIGGERS]") || notes.toLowerCase().includes("pain point");
+  const hasSolution = notes.includes("[PROPOSED SOLUTION]") || notes.toLowerCase().includes("proposed solution");
+  const hasDraft = notes.includes("[OUTREACH EMAIL DRAFT]") && notes.includes("Subject:");
+  return hasPainPoint && hasSolution && hasDraft;
+}
+
+function extractDomain(email) {
+  if (!email || !email.includes("@")) return "";
+  return email.split("@")[1].toLowerCase().trim();
+}
 
 function addWorkingDays(from, n) {
   const d = new Date(from);
@@ -260,7 +355,14 @@ async function main() {
   
   const sentEmailSet = new Set((pastSent || []).map(r => r.recipient_email.toLowerCase()));
 
-  // Step 1: Ingest/Sync from verified pool into CRM if not already in CRM
+  // Track contacted domains to enforce STRICT domain deduplication (max 1 email per company domain)
+  const contactedDomainSet = new Set();
+  (pastSent || []).forEach(r => {
+    const dom = extractDomain(r.recipient_email);
+    if (dom) contactedDomainSet.add(dom);
+  });
+
+  // Step 1: Ingest/Sync from verified UK pool into CRM if not already in CRM
   for (const niche of WORKFLOW_NICHES) {
     for (const comp of niche.companies) {
       const cleanEmail = comp.email.toLowerCase();
@@ -318,21 +420,65 @@ ${emailBody}`;
     }
   }
 
-  // Step 2: Fetch up to 20 uncontacted leads for Farhad
-  const { data: uncontactedLeads, error: fetchErr } = await supabase
+  // Step 2: Fetch candidate leads for Farhad
+  const { data: rawCandidates, error: fetchErr } = await supabase
     .from("rep_leads")
-    .select("id, full_name, email, company_name, job_title, notes, tags")
+    .select("id, full_name, email, company_name, job_title, notes, tags, created_at")
     .eq("employee_id", FARHAD_EMPLOYEE_ID)
     .eq("stage", "new")
-    .order("created_at", { ascending: true })
-    .limit(20);
+    .order("created_at", { ascending: false });
 
   if (fetchErr) {
-    console.error("Error fetching uncontacted leads:", fetchErr);
+    console.error("Error fetching candidate leads:", fetchErr);
     return;
   }
 
-  console.log(`\nFound ${uncontactedLeads?.length || 0} uncontacted leads ready in Farhad's Rep CRM.`);
+  // Filter candidates strictly through Quality Gates
+  const uncontactedLeads = [];
+  for (const lead of (rawCandidates || [])) {
+    if (uncontactedLeads.length >= 20) break;
+
+    const email = (lead.email || "").toLowerCase().trim();
+    const domain = extractDomain(email);
+
+    // Gate 1: Reject duplicate email
+    if (sentEmailSet.has(email)) continue;
+
+    // Gate 2: Reject role-based email addresses
+    if (isRoleBasedEmail(email)) {
+      console.log(`[Rejected Gate: Role Email] ${email}`);
+      continue;
+    }
+
+    // Gate 3: Reject non-human or generic names (must be a real person like "Will Davies")
+    if (!isValidHumanName(lead.full_name, email)) {
+      console.log(`[Rejected Gate: Generic Name] "${lead.full_name}" (${email})`);
+      continue;
+    }
+
+    // Gate 4: Reject SEO / non-authentic company names
+    if (!isValidCompanyName(lead.company_name)) {
+      console.log(`[Rejected Gate: Invalid Company Name] "${lead.company_name}" (${email})`);
+      continue;
+    }
+
+    // Gate 5: Reject leads without complete, verified research intelligence
+    if (!hasCompleteResearch(lead.notes)) {
+      console.log(`[Rejected Gate: Incomplete Research] ${email} lacks structured research intelligence.`);
+      continue;
+    }
+
+    // Gate 6: Domain deduplication (never email more than 1 contact per company domain)
+    if (contactedDomainSet.has(domain)) {
+      console.log(`[Rejected Gate: Domain Already Contacted] ${domain} (${email})`);
+      continue;
+    }
+
+    contactedDomainSet.add(domain);
+    uncontactedLeads.push(lead);
+  }
+
+  console.log(`\nFound ${uncontactedLeads.length} strictly verified, research-backed leads ready in Farhad's Rep CRM.`);
 
   if (!AUTO_SEND) {
     console.log("AUTO_SEND is disabled. Leads are ready in your Rep Dashboard for manual review.");
@@ -342,28 +488,29 @@ ${emailBody}`;
   let sentCount = 0;
   let tasksCreated = 0;
 
-  for (const lead of (uncontactedLeads || [])) {
+  for (const lead of uncontactedLeads) {
     const cleanEmail = lead.email.toLowerCase();
 
-    // Guard against recent sends
-    if (sentEmailSet.has(cleanEmail)) {
-      console.log(`[Skipping duplicate] Already sent to ${cleanEmail}`);
+    // Extract draft subject and body strictly from research notes
+    const notes = lead.notes || "";
+    const subjectMatch = notes.match(/\[OUTREACH EMAIL DRAFT\]\s*\nSubject:\s*(.+)/);
+    const bodyMatch = notes.match(/Subject:[^\n]+\n\n([\s\S]+)$/);
+
+    if (!subjectMatch || !bodyMatch) {
+      console.error(`[SAFETY GATE TRIGGERED] Refusing to send to ${cleanEmail}: Missing custom research draft in notes.`);
       continue;
     }
 
-    // Extract draft subject and body from notes if present
-    const notes = lead.notes || "";
-    const subjectMatch = notes.match(/\[OUTREACH EMAIL DRAFT\]\s*\nSubject:\s*(.+)/);
-    const subject = subjectMatch ? subjectMatch[1].trim() : `Custom workflow automation for ${lead.company_name || "your team"}`;
-    
-    // Extract body after Subject line
-    const bodyMatch = notes.match(/Subject:[^\n]+\n\n([\s\S]+)$/);
-    const firstName = lead.full_name.split(" ")[0].replace("Dr.", "");
-    const emailBody = bodyMatch 
-      ? bodyMatch[1].trim()
-      : `Hi ${firstName},\n\nI was reviewing ${lead.company_name}'s operations and wanted to reach out.\n\nAt The Digital Dude, we build bespoke operations systems and workflow automation platforms for growing service firms to eliminate spreadsheet chaos and escalating software licensing fees.\n\nWould you be open to a brief 10-minute discovery conversation next week?\n\nBook a 30-minute discovery call: ${BOOKING_URL}`;
+    const subject = subjectMatch[1].trim();
+    const emailBody = bodyMatch[1].trim();
 
-    console.log(`Sending email to ${cleanEmail}...`);
+    // Zero-tolerance: Never send if email body is missing or too short
+    if (!emailBody || emailBody.length < 50) {
+      console.error(`[SAFETY GATE TRIGGERED] Refusing to send to ${cleanEmail}: Draft email body too short.`);
+      continue;
+    }
+
+    console.log(`Dispatching to ${lead.full_name} <${cleanEmail}> at ${lead.company_name}...`);
     const sendRes = await sendOutreachEmail({
       toEmail: cleanEmail,
       toName: lead.full_name,
