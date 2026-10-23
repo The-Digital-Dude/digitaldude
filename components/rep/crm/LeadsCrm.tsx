@@ -244,6 +244,7 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
                               </span>
                             )}
                             {l.email_check && (l.email_check.status === "invalid" || l.email_check.status === "risky") && <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${l.email_check.status === "invalid" ? "bg-rose-500/15 text-rose-300" : "bg-amber-500/15 text-amber-300"}`} title={l.email_check.reason}>email {l.email_check.status}</span>}
+                            {l.status === "unqualified" && !l.email_check && <span className="rounded bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 text-[9px] font-bold uppercase text-rose-300" title={l.lost_note || "Unqualified lead"}>Disqualified</span>}
                             {l.pool_contact_status && l.pool_contact_status !== "eligible" && <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300" title="Record a lawful basis in Lead Pool before emailing this contact">needs lawful basis</span>}
                             {(l.tags ?? []).map((t) => <button key={t} onClick={() => set({ tag: t })} className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold text-slate-300 hover:bg-white/10">{t}</button>)}
                           </div>
@@ -272,14 +273,34 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
                           <select value={l.stage} onChange={(e) => changeStage(l, e.target.value as Stage)} aria-label={`Stage for ${l.full_name}`} className="cursor-pointer rounded-lg border border-white/[0.08] bg-[#0D1322] px-2 py-1 text-xs font-semibold text-purple-300 outline-none focus:border-purple">
                             {STAGES.map((s) => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
                           </select>
-                          {l.status && l.status !== "new" && <div className="mt-1 text-[10px] text-slate-500">{STATUS_LABELS[l.status]}</div>}
+                          {l.status === "unqualified" ? (
+                            <div className="mt-1 space-y-0.5">
+                              <span className="inline-flex items-center gap-1 rounded bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 text-[9px] font-bold text-rose-300" title={l.lost_note || "Lead does not meet qualification criteria"}>
+                                ✕ Unqualified
+                              </span>
+                              {l.lost_note && (
+                                <div className="max-w-[170px] truncate text-[10px] text-rose-400 font-medium" title={l.lost_note}>
+                                  {l.lost_note}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            l.status && l.status !== "new" && <div className="mt-1 text-[10px] text-slate-500">{STATUS_LABELS[l.status]}</div>
+                          )}
                         </td>
                         <td className="px-4 py-3">{scoreChips(l)}</td>
                         <td className="px-4 py-3 font-mono font-bold text-white">{money(l.estimated_deal_value, l.currency)}{l.expected_close_date && <div className="text-[10px] font-normal text-slate-500">close {l.expected_close_date}</div>}</td>
                         <td className="px-4 py-3">{nextStep(l)}{l.stale && <div className="mt-0.5 text-[10px] font-bold text-amber-300">quiet {l.days_quiet}d</div>}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => onEmail(l)} title="Send direct outreach" className="rounded-lg bg-purple/10 p-1.5 text-purple-300 transition hover:bg-purple/20"><Send size={13} /></button>
+                            <button
+                              onClick={() => onEmail(l)}
+                              disabled={l.status === "unqualified"}
+                              title={l.status === "unqualified" ? (l.lost_note || "Cannot email disqualified lead") : "Send direct outreach"}
+                              className={`rounded-lg p-1.5 transition ${l.status === "unqualified" ? "opacity-30 cursor-not-allowed bg-white/5 text-slate-500" : "bg-purple/10 text-purple-300 hover:bg-purple/20"}`}
+                            >
+                              <Send size={13} />
+                            </button>
                             <button onClick={() => onEdit(l)} title="Edit contact" className="rounded-lg bg-white/5 p-1.5 text-slate-300 transition hover:bg-white/10"><Edit3 size={13} /></button>
                             <button onClick={() => onDelete(l.id)} title="Delete prospect" className="rounded-lg bg-rose-500/10 p-1.5 text-rose-400 transition hover:bg-rose-500/20"><Trash2 size={13} /></button>
                           </div>
@@ -347,6 +368,12 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
                                  l.proposal_status === "viewed" ? <><Eye size={10} /> Viewed ({l.proposal_views}x)</> :
                                  <><FileText size={10} /> Ready to Share</>}
                               </span>
+                            </div>
+                          )}
+                          {l.status === "unqualified" && (
+                            <div className="mt-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-[10px] text-rose-200">
+                              <div className="font-bold text-rose-300 flex items-center gap-1">✕ Unqualified</div>
+                              {l.lost_note && <div className="line-clamp-2 text-[9px] text-rose-200/90 mt-0.5">{l.lost_note}</div>}
                             </div>
                           )}
                           <div className="mt-2 flex items-center justify-between gap-2">{scoreChips(l)}<span className="font-mono text-[11px] font-bold text-white">{money(l.estimated_deal_value, l.currency)}</span></div>

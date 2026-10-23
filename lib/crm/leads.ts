@@ -47,8 +47,12 @@ export function prepareLeadUpdate(existing: ExistingLead, patch: LeadPatch, now 
   } else if (stageChanged && existing.stage === "lost") {
     update.lost_reason = null;
     update.lost_note = null;
+  } else if (patch.status === "unqualified" || existing.status === "unqualified") {
+    // Unqualified leads must be allowed to record their disqualification reason in lost_note
+    if (patch.lost_reason !== undefined) update.lost_reason = patch.lost_reason;
+    if (patch.lost_note !== undefined) update.lost_note = blankToNull(patch.lost_note);
   } else if (patch.lost_reason !== undefined || patch.lost_note !== undefined) {
-    return { update, error: "A lost reason only applies to a lost deal.", stageChanged, statusChanged, emailChanged: false };
+    return { update, error: "A lost reason only applies to a lost deal or an unqualified lead.", stageChanged, statusChanged, emailChanged: false };
   }
 
   if (patch.stage !== undefined) update.stage = patch.stage;

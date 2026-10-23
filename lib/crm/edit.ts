@@ -39,7 +39,7 @@ export async function editLead(db: Db, leadId: string, patch: LeadPatch, who: { 
   if (error) return { ok: false, status: 500, error: error.message };
 
   if (prepared.stageChanged) await safely("stage change", () => recordStageChange(db, { leadId, from: String(existing.stage), to: String(updated.stage), actorId: who.actorId, reason: updated.lost_reason }));
-  if (prepared.statusChanged) await safely("status change", () => recordStatusChange(db, { leadId, from: String(existing.status), to: String(updated.status), actorId: who.actorId }));
+  if (prepared.statusChanged) await safely("status change", () => recordStatusChange(db, { leadId, from: String(existing.status), to: String(updated.status), actorId: who.actorId, reason: (updated.lost_note || updated.lost_reason) as string | null }));
   await safely("refresh scores", () => refreshScores(db, [leadId]));
   return { ok: true, lead: updated, before: existing, stageChanged: prepared.stageChanged };
 }

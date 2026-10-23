@@ -167,9 +167,10 @@ export async function recordStageChange(db: Db, a: { leadId: string; from: strin
   if (a.to === "won" || a.to === "lost") await closeOpenTasks(db, a.leadId, "cancelled", `lead ${a.to}`);
 }
 
-export async function recordStatusChange(db: Db, a: { leadId: string; from: string; to: string; actorId?: string | null }): Promise<void> {
+export async function recordStatusChange(db: Db, a: { leadId: string; from: string; to: string; actorId?: string | null; reason?: string | null }): Promise<void> {
   if (a.from === a.to) return;
-  await logActivity(db, { leadId: a.leadId, employeeId: a.actorId ?? null, type: "status_change", summary: `Status: ${a.from} → ${a.to}`, details: { from: a.from, to: a.to } });
+  const summary = `Status: ${a.from} → ${a.to}${a.reason ? ` (${a.reason})` : ""}`;
+  await logActivity(db, { leadId: a.leadId, employeeId: a.actorId ?? null, type: "status_change", outcome: a.to === "unqualified" ? "unqualified" : undefined, summary, details: { from: a.from, to: a.to, reason: a.reason ?? null } });
 }
 
 /** Run a CRM event without ever letting it break the caller (sending an email, saving a booking). */

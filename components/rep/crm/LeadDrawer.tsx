@@ -116,6 +116,7 @@ export function LeadDrawer({
 
   async function saveDeal() {
     if (stage === "lost" && lead.stage !== "lost" && !lostReason) return flash(false, "Choose why this deal was lost.");
+    if (status === "unqualified" && !lostNote.trim()) return flash(false, "Please provide a reason why this lead is unqualified.");
     setBusy(true);
     const patch: Record<string, unknown> = {
       stage, status,
@@ -126,7 +127,13 @@ export function LeadDrawer({
       country: country.trim() ? country.trim().toUpperCase() : null,
       tags: tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
     };
-    if (stage === "lost") { patch.lost_reason = lostReason || null; patch.lost_note = lostNote.trim() || null; }
+    if (stage === "lost") {
+      patch.lost_reason = lostReason || null;
+      patch.lost_note = lostNote.trim() || null;
+    } else if (status === "unqualified") {
+      patch.lost_reason = "not_a_fit";
+      patch.lost_note = lostNote.trim() || null;
+    }
     const r = await crm(`/api/rep/leads/${lead.id}`, "PATCH", patch);
     setBusy(false);
     if (!r.ok) return flash(false, r.error ?? "Could not save");
@@ -238,6 +245,17 @@ export function LeadDrawer({
           <button onClick={onClose} className={btnGhost} aria-label="Close">Close</button>
         </div>
 
+        {(status === "unqualified" || lead.status === "unqualified") && (
+          <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-300">
+              <span>⚠ Disqualified Prospect</span>
+            </div>
+            <p className="text-xs text-rose-200">
+              {lostNote || lead.lost_note || "This lead failed pre-send deliverability verification or qualification criteria and cannot receive outreach emails."}
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase">
           {lead.fit_grade && <span className={`rounded px-2 py-1 ${GRADE_STYLE[lead.fit_grade]}`} title="How well this person and company match who we sell to">Fit {lead.fit_grade} · {lead.fit_score}</span>}
           {lead.engagement_label && <span className={`rounded px-2 py-1 ${HEAT_STYLE[lead.engagement_label]}`} title="What they have actually done: replies, page views, clicks, bookings">{lead.engagement_label} · {lead.engagement_score}</span>}
@@ -247,7 +265,14 @@ export function LeadDrawer({
         {lead.next_move && <p className="text-xs text-slate-300">Suggested: <span className="font-bold text-white">{lead.next_move}</span></p>}
 
         <div className="flex flex-wrap gap-2">
-          <button className={btn} onClick={() => onEmail(lead)}>Write an email</button>
+          <button
+            className={btn}
+            onClick={() => onEmail(lead)}
+            disabled={status === "unqualified" || lead.status === "unqualified"}
+            title={status === "unqualified" || lead.status === "unqualified" ? (lostNote || lead.lost_note || "Cannot email disqualified lead") : "Write an email"}
+          >
+            Write an email
+          </button>
           <button className={btnGhost} onClick={() => onEditContact(lead)}>Edit contact details</button>
           <a className={btnGhost} href={`/api/rep/leads/${lead.id}/export`} title="Download everything held about this person">Export their data</a>
         </div>
@@ -405,6 +430,18 @@ export function LeadDrawer({
                 <div><label className={label}>Why was it lost?</label><select className={field} value={lostReason} onChange={(e) => setLostReason(e.target.value)}><option value="">Choose a reason…</option>{LOST_REASONS.map((r) => <option key={r} value={r}>{LOST_REASON_LABELS[r]}</option>)}</select></div>
                 <div><label className={label}>Note (optional)</label><input className={field} value={lostNote} maxLength={500} onChange={(e) => setLostNote(e.target.value)} /></div>
               </>
+            )}
+            {status === "unqualified" && stage !== "lost" && (
+              <div className="col-span-2">
+                <label className={label}>Disqualification Reason (Required)</label>
+                <input
+                  className={field}
+                  value={lostNote}
+                  maxLength={500}
+                  placeholder="e.g. Inactive MX domain, role-based mailbox (admin@), deliverability risk..."
+                  onChange={(e) => setLostNote(e.target.value)}
+                />
+              </div>
             )}
             <div><label className={label}>Deal value</label><input type="number" min={0} className={field} value={value} onChange={(e) => setValue(e.target.value)} /></div>
             <div><label className={label}>Currency</label><select className={field} value={currency} onChange={(e) => setCurrency(e.target.value)}>{CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>

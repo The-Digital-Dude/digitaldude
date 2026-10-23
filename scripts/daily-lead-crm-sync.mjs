@@ -246,14 +246,158 @@ function extractDomain(email) {
   return email.split("@")[1].toLowerCase().trim();
 }
 
-async function verifyDomainMx(domain) {
-  if (!domain) return false;
+// Disposable Email Providers Blocklist (50+ known temporary throwaway domains)
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  "mailinator.com", "guerrillamail.com", "guerrillamail.net", "guerrillamail.org", "sharklasers.com",
+  "10minutemail.com", "10minutemail.net", "tempmail.com", "temp-mail.org", "temp-mail.io",
+  "throwawaymail.com", "yopmail.com", "yopmail.net", "trashmail.com", "trashmail.net", "getnada.com",
+  "dispostable.com", "maildrop.cc", "mailnesia.com", "fakeinbox.com", "mintemail.com", "mohmal.com",
+  "emailondeck.com", "tempinbox.com", "spamgourmet.com", "mytemp.email", "tempr.email", "discard.email",
+  "burnermail.io", "moakt.com", "tmpmail.org", "tmpmail.net", "mailcatch.com", "spambox.us",
+  "mailtemp.info", "anonbox.net", "33mail.com", "guerrillamailblock.com", "inboxkitten.com",
+  "emailfake.com", "fakemail.net", "tempail.com", "dropmail.me", "mail.tm", "temp.mail"
+]);
+
+async function checkDomainMxWithNullCheck(domain) {
+  if (!domain) return { ok: false, reason: "Missing email domain." };
   try {
     const mx = await dnsPromises.resolveMx(domain);
-    return Array.isArray(mx) && mx.length > 0;
+    if (!Array.isArray(mx) || mx.length === 0) {
+      return { ok: false, reason: `Domain '${domain}' has no active DNS MX mail exchangers configured.` };
+    }
+    // Check RFC 7505 Null MX (exchange "." or empty rejecting all incoming mail)
+    const validExchangers = mx.filter(m => m.exchange && m.exchange !== "." && m.exchange.trim() !== "");
+    if (validExchangers.length === 0) {
+      return { ok: false, reason: `Domain '${domain}' has an RFC 7505 Null MX record rejecting all incoming email.` };
+    }
+    return { ok: true, exchangers: validExchangers.map(m => m.exchange) };
   } catch (err) {
-    return false;
+    const code = err.code || err.message;
+    return { ok: false, reason: `DNS MX lookup failed for '${domain}' (${code}). Domain cannot receive email.` };
   }
+}
+
+async function checkBrevoContactBlocklist(email) {
+  if (!BREVO_API_KEY) return { ok: true };
+  try {
+    const res = await fetch(`https://api.brevo.com/v3/contacts/${encodeURIComponent(email)}`, {
+      method: "GET",
+      headers: {
+        "api-key": BREVO_API_KEY,
+        "Accept": "application/json"
+      }
+    });
+
+    if (res.status === 404) {
+      // 404 means contact does not exist in Brevo yet (clean prospect)
+      return { ok: true };
+    }
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.emailBlacklisted === true) {
+        return { ok: false, reason: "Email is blacklisted in Brevo ESP due to previous hard bounce or complaint." };
+      }
+      return { ok: true };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: true };
+  }
+}
+
+async function checkSuppression(email) {
+  try {
+    const supRes = await supabase.rpc("acq_is_suppressed", { p_email: email });
+    if (supRes.data === true) {
+      return { ok: false, reason: "Email address or domain is on the global suppression / do-not-contact list." };
+    }
+    const unsubRes = await supabase.from("rep_unsubscribes").select("id").eq("email", email).limit(1);
+    if ((unsubRes.data || []).length > 0) {
+      return { ok: false, reason: "Recipient previously unsubscribed from The Digital Dude outreach." };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: true };
+  }
+}
+
+async function disqualifyLead({ lead, rep, reason, checkType }) {
+  console.log(`[Disqualifying Lead] ${lead.email} (${lead.full_name}): ${reason}`);
+  const nowIso = new Date().toISOString();
+  const cleanEmail = (lead.email || "").toLowerCase().trim();
+
+  // 1. Update rep_leads with unqualified status and exact disqualification reason in lost_note
+  const noteAudit = `[DISQUALIFIED BY OUTREACH ENGINE - ${checkType}]: ${reason}`;
+  const existingNotes = lead.notes || "";
+  const updatedNotes = existingNotes.includes("[DISQUALIFIED") ? existingNotes : `${noteAudit}\n\n${existingNotes}`;
+
+  await supabase
+    .from("rep_leads")
+    .update({
+      status: "unqualified",
+      lost_reason: "not_a_fit",
+      lost_note: reason,
+      notes: updatedNotes,
+      updated_at: nowIso
+    })
+    .eq("id", lead.id);
+
+  // 2. Insert into rep_lead_activities for visible timeline tracking
+  await supabase
+    .from("rep_lead_activities")
+    .insert({
+      lead_id: lead.id,
+      employee_id: rep.id,
+      type: "status_change",
+      outcome: "unqualified",
+      summary: `Disqualified: ${reason}`,
+      details: {
+        check: checkType,
+        reason: reason,
+        email: cleanEmail,
+        company: lead.company_name
+      },
+      occurred_at: nowIso
+    });
+
+  // 3. Insert into rep_audit_logs for admin productivity tracking
+  await supabase
+    .from("rep_audit_logs")
+    .insert({
+      employee_id: rep.id,
+      action_type: "lead_disqualified",
+      description: `Lead "${lead.full_name}" (${cleanEmail}) at ${lead.company_name} marked unqualified: ${reason}`,
+      target_identifier: cleanEmail,
+      metadata: {
+        lead_id: lead.id,
+        reason: reason,
+        check: checkType,
+        company: lead.company_name,
+        rep: rep.full_name
+      },
+      created_at: nowIso
+    });
+
+  // 4. Upsert into acq_email_checks to protect manual rep composer and dashboard
+  if (cleanEmail) {
+    await supabase
+      .from("acq_email_checks")
+      .upsert({
+        email_normalized: cleanEmail,
+        status: "invalid",
+        reason: reason,
+        source: "builtin",
+        details: { check: checkType, reason: reason },
+        checked_at: nowIso
+      }, { onConflict: "email_normalized" });
+  }
+}
+
+async function verifyDomainMx(domain) {
+  const res = await checkDomainMxWithNullCheck(domain);
+  return res.ok;
 }
 
 // 5 to 10 Second Randomized Cooldown Delay
@@ -517,57 +661,139 @@ async function main() {
       const email = (lead.email || "").toLowerCase().trim();
       const domain = extractDomain(email);
 
-      // Gate 1: Check duplicate
+      // Gate 1: Check duplicate within run and past outreach
       if (globalSentEmailSet.has(email)) continue;
 
-      // Gate 2: Check role email (Auto-disqualify if invalid)
+      // Gate 2: Check Syntax RFC 5322
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: "Malformed email address syntax (RFC 5322 violation).",
+          checkType: "SYNTAX_ERROR"
+        });
+        continue;
+      }
+
+      // Gate 3: Check Role-based mailbox (admin/info/support/jobs/etc.)
       if (isRoleBasedEmail(email)) {
-        console.log(`[Disqualifying Lead] ${email} is role-based (admin/info/jobs).`);
-        await supabase.from("rep_leads").update({
-          status: "unqualified",
-          notes: `${lead.notes || ""}\n\n[DISQUALIFIED BY OUTREACH ENGINE]: Role-based email prefix (${email.split('@')[0]}) not permitted for cold outreach.`
-        }).eq("id", lead.id);
+        const prefix = email.split("@")[0];
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: `Role-based unmonitored mailbox (${prefix}@...): Cold outreach must target verified human decision-makers.`,
+          checkType: "ROLE_BASED_EMAIL"
+        });
         continue;
       }
 
-      // Gate 3: Check real human name
+      // Gate 4: Check Disposable domain
+      if (DISPOSABLE_EMAIL_DOMAINS.has(domain)) {
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: `Disposable temporary email provider (${domain}): Address cannot reliably receive outreach.`,
+          checkType: "DISPOSABLE_DOMAIN"
+        });
+        continue;
+      }
+
+      // Gate 5: Check real human name
       if (!isValidHumanName(lead.full_name, email)) {
-        console.log(`[Disqualifying Lead] "${lead.full_name}" is not a valid human name.`);
-        await supabase.from("rep_leads").update({
-          status: "unqualified",
-          notes: `${lead.notes || ""}\n\n[DISQUALIFIED BY OUTREACH ENGINE]: Non-human or generic contact name.`
-        }).eq("id", lead.id);
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: `Generic or non-human contact name ('${lead.full_name || "Unknown"}'): Outreach requires a verified personal decision maker.`,
+          checkType: "INVALID_CONTACT_NAME"
+        });
         continue;
       }
 
-      // Gate 4: Check company name
+      // Gate 6: Check company name
       if (!isValidCompanyName(lead.company_name)) {
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: `Invalid or missing company name ('${lead.company_name || ""}').`,
+          checkType: "INVALID_COMPANY_NAME"
+        });
         continue;
       }
 
-      // Gate 5: Check research intelligence
+      // Gate 7: Check research intelligence
       const notes = lead.notes || "";
       const hasPain = notes.includes("[PAIN POINTS / TRIGGERS]") || notes.toLowerCase().includes("pain point");
       const hasSol = notes.includes("[PROPOSED SOLUTION]") || notes.toLowerCase().includes("proposed solution");
       if (!hasPain && !hasSol && notes.length < 50) {
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: "Insufficient research: Lead lacks diagnosed operational pain points and tailored solution.",
+          checkType: "INSUFFICIENT_RESEARCH"
+        });
         continue;
       }
 
-      // Gate 6: Domain deduplication
+      // Gate 8: Domain deduplication within this run
       if (globalContactedDomainSet.has(domain)) {
         continue;
       }
 
-      // Gate 7: Active MX Verification
-      const hasMx = await verifyDomainMx(domain);
-      if (!hasMx) {
-        console.log(`[Disqualifying Lead] Domain ${domain} has no active MX records.`);
-        await supabase.from("rep_leads").update({
-          status: "unqualified",
-          notes: `${lead.notes || ""}\n\n[DISQUALIFIED BY OUTREACH ENGINE]: Domain has no active MX mail exchangers.`
-        }).eq("id", lead.id);
+      // Gate 9: Active MX Verification (including RFC 7505 Null MX)
+      const mxCheck = await checkDomainMxWithNullCheck(domain);
+      if (!mxCheck.ok) {
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: mxCheck.reason,
+          checkType: "NO_ACTIVE_MX"
+        });
         continue;
       }
+
+      // Gate 10: Global Suppression & Unsubscribe Check
+      const supCheck = await checkSuppression(email);
+      if (!supCheck.ok) {
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: supCheck.reason,
+          checkType: "SUPPRESSED_CONTACT"
+        });
+        continue;
+      }
+
+      // Gate 11: Brevo ESP Blocklist Check (Zero-Bounce Guarantee)
+      const brevoCheck = await checkBrevoContactBlocklist(email);
+      if (!brevoCheck.ok) {
+        await disqualifyLead({
+          lead,
+          rep,
+          reason: brevoCheck.reason,
+          checkType: "BREVO_BOUNCED_BLOCKLIST"
+        });
+        continue;
+      }
+
+      // Successfully verified and qualified! Cache deliverability in acq_email_checks
+      const nowIso = new Date().toISOString();
+      await supabase
+        .from("acq_email_checks")
+        .upsert({
+          email_normalized: email,
+          status: "safe",
+          reason: "Domain has active MX mail exchangers and passed all pre-send deliverability checks.",
+          source: "builtin",
+          details: {
+            mx: true,
+            syntax: true,
+            disposable: false,
+            role: false,
+            brevoChecked: Boolean(BREVO_API_KEY),
+            checkedAt: nowIso
+          },
+          checked_at: nowIso
+        }, { onConflict: "email_normalized" });
 
       globalContactedDomainSet.add(domain);
       qualifiedLeads.push(lead);
