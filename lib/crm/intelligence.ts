@@ -219,7 +219,7 @@ export function generateExecutivePitch(params: {
     }
   }
 
-  body += `Would you be open to a brief 10-minute discovery call next Tuesday or Thursday to explore if this could deliver high ROI for ${company}?\n\nBest regards,\n${rep}\nThe Digital Dude`;
+  body += `Would you be open to a 30-minute discovery call next Tuesday or Thursday to explore if this could deliver high ROI for ${company}?`;
 
   return { subject, body };
 }

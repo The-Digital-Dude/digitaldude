@@ -99,7 +99,7 @@ const WORKFLOW_NICHES = [
       { name: "Amberley Homes", domain: "amberleyhomes.co.uk", city: "Kent & South East", contact: "David Miller", first: "David", last: "Miller", title: "Managing Director", email: "david.miller@amberleyhomes.co.uk" }
     ],
     subject: "Streamlining {company}'s dispatch & field workflow",
-    body: (c) => `Hi ${c.first},\n\nI came across ${c.name}'s operations in ${c.city} and wanted to reach out directly.\n\nAt The Digital Dude, we engineer bespoke operations systems and field dispatch CRMs for growing trade and contracting businesses.\n\nMost founders we speak with were losing 10-15 hours a week coordinating technicians across WhatsApp chats and disjointed spreadsheets—or paying thousands every month in rigid per-user software licensing.\n\nWe build custom operations platforms mapped 100% to your exact workflow: technicians update job status and upload proof photos on mobile, while client invoices trigger automatically upon job sign-off. Zero per-seat license fees forever.\n\nWould you be open to a brief 10-minute discovery call next week to see if custom workflow automation would deliver high ROI for ${c.name}?`
+    body: (c) => `Hi ${c.first},\n\nI came across ${c.name}'s operations in ${c.city} and wanted to reach out directly.\n\nAt The Digital Dude, we engineer bespoke operations systems and field dispatch CRMs for growing trade and contracting businesses.\n\nMost founders we speak with were losing 10-15 hours a week coordinating technicians across WhatsApp chats and disjointed spreadsheets—or paying thousands every month in rigid per-user software licensing.\n\nWe build custom operations platforms mapped 100% to your exact workflow: technicians update job status and upload proof photos on mobile, while client invoices trigger automatically upon job sign-off. Zero per-seat license fees forever.\n\nWould you be open to a 30-minute discovery call next week to see if custom workflow automation would deliver high ROI for ${c.name}?`
   },
   {
     sector: "Property Management & Commercial Fit-Out",
@@ -114,7 +114,7 @@ const WORKFLOW_NICHES = [
       { name: "Chiltern Solar", domain: "chilternsolar.co.uk", city: "Bedfordshire & South East", contact: "Steve Cole", first: "Steve", last: "Cole", title: "Managing Director", email: "steve.cole@chilternsolar.co.uk" }
     ],
     subject: "Custom workflow automation for {company}",
-    body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s operations across ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we build custom workflow systems and management portals for high-growth property, fit-out, and commercial installation firms.\n\nOff-the-shelf software forces your operations into rigid boxes while charging escalating monthly fees as your team expands. We build unified platforms that automate maintenance scheduling, client quote approvals, and contractor handoffs from one central dashboard that you own outright.\n\nWould you be open to a brief 10-minute conversation next Tuesday or Thursday to explore how automating these handoffs could streamline your team's day?`
+    body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s operations across ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we build custom workflow systems and management portals for high-growth property, fit-out, and commercial installation firms.\n\nOff-the-shelf software forces your operations into rigid boxes while charging escalating monthly fees as your team expands. We build unified platforms that automate maintenance scheduling, client quote approvals, and contractor handoffs from one central dashboard that you own outright.\n\nWould you be open to a 30-minute discovery call next Tuesday or Thursday to explore how automating these handoffs could streamline your team's day?`
   },
   {
     sector: "B2B Professional Services & Advisory",
@@ -129,7 +129,7 @@ const WORKFLOW_NICHES = [
       { name: "Stephens Scown LLP", domain: "stephens-scown.co.uk", city: "Exeter & South West", contact: "Richard Baker", first: "Richard", last: "Baker", title: "Managing Partner", email: "richard.baker@stephens-scown.co.uk" }
     ],
     subject: "Eliminating escalating CRM licensing fees for {company}",
-    body: (c) => `Hi ${c.first},\n\nI came across ${c.name}'s commercial practice in ${c.city} and wanted to share a quick perspective.\n\nAt The Digital Dude, we build bespoke CRMs and client onboarding platforms for high-growth professional service firms looking to escape £150–£300/user/month Salesforce or HubSpot licensing taxes.\n\nWe engineer custom systems designed 100% around your partner workflow, client document intake, and matter tracking—delivering an infrastructure your firm owns outright with zero per-seat fees as your headcount grows.\n\nWould you be open to a brief 10-minute discovery call next week to compare the workflow fit and 3-year ROI against off-the-shelf software?`
+    body: (c) => `Hi ${c.first},\n\nI came across ${c.name}'s commercial practice in ${c.city} and wanted to share a quick perspective.\n\nAt The Digital Dude, we build bespoke CRMs and client onboarding platforms for high-growth professional service firms looking to escape £150–£300/user/month Salesforce or HubSpot licensing taxes.\n\nWe engineer custom systems designed 100% around your partner workflow, client document intake, and matter tracking—delivering an infrastructure your firm owns outright with zero per-seat fees as your headcount grows.\n\nWould you be open to a 30-minute discovery call next week to compare the workflow fit and 3-year ROI against off-the-shelf software?`
   },
   {
     sector: "Specialized Healthcare & Multi-Location Clinics",
@@ -144,7 +144,7 @@ const WORKFLOW_NICHES = [
       { name: "Cheadle Dental Practice", domain: "cheadledental.co.uk", city: "Manchester", contact: "Dr. Imran Rangzeb", first: "Imran", last: "Rangzeb", title: "Practice Principal", email: "imran@cheadledental.co.uk" }
     ],
     subject: "Modernizing clinical workflows & patient intake for {company}",
-    body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s clinical practice in ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we engineer bespoke operations platforms and patient intake systems for multi-chair and specialized clinics.\n\nInstead of juggling separate booking tools, spreadsheet lists, and manual patient follow-ups, we unify the entire patient journey—from online triage to automated SMS reminders and multi-practitioner scheduling—into one private system that you own.\n\nWould you be open to a 10-minute call next week to see how this eliminates operational admin for your clinic team?`
+    body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s clinical practice in ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we engineer bespoke operations platforms and patient intake systems for multi-chair and specialized clinics.\n\nInstead of juggling separate booking tools, spreadsheet lists, and manual patient follow-ups, we unify the entire patient journey—from online triage to automated SMS reminders and multi-practitioner scheduling—into one private system that you own.\n\nWould you be open to a 30-minute discovery call next week to see how this eliminates operational admin for your clinic team?`
   },
   {
     sector: "Logistics, Haulage & Fleet Operations",
@@ -159,7 +159,7 @@ const WORKFLOW_NICHES = [
       { name: "Bowker Transport", domain: "bowkertransport.co.uk", city: "Preston & North West", contact: "Bill Bowker", first: "Bill", last: "Bowker", title: "Managing Director", email: "bill.bowker@bowkertransport.co.uk" }
     ],
     subject: "Streamlining {company}'s dispatch & POD workflow",
-    body: (c) => `Hi ${c.first},\n\nI came across ${c.name}'s transport operations in ${c.city} and wanted to reach out directly.\n\nAt The Digital Dude, we build bespoke logistics operations platforms and driver dispatch workflows for growing UK transport and freight operators.\n\nMost operators we speak with were losing 10-15 hours a week chasing paper delivery notes, manual POD sign-offs, and driver manifests across WhatsApp and disconnected spreadsheets.\n\nWe build custom operations platforms mapped 100% to your depot workflow: drivers capture digital POD signatures and timestamps on mobile, while client invoices trigger automatically upon job delivery. Zero per-seat license fees forever.\n\nWould you be open to a brief 10-minute discovery call next week to see if custom workflow automation would deliver high ROI for ${c.name}?`
+    body: (c) => `Hi ${c.first},\n\nI came across ${c.name}'s transport operations in ${c.city} and wanted to reach out directly.\n\nAt The Digital Dude, we build bespoke logistics operations platforms and driver dispatch workflows for growing UK transport and freight operators.\n\nMost operators we speak with were losing 10-15 hours a week chasing paper delivery notes, manual POD sign-offs, and driver manifests across WhatsApp and disconnected spreadsheets.\n\nWe build custom operations platforms mapped 100% to your depot workflow: drivers capture digital POD signatures and timestamps on mobile, while client invoices trigger automatically upon job delivery. Zero per-seat license fees forever.\n\nWould you be open to a 30-minute discovery call next week to see if custom workflow automation would deliver high ROI for ${c.name}?`
   },
   {
     sector: "Training, Education & Apprenticeship Providers",
@@ -174,7 +174,7 @@ const WORKFLOW_NICHES = [
       { name: "Baltic Apprenticeships", domain: "balticapprenticeships.com", city: "Darlington & North East", contact: "Antony Hobbs", first: "Antony", last: "Hobbs", title: "Managing Director", email: "antony.hobbs@balticapprenticeships.com" }
     ],
     subject: "Custom learner tracking & compliance automation for {company}",
-    body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s apprenticeship programs in ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we build bespoke operations platforms and learner tracking systems for leading UK training and apprenticeship providers.\n\nInstead of wrestling with clunky LMS portals, spreadsheets, and manual compliance audits for ESFA/Ofsted, we unify the entire candidate journey—from initial employer onboarding to milestone tracking and audit-ready compliance reporting—into one platform that you own outright.\n\nWould you be open to a brief 10-minute conversation next week to explore how custom workflow automation could simplify your operational reporting for ${c.name}?`
+    body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s apprenticeship programs in ${c.city} and wanted to reach out.\n\nAt The Digital Dude, we build bespoke operations platforms and learner tracking systems for leading UK training and apprenticeship providers.\n\nInstead of wrestling with clunky LMS portals, spreadsheets, and manual compliance audits for ESFA/Ofsted, we unify the entire candidate journey—from initial employer onboarding to milestone tracking and audit-ready compliance reporting—into one platform that you own outright.\n\nWould you be open to a 30-minute discovery call next week to explore how custom workflow automation could simplify your operational reporting for ${c.name}?`
   }
 ];
 
@@ -289,7 +289,7 @@ function renderMinimalPersonalEmail({ bodyText, bookingUrl, unsubscribeUrl }) {
 
   const footerHtml = `
     <div style="margin-top:28px;font-size:11px;color:#8a8aa6;line-height:1.5;">
-      <p style="margin:0;">The Digital Dude &bull; 71-75 Shelton Street, Covent Garden, London, WC2H 9JQ</p>
+      <p style="margin:0;">The Digital Dude &bull; Dhanmondi, Dhaka, Bangladesh</p>
       <p style="margin:6px 0 0 0;"><a href="${unsubscribeUrl}" style="color:#8a8aa6;text-decoration:underline;">Unsubscribe from future emails</a></p>
     </div>
   `;
@@ -326,7 +326,7 @@ async function sendOutreachEmail({ toEmail, toName, subject, bodyText }) {
     to: [{ email: toEmail, name: toName }],
     replyTo: { name: "The Digital Dude", email: REPLY_TO_EMAIL },
     subject: subject,
-    textContent: `${cleanBody}\n\nBook a 30-minute discovery call: ${BOOKING_URL}\n\nFarhad Hossain\nFounder & CEO | The Digital Dude\nhttps://www.digitaldude.co.uk\n\nUnsubscribe: ${unsubscribeUrl}`,
+    textContent: `${cleanBody}\n\nBook a 30-minute discovery call: ${BOOKING_URL}\n\nFarhad Hossain\nFounder & CEO | The Digital Dude\nDhanmondi, Dhaka, Bangladesh\nhttps://www.digitaldude.co.uk\n\nUnsubscribe: ${unsubscribeUrl}`,
     htmlContent: htmlContent
   };
 
