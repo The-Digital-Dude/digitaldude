@@ -441,7 +441,7 @@ async function main() {
   // Fetch all active sales representatives
   const { data: allEmployees, error: empErr } = await supabase
     .from("employees")
-    .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, photo_url")
+    .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, photo_url, payout_details")
     .order("created_at", { ascending: true });
 
   if (empErr || !allEmployees || allEmployees.length === 0) {
@@ -472,6 +472,20 @@ async function main() {
     console.log(`Processing Sales Rep: ${rep.full_name} (${rep.role_title})`);
     console.log(`Outreach Mailbox:     ${rep.assigned_outreach_email}`);
     console.log(`Booking Reference:    https://www.digitaldude.co.uk/contact?ref=${rep.referral_code}`);
+
+    // Check if Admin has granted Automated Outreach Permission for this rep
+    const isAutoOutreachEnabled = Boolean(
+      rep.payout_details?.auto_outreach_enabled ?? 
+      (rep.email === "neiloyfarhad@gmail.com" || rep.role_title === "Founder & CEO")
+    );
+
+    if (!isAutoOutreachEnabled) {
+      console.log(`[Auto-Outreach: PERMISSION OFF] ${rep.full_name} does not have automated sending permission enabled by Admin.`);
+      console.log(`-> To enable: Visit Admin Portal -> Sales Reps (/admin/reps) and toggle "Auto-Sending Workflow" ON.`);
+      continue;
+    }
+
+    console.log(`[Auto-Outreach: PERMISSION ACTIVE] Admin authorization verified.`);
 
     // Query candidate leads for this rep
     let leadQuery = supabase

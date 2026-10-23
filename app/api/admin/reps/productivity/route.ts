@@ -187,6 +187,7 @@ export async function GET(request: Request) {
         assigned_outreach_email: rep.assigned_outreach_email,
         outreach_display_name: rep.outreach_display_name,
         payout_details: rep.payout_details || null,
+        auto_outreach_enabled: rep.payout_details?.auto_outreach_enabled ?? (rep.email === 'neiloyfarhad@gmail.com' || rep.role_title === 'Founder & CEO'),
         totalEmailsSent,
         emailsSentToday,
         totalLeads,

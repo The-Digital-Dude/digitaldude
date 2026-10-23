@@ -26,6 +26,7 @@ import {
   X,
   Building,
   CreditCard,
+  Zap,
 } from "lucide-react";
 import { Pagination } from "@/components/admin/Pagination";
 
@@ -43,7 +44,9 @@ interface RepScorecard {
     branch_name?: string;
     routing_number?: string;
     notes?: string;
+    auto_outreach_enabled?: boolean;
   } | null;
+  auto_outreach_enabled?: boolean;
   totalEmailsSent: number;
   emailsSentToday: number;
   totalLeads: number;
@@ -161,6 +164,36 @@ export default function AdminRepsProductivityPage() {
       }
     } catch {} finally {
       setLoading(false);
+    }
+  }
+
+  const [togglingRepId, setTogglingRepId] = useState<string | null>(null);
+
+  async function handleToggleAutoOutreach(repId: string, nextState: boolean) {
+    setTogglingRepId(repId);
+    try {
+      const res = await fetch(`/api/admin/reps/${repId}/auto-outreach`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: nextState }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setScorecards((prev) =>
+          prev.map((r) =>
+            r.id === repId ? { ...r, auto_outreach_enabled: nextState } : r
+          )
+        );
+        if (selectedRep && selectedRep.id === repId) {
+          setSelectedRep((prev) => (prev ? { ...prev, auto_outreach_enabled: nextState } : null));
+        }
+      } else {
+        alert(`Failed to update auto outreach permission: ${data.error || "Unknown error"}`);
+      }
+    } catch (err: any) {
+      alert(`Error updating auto outreach permission: ${err.message}`);
+    } finally {
+      setTogglingRepId(null);
     }
   }
 
@@ -348,9 +381,33 @@ export default function AdminRepsProductivityPage() {
                       </span>
                     </p>
                   </div>
+                  <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-slate-500 font-medium text-[11px]">
+                      <Zap size={13} className={rep.auto_outreach_enabled ? "text-purple fill-purple" : "text-slate-400"} />
+                      Auto-Sending Workflow:
+                    </span>
+                    <button
+                      disabled={togglingRepId === rep.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleAutoOutreach(rep.id, !rep.auto_outreach_enabled);
+                      }}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition shadow-xs ${
+                        rep.auto_outreach_enabled
+                          ? "bg-purple text-white hover:bg-purple-700"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {togglingRepId === rep.id
+                        ? "..."
+                        : rep.auto_outreach_enabled
+                        ? "Permission Active"
+                        : "Permission Off"}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="mt-5 border-t border-slate-100 pt-3">
+                <div className="mt-3.5 border-t border-slate-100 pt-3">
                   <button
                     onClick={() => setSelectedRep(rep)}
                     className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-lavender py-2 text-xs font-bold text-purple transition hover:bg-purple hover:text-white"
@@ -581,6 +638,36 @@ export default function AdminRepsProductivityPage() {
                       <span className="text-[10px] font-bold uppercase text-emerald-800">Closed Deals</span>
                       <p className="mt-1 text-lg font-black text-emerald-700">{selectedRep.dealsWon}</p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Automated Cold Outreach Permission Control */}
+                <div className="rounded-xl border border-purple/20 bg-purple/5 p-4 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-navy flex items-center gap-1.5">
+                        <Zap size={14} className={selectedRep.auto_outreach_enabled ? "text-purple fill-purple" : "text-slate-400"} />
+                        Automated Outreach Workflow Permission
+                      </span>
+                      <p className="text-[11px] text-slate-500">
+                        When active, this rep's verified CRM leads will be dispatched automatically during local morning peak windows.
+                      </p>
+                    </div>
+                    <button
+                      disabled={togglingRepId === selectedRep.id}
+                      onClick={() => handleToggleAutoOutreach(selectedRep.id, !selectedRep.auto_outreach_enabled)}
+                      className={`shrink-0 ml-4 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                        selectedRep.auto_outreach_enabled
+                          ? "bg-purple text-white hover:bg-purple-700"
+                          : "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {togglingRepId === selectedRep.id
+                        ? "Updating..."
+                        : selectedRep.auto_outreach_enabled
+                        ? "Permission Granted (Revoke)"
+                        : "Permission Off (Grant)"}
+                    </button>
                   </div>
                 </div>
 
