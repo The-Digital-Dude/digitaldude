@@ -24,10 +24,16 @@
  *    - Schedules auto follow-up task in `rep_lead_tasks` due in 4 working days
  */
 
-import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+
+// Polyfill or provide a stub WebSocket if running on Node < 22 where native WebSocket is absent
+if (typeof globalThis.WebSocket === "undefined") {
+  globalThis.WebSocket = class DummyWebSocket {};
+}
+
+const { createClient } = await import("@supabase/supabase-js");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,7 +67,12 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
 
 const FARHAD_EMPLOYEE_ID = "c08ff113-c16a-42be-9bc1-147a774135ba";
 const SENDER_EMAIL = "farhad@digitaldude.co.uk";
