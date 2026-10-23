@@ -2,10 +2,26 @@ name: Daily Lead Generation & Rep CRM Outreach Pipeline
 
 on:
   schedule:
-    # Runs every day at 8:00 PM UTC (20:00)
-    - cron: '0 20 * * *'
+    # 09:00 UTC (10:00 AM London) — UK & European Peak Morning Window (Mon-Fri)
+    - cron: '0 9 * * 1-5'
+    # 14:00 UTC (10:00 AM New York / Toronto) — US & Canada Peak Morning Window (Mon-Fri)
+    - cron: '0 14 * * 1-5'
+    # 23:00 UTC (10:00 AM Sydney) — Australia Peak Morning Window (Sun-Thu UTC = Mon-Fri AEST)
+    - cron: '0 23 * * 0-4'
   workflow_dispatch:
     inputs:
+      country:
+        description: 'Target Country Filter (AUTO, GB, US, CA, AU, or ALL)'
+        required: false
+        type: choice
+        default: 'AUTO'
+        options:
+          - 'AUTO'
+          - 'GB'
+          - 'US'
+          - 'CA'
+          - 'AU'
+          - 'ALL'
       auto_send:
         description: 'Auto-send cold outreach emails via Brevo immediately?'
         required: true
@@ -29,11 +45,12 @@ jobs:
       - name: Install Dependencies
         run: npm ci || npm install --no-audit
 
-      - name: Run Lead Discovery, MX Verification, CRM Sync & Outreach
+      - name: Run Multi-Rep Country-Optimized Outreach Engine
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          TARGET_COUNTRY: ${{ github.event.inputs.country || 'AUTO' }}
           AUTO_SEND_EMAILS: ${{ github.event_name == 'schedule' || inputs.auto_send }}
         run: node scripts/daily-lead-crm-sync.mjs
 

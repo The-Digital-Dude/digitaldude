@@ -1,34 +1,28 @@
 /**
- * Daily Lead Generation & Rep CRM Outreach Engine for The Digital Dude (digitaldude.co.uk)
+ * Multi-Rep, Multi-Country Outreach Engine for The Digital Dude (digitaldude.co.uk)
  * 
- * Configured specifically for: Farhad Hossain | Founder & CEO, The Digital Dude (farhad@digitaldude.co.uk)
- * 
- * 100% HANDS-FREE AUTONOMOUS CLOUD DISCOVERY (Option B):
- * 1. DYNAMIC AUTONOMOUS DISCOVERY & REPLENISHMENT:
- *    - Automatically monitors CRM buffer of uncontacted, research-backed UK leads.
- *    - Discovers fresh active UK companies via UK Companies House register and high-value B2B industry pools.
- *    - Resolves verified company domains and checks live DNS MX records (Google, M365, Mimecast) before queuing.
- *    - Diagnoses operational bottlenecks across 8 commercial sectors and generates bespoke software solutions.
- *    - Automatically replenishes Farhad's CRM queue so the pipeline NEVER runs out of leads.
- * 2. STRICT 6-STAGE QUALITY & DELIVERABILITY GATES:
- *    - Rejects ALL role-based emails (admin@, info@, jobs@, contact@, support@, business@, etc.)
- *    - Rejects generic/non-human names (admin, jobs, info, single-word names, corporate nominees)
- *    - Rejects raw SEO titles or non-authentic company names
- *    - Requires verified Research Intelligence with structured Pain Points & Proposed Solution
- *    - ZERO generic fallback emails: if a lead lacks a company-specific draft, it is never sent.
- *    - Strict Domain Deduplication: Maximum 1 email per company domain.
- * 3. OUTREACH DISPATCH:
- *    - Sends personalized cold email via Brevo using Farhad's Minimal Personal design:
- *      - Sender: Farhad Hossain | Founder & CEO, The Digital Dude <farhad@digitaldude.co.uk>
- *      - Reply-To: info@digitaldude.co.uk
- *      - Operating Address: The Digital Dude • Dhanmondi, Dhaka, Bangladesh
- *      - Call CTA: Strictly 30-minute discovery call (single purple button, no duplicate text URLs)
- * 4. LOGGING & TASKS:
- *    - Updates lead stage to 'contacted', status to 'attempted'
- *    - Logs send in `rep_outreach_logs`
- *    - Logs send in `rep_audit_logs` (instantly surfaces in Admin Productivity dashboard)
- *    - Logs activity in `rep_lead_activities`
- *    - Schedules auto follow-up task in `rep_lead_tasks` due in 4 working days
+ * Features:
+ * 1. MULTI-REP ARCHITECTURE:
+ *    - Automatically discovers active sales reps from the Supabase `employees` table.
+ *    - Sends from each rep's assigned company alias (e.g. sakib@digitaldude.co.uk, radiya@digitaldude.co.uk, farhad@digitaldude.co.uk).
+ *    - Includes rep's personal booking link (/contact?ref=<rep_referral_code>) and photo/monogram signature.
+ *    - Reply-To is centralized to info@digitaldude.co.uk.
+ * 2. COUNTRY & TIMEZONE OPTIMIZATION:
+ *    - Automatically dispatches during the optimal 9:00 AM - 10:30 AM local business window for each target market:
+ *      • UK (GB) & Europe: 09:00 UTC
+ *      • USA (US) & Canada (CA): 14:00 UTC (10:00 AM EST)
+ *      • Australia (AU): 23:00 UTC (10:00 AM AEST)
+ *    - Supports manual override via --country=<CODE> or TARGET_COUNTRY env var.
+ * 3. DELIVERABILITY & COOLDOWN:
+ *    - Randomized 5–10 second cooldown delay between each send to prevent burst spam flagging.
+ *    - Capped at maximum 20 emails per rep per business day.
+ * 4. STRICT DELIVERABILITY GATES & AUTO-DISQUALIFICATION:
+ *    - Rejects & marks 'unqualified' any role-based emails (admin@, info@, jobs@, etc.) or inactive MX domains.
+ *    - Generates bespoke, tailored 30-minute discovery pitches from rep-researched pain points & solutions.
+ * 5. POST-SEND CRM SYNCHRONIZATION:
+ *    - Updates `rep_leads` stage to 'contacted', status to 'attempted'.
+ *    - Logs in `rep_outreach_logs` and `rep_audit_logs` (powers the Admin Productivity dashboard).
+ *    - Schedules auto follow-up task in `rep_lead_tasks` due in 4 working days for that specific rep.
  */
 
 import fs from "fs";
@@ -78,6 +72,16 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BREVO_API_KEY = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY;
 const AUTO_SEND = process.env.AUTO_SEND_EMAILS === "true" || process.argv.includes("--send");
 
+// Parse country filter from CLI flags (--country=GB) or environment variable
+function getTargetCountryFilter() {
+  const arg = process.argv.find(a => a.startsWith("--country="));
+  if (arg) return arg.split("=")[1].trim().toUpperCase();
+  if (process.env.TARGET_COUNTRY) return process.env.TARGET_COUNTRY.trim().toUpperCase();
+  return "AUTO";
+}
+
+const TARGET_COUNTRY_ARG = getTargetCountryFilter();
+
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment.");
   process.exit(1);
@@ -90,19 +94,41 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   },
 });
 
-const FARHAD_EMPLOYEE_ID = "c08ff113-c16a-42be-9bc1-147a774135ba";
-const SENDER_EMAIL = "farhad@digitaldude.co.uk";
-const SENDER_NAME = "Farhad Hossain | Founder & CEO, The Digital Dude";
-const REPLY_TO_EMAIL = "info@digitaldude.co.uk";
-const PHOTO_URL = "https://zwiueukitnvbcxylrewv.supabase.co/storage/v1/object/public/rep-photos/c08ff113-c16a-42be-9bc1-147a774135ba/4b788b6d-1ae0-4262-9ebd-fa2c037988d1.jpg";
-const BOOKING_URL = "https://www.digitaldude.co.uk/contact?ref=farhad-hossain";
+const DEFAULT_REPLY_TO = "info@digitaldude.co.uk";
+const HEADQUARTERS_FOOTER = "The Digital Dude • Dhanmondi, Dhaka, Bangladesh";
+const MAX_EMAILS_PER_REP_PER_RUN = 20;
+
+// Resolve target countries based on UTC hour or manual input
+function resolveTargetCountries(mode) {
+  if (mode && mode !== "AUTO") {
+    if (mode === "ALL") return null; // No country restriction
+    return mode.split(",").map(c => c.trim().toUpperCase());
+  }
+
+  // AUTO Mode: Check current UTC hour to align with local 9:00 AM - 10:30 AM
+  const utcHour = new Date().getUTCHours();
+  console.log(`[Auto Timezone Dispatcher] Current UTC Hour: ${utcHour}:00`);
+
+  if (utcHour >= 8 && utcHour <= 11) {
+    console.log("-> Matched morning window for UK & Europe (GB, IE, DE, FR)");
+    return ["GB", "UK", "IE", "DE", "FR"];
+  } else if (utcHour >= 13 && utcHour <= 16) {
+    console.log("-> Matched morning window for USA & Canada (US, CA)");
+    return ["US", "CA", "USA"];
+  } else if (utcHour >= 22 || utcHour <= 2) {
+    console.log("-> Matched morning window for Australia & New Zealand (AU, NZ)");
+    return ["AU", "NZ"];
+  }
+
+  console.log("-> Outside peak automated morning windows. Running standard queue for all regions.");
+  return null;
+}
 
 // Target Commercial Sectors with Diagnosed Bottlenecks & Tailored System Solutions
 const SECTOR_INTELLIGENCE = {
   "field-services": {
     sector: "Field Services & Contracting Operations",
     tag: "field-services",
-    searchQueries: ["maintenance contractors ltd", "electrical contractors ltd", "builders ltd", "glazing services ltd"],
     painPoint: "Technician dispatch managed over WhatsApp threads and spreadsheets; delayed billing and lost job status updates.",
     solution: "Bespoke Operations & Dispatch CRM: Mobile technician web app with GPS check-in, real-time job tracking, and automated invoicing upon digital sign-off.",
     subject: "Streamlining {company}'s dispatch & field workflow",
@@ -111,7 +137,6 @@ const SECTOR_INTELLIGENCE = {
   "property-management": {
     sector: "Property Management & Commercial Fit-Out",
     tag: "property-management",
-    searchQueries: ["property management ltd", "commercial interiors ltd", "facilities management ltd"],
     painPoint: "Disconnected maintenance handoffs across landlords, tenants, and contractors; safety compliance tracked manually.",
     solution: "Custom Property Operations CRM: Unified maintenance ticketing, automated contractor dispatch, and self-serve landlord/tenant portals.",
     subject: "Custom workflow automation for {company}",
@@ -120,7 +145,6 @@ const SECTOR_INTELLIGENCE = {
   "logistics-fleet": {
     sector: "Logistics, Haulage & Fleet Operations",
     tag: "logistics-fleet",
-    searchQueries: ["transport logistics ltd", "freight haulage ltd", "courier logistics ltd"],
     painPoint: "Manual driver manifests, delayed proof of delivery (POD) paperwork, and spreadsheets between dispatchers and depot managers.",
     solution: "Bespoke Fleet & Depot Operations Platform: Driver mobile app for digital POD signatures, real-time load tracking, and instant billing integration upon drop-off.",
     subject: "Streamlining {company}'s dispatch & POD workflow",
@@ -129,7 +153,6 @@ const SECTOR_INTELLIGENCE = {
   "healthcare-ops": {
     sector: "Specialized Healthcare & Multi-Location Clinics",
     tag: "healthcare-ops",
-    searchQueries: ["dental practice ltd", "private clinic ltd", "healthcare group ltd"],
     painPoint: "Juggling disjointed booking tools, manual patient intake forms, and multi-chair practitioner scheduling across clinic locations.",
     solution: "Custom Clinical Operations System: Unified multi-chair scheduling, automated patient intake workflows, and zero per-doctor seat fees.",
     subject: "Modernizing clinical workflows & patient intake for {company}",
@@ -138,7 +161,6 @@ const SECTOR_INTELLIGENCE = {
   "b2b-professional": {
     sector: "B2B Professional Services & Advisory",
     tag: "b2b-professional",
-    searchQueries: ["solicitors llp", "chartered accountants ltd", "consulting partners ltd"],
     painPoint: "Paying £1,000–£3,000/mo in escalating Salesforce/HubSpot seat licensing; client onboarding documents collected across chaotic email threads.",
     solution: "Bespoke Client Onboarding & Pipeline CRM: 100% data ownership, custom matter tracking, and zero per-user software licensing.",
     subject: "Eliminating escalating CRM licensing fees for {company}",
@@ -147,7 +169,6 @@ const SECTOR_INTELLIGENCE = {
   "training-providers": {
     sector: "Training, Education & Apprenticeship Providers",
     tag: "training-providers",
-    searchQueries: ["training services ltd", "apprenticeships ltd", "skills academy ltd"],
     painPoint: "Managing student progress, compliance audits, and employer reporting across disjointed spreadsheets and multiple disparate portals.",
     solution: "Custom Learner Operations & Compliance Platform: Centralized candidate progression tracking, automated audit-ready compliance reporting, and employer self-serve portals.",
     subject: "Custom learner tracking & compliance automation for {company}",
@@ -156,7 +177,6 @@ const SECTOR_INTELLIGENCE = {
   "manufacturing-engineering": {
     sector: "Manufacturing, Fabrication & Engineering",
     tag: "manufacturing-engineering",
-    searchQueries: ["precision engineering ltd", "modular systems ltd", "fabrication ltd"],
     painPoint: "Production job queues managed on paper printouts; delayed client updates and manual stock reconciliation across departments.",
     solution: "Custom Order-to-Production Workflow Portal: Real-time floor progress tracking, digital BOM sign-offs, and automated client shipping alerts.",
     subject: "Modernizing {company}'s production & job tracking workflow",
@@ -165,94 +185,12 @@ const SECTOR_INTELLIGENCE = {
   "aec-consultancy": {
     sector: "Architectural & AEC Consultancies",
     tag: "aec-consultancy",
-    searchQueries: ["architects ltd", "design consultancy ltd", "consulting engineers ltd"],
     painPoint: "Project milestone billing delayed by manual timesheets; client drawing feedback scattered across fragmented email threads.",
     solution: "Custom Project & Timesheet Governance Dashboard: Centralized drawing sign-offs, milestone profitability tracking, and client portal.",
     subject: "Streamlining project delivery & milestone tracking for {company}",
     body: (c) => `Hi ${c.first},\n\nI was reviewing ${c.name}'s architectural and design work across ${c.city} and wanted to connect.\n\nAt The Digital Dude, we build custom project operations platforms and client delivery portals for leading UK architectural and engineering practices.\n\nInstead of juggling fragmented email threads for design approvals and tracking fee milestones in spreadsheets, we unify project tracking, drawing sign-offs, and fee schedules into one bespoke system that your practice owns.\n\nWould you be open to a 30-minute discovery call next week to see if custom workflow automation could eliminate admin for ${c.name}'s project leaders?`
   }
 };
-
-// Expanded Reservoir of 100% MX-Verified UK Decision Makers & Target Companies (Zero Role-Based Emails)
-const VERIFIED_UK_RESERVOIR = [
-  // Sector 1: Field Services & Contracting
-  { sectorTag: "field-services", name: "Aspect Maintenance & Renovations", domain: "aspect.co.uk", city: "London", contact: "Will Davies", first: "Will", last: "Davies", title: "Managing Director", email: "will.davies@aspect.co.uk" },
-  { sectorTag: "field-services", name: "London Lofts & Construction", domain: "londonlofts.com", city: "London", contact: "Robert Taylor", first: "Robert", last: "Taylor", title: "Founder & Managing Director", email: "robert.taylor@londonlofts.com" },
-  { sectorTag: "field-services", name: "Simpsons Builders", domain: "simpsonsbuilders.co.uk", city: "Surrey", contact: "Andrew Simpson", first: "Andrew", last: "Simpson", title: "Managing Director", email: "andrew.simpson@simpsonsbuilders.co.uk" },
-  { sectorTag: "field-services", name: "Evander Glazing & Property Services", domain: "evander.com", city: "Norwich / National", contact: "Richard Field", first: "Richard", last: "Field", title: "Managing Director", email: "richard.field@evander.com" },
-  { sectorTag: "field-services", name: "Amberley Homes", domain: "amberleyhomes.co.uk", city: "Kent & South East", contact: "David Miller", first: "David", last: "Miller", title: "Managing Director", email: "david.miller@amberleyhomes.co.uk" },
-  { sectorTag: "field-services", name: "Smith & Byford", domain: "smithandbyford.com", city: "Surrey & Greater London", contact: "Mark Byford", first: "Mark", last: "Byford", title: "Managing Director", email: "mark.byford@smithandbyford.com" },
-  { sectorTag: "field-services", name: "Dodd Group", domain: "doddgroup.com", city: "Telford & Midlands", contact: "Matthew Dodd", first: "Matthew", last: "Dodd", title: "Managing Director", email: "matthew.dodd@doddgroup.com" },
-  { sectorTag: "field-services", name: "Clarkson Evans", domain: "clarksonevans.co.uk", city: "Gloucester & South West", contact: "Lindsey Young", first: "Lindsey", last: "Young", title: "Chief Executive Officer", email: "lindsey.young@clarksonevans.co.uk" },
-  { sectorTag: "field-services", name: "Darke & Taylor", domain: "darkeandtaylor.co.uk", city: "Oxford & Thames Valley", contact: "Simon Newton", first: "Simon", last: "Newton", title: "Managing Director", email: "simon.newton@darkeandtaylor.co.uk" },
-  { sectorTag: "field-services", name: "Briggs & Forrester", domain: "briggsandforrester.co.uk", city: "Northampton & National", contact: "Paul Rogers", first: "Paul", last: "Rogers", title: "Group Chairman", email: "paul.rogers@briggsandforrester.co.uk" },
-
-  // Sector 2: Property Management & Fit-Out
-  { sectorTag: "property-management", name: "Kallums Bathrooms", domain: "kallumsbathrooms.co.uk", city: "London", contact: "Kallum Jones", first: "Kallum", last: "Jones", title: "Director", email: "kallum@kallumsbathrooms.co.uk" },
-  { sectorTag: "property-management", name: "West One Bathrooms", domain: "westonebathrooms.com", city: "London", contact: "Duncan Brand", first: "Duncan", last: "Brand", title: "Managing Director", email: "duncan.brand@westonebathrooms.com" },
-  { sectorTag: "property-management", name: "Wilmslow Interiors", domain: "wilmslowinteriors.co.uk", city: "Cheshire", contact: "Graham Hollins", first: "Graham", last: "Hollins", title: "Founder & Director", email: "graham.hollins@wilmslowinteriors.co.uk" },
-  { sectorTag: "property-management", name: "Oakwood Architectural Glazing", domain: "oakwoodglazing.co.uk", city: "Bristol", contact: "Richard Cole", first: "Richard", last: "Cole", title: "Managing Director", email: "richard.cole@oakwoodglazing.co.uk" },
-  { sectorTag: "property-management", name: "Chiltern Solar", domain: "chilternsolar.co.uk", city: "Bedfordshire & South East", contact: "Steve Cole", first: "Steve", last: "Cole", title: "Managing Director", email: "steve.cole@chilternsolar.co.uk" },
-  { sectorTag: "property-management", name: "Portico Property", domain: "portico.com", city: "London", contact: "Robert Nichols", first: "Robert", last: "Nichols", title: "Chief Executive Officer", email: "robert.nichols@portico.com" },
-  { sectorTag: "property-management", name: "Chestertons", domain: "chestertons.co.uk", city: "London", contact: "Richard Davies", first: "Richard", last: "Davies", title: "Chief Operating Officer", email: "richard.davies@chestertons.co.uk" },
-  { sectorTag: "property-management", name: "Kinleigh Folkard & Hayward", domain: "kfh.co.uk", city: "London", contact: "Lee Watts", first: "Lee", last: "Watts", title: "Managing Director", email: "lee.watts@kfh.co.uk" },
-  { sectorTag: "property-management", name: "Marsh & Parsons", domain: "marshandparsons.co.uk", city: "London", contact: "Patrick Littlemore", first: "Patrick", last: "Littlemore", title: "Chief Executive Officer", email: "patrick.littlemore@marshandparsons.co.uk" },
-
-  // Sector 3: Logistics & Haulage
-  { sectorTag: "logistics-fleet", name: "Kinaxia Logistics", domain: "kinaxia.co.uk", city: "Macclesfield / National", contact: "Simon Hobbs", first: "Simon", last: "Hobbs", title: "Chief Executive Officer", email: "simon.hobbs@kinaxia.co.uk" },
-  { sectorTag: "logistics-fleet", name: "Maritime Transport", domain: "maritimetransport.co.uk", city: "Felixstowe & National", contact: "John Williams", first: "John", last: "Williams", title: "Executive Chairman", email: "john.williams@maritimetransport.co.uk" },
-  { sectorTag: "logistics-fleet", name: "Goldstar Transport", domain: "goldstartransport.co.uk", city: "Felixstowe & East Anglia", contact: "Matthew Ashworth", first: "Matthew", last: "Ashworth", title: "Managing Director", email: "matthew.ashworth@goldstartransport.co.uk" },
-  { sectorTag: "logistics-fleet", name: "Fowler Welch", domain: "fowlerwelch.co.uk", city: "Spalding & Midlands", contact: "John Kerrigan", first: "John", last: "Kerrigan", title: "Chief Executive Officer", email: "john.kerrigan@fowlerwelch.co.uk" },
-  { sectorTag: "logistics-fleet", name: "Bowker Transport", domain: "bowkertransport.co.uk", city: "Preston & North West", contact: "Bill Bowker", first: "Bill", last: "Bowker", title: "Managing Director", email: "bill.bowker@bowkertransport.co.uk" },
-  { sectorTag: "logistics-fleet", name: "Gregory Distribution", domain: "gregory.co.uk", city: "Devon & South West", contact: "John Gregory", first: "John", last: "Gregory", title: "Chief Executive", email: "john.gregory@gregory.co.uk" },
-  { sectorTag: "logistics-fleet", name: "Abbey Logistics Group", domain: "abbeylogisticsgroup.com", city: "Liverpool & North West", contact: "Steve Granite", first: "Steve", last: "Granite", title: "Executive Chairman", email: "steve.granite@abbeylogisticsgroup.com" },
-  { sectorTag: "logistics-fleet", name: "Elddis Transport", domain: "elddis.co.uk", city: "Consett & North East", contact: "Nigel Cook", first: "Nigel", last: "Cook", title: "Managing Director", email: "nigel.cook@elddis.co.uk" },
-
-  // Sector 4: Specialized Healthcare & Clinics
-  { sectorTag: "healthcare-ops", name: "Harley Street Dental Studio", domain: "harleystreetdentalstudio.com", city: "London", contact: "Dr. Adam Thorne", first: "Adam", last: "Thorne", title: "Clinical Director", email: "adam.thorne@harleystreetdentalstudio.com" },
-  { sectorTag: "healthcare-ops", name: "Bow Lane Dental Group", domain: "bowlanedental.com", city: "London", contact: "James Goolnik", first: "James", last: "Goolnik", title: "Founder & Clinical Director", email: "james@bowlanedental.com" },
-  { sectorTag: "healthcare-ops", name: "Pall Mall Dental Clinic", domain: "pallmalldental.co.uk", city: "London", contact: "Dr. Ritesh Aggarwal", first: "Ritesh", last: "Aggarwal", title: "Principal Dentist", email: "ritesh@pallmalldental.co.uk" },
-  { sectorTag: "healthcare-ops", name: "Manchester Dental Practice", domain: "manchesterdental.co.uk", city: "Manchester", contact: "Dr. Tariq Idrees", first: "Tariq", last: "Idrees", title: "Owner & Principal", email: "tariq.idrees@manchesterdental.co.uk" },
-  { sectorTag: "healthcare-ops", name: "Cheadle Dental Practice", domain: "cheadledental.co.uk", city: "Manchester", contact: "Dr. Imran Rangzeb", first: "Imran", last: "Rangzeb", title: "Practice Principal", email: "imran@cheadledental.co.uk" },
-  { sectorTag: "healthcare-ops", name: "Elleven Dental", domain: "ellevendental.com", city: "London", contact: "Dr. Anthony Lam", first: "Anthony", last: "Lam", title: "Clinical Director", email: "anthony.lam@ellevendental.com" },
-  { sectorTag: "healthcare-ops", name: "Ten Dental", domain: "tendental.com", city: "London", contact: "Dr. Martin Wanendeya", first: "Martin", last: "Wanendeya", title: "Partner & Clinical Lead", email: "martin@tendental.com" },
-  { sectorTag: "healthcare-ops", name: "Banning Dental Group", domain: "banningdental.co.uk", city: "London & South East", contact: "Dr. Azad Eyrumlu", first: "Azad", last: "Eyrumlu", title: "Founder & CEO", email: "azad@banningdental.co.uk" },
-
-  // Sector 5: Legal & B2B Advisory
-  { sectorTag: "b2b-professional", name: "Blandy & Blandy Solicitors", domain: "blandy.co.uk", city: "Reading & Thames Valley", contact: "Nick Burrows", first: "Nick", last: "Burrows", title: "Chairman & Partner", email: "nick.burrows@blandy.co.uk" },
-  { sectorTag: "b2b-professional", name: "Bishops Law", domain: "bishopslaw.co.uk", city: "London & South East", contact: "Simon Bishop", first: "Simon", last: "Bishop", title: "Managing Director", email: "simon.bishop@bishopslaw.co.uk" },
-  { sectorTag: "b2b-professional", name: "Rollits LLP", domain: "rollits.com", city: "Yorkshire / Hull", contact: "Ralph Gilbert", first: "Ralph", last: "Gilbert", title: "Managing Partner", email: "ralph.gilbert@rollits.com" },
-  { sectorTag: "b2b-professional", name: "Seddons Law", domain: "seddons.co.uk", city: "London", contact: "Simon Ross", first: "Simon", last: "Ross", title: "Managing Partner", email: "simon.ross@seddons.co.uk" },
-  { sectorTag: "b2b-professional", name: "Stephens Scown LLP", domain: "stephens-scown.co.uk", city: "Exeter & South West", contact: "Richard Baker", first: "Richard", last: "Baker", title: "Managing Partner", email: "richard.baker@stephens-scown.co.uk" },
-  { sectorTag: "b2b-professional", name: "Birketts LLP", domain: "birketts.co.uk", city: "Ipswich & East Anglia", contact: "Jonathan Agar", first: "Jonathan", last: "Agar", title: "Chief Executive", email: "jonathan.agar@birketts.co.uk" },
-  { sectorTag: "b2b-professional", name: "Trethowans LLP", domain: "trethowans.com", city: "Southampton & South", contact: "Mike Watson", first: "Mike", last: "Watson", title: "Managing Partner", email: "mike.watson@trethowans.com" },
-  { sectorTag: "b2b-professional", name: "Moore Barlow LLP", domain: "moorebarlow.com", city: "Guildford & London", contact: "Ed Whittington", first: "Ed", last: "Whittington", title: "Managing Partner", email: "ed.whittington@moorebarlow.com" },
-  { sectorTag: "b2b-professional", name: "Paris Smith LLP", domain: "parissmith.co.uk", city: "Southampton & Winchester", contact: "Peter Taylor", first: "Peter", last: "Taylor", title: "Senior Partner", email: "peter.taylor@parissmith.co.uk" },
-
-  // Sector 6: Training & Apprenticeships
-  { sectorTag: "training-providers", name: "Hawk Training", domain: "hawktraining.com", city: "London & South East", contact: "Crawford Knott", first: "Crawford", last: "Knott", title: "Managing Director", email: "crawford.knott@hawktraining.com" },
-  { sectorTag: "training-providers", name: "GP Strategies Training UK", domain: "gpstrategies.com", city: "Manchester & National", contact: "David Hill", first: "David", last: "Hill", title: "Managing Director", email: "dhill@gpstrategies.com" },
-  { sectorTag: "training-providers", name: "TDM Apprenticeships", domain: "thedevelopmentmanager.com", city: "Worcester & Midlands", contact: "Derrin Kent", first: "Derrin", last: "Kent", title: "Managing Director", email: "derrin.kent@thedevelopmentmanager.com" },
-  { sectorTag: "training-providers", name: "Apprentify", domain: "apprentify.com", city: "Wilmslow & North West", contact: "Paul Drew", first: "Paul", last: "Drew", title: "Chief Executive Officer", email: "paul.drew@apprentify.com" },
-  { sectorTag: "training-providers", name: "Baltic Apprenticeships", domain: "balticapprenticeships.com", city: "Darlington & North East", contact: "Antony Hobbs", first: "Antony", last: "Hobbs", title: "Managing Director", email: "antony.hobbs@balticapprenticeships.com" },
-  { sectorTag: "training-providers", name: "Lifetime Training", domain: "lifetimetraining.co.uk", city: "Bristol & National", contact: "David George", first: "David", last: "George", title: "Chief Executive Officer", email: "david.george@lifetimetraining.co.uk" },
-  { sectorTag: "training-providers", name: "Babington", domain: "babington.co.uk", city: "Derby & National", contact: "Mark Lawson-Jones", first: "Mark", last: "Lawson-Jones", title: "Chief Executive Officer", email: "mark.lawson-jones@babington.co.uk" },
-  { sectorTag: "training-providers", name: "Realise Training", domain: "realisetraining.com", city: "Sheffield & National", contact: "Gregg Scott", first: "Gregg", last: "Scott", title: "Chief Executive Officer", email: "gregg.scott@realisetraining.com" },
-
-  // Sector 7: Manufacturing & Engineering
-  { sectorTag: "manufacturing-engineering", name: "Premier Modular", domain: "premiermodular.co.uk", city: "East Yorkshire", contact: "David Harris", first: "David", last: "Harris", title: "Chief Executive Officer", email: "david.harris@premiermodular.co.uk" },
-  { sectorTag: "manufacturing-engineering", name: "McAvoy Group", domain: "mcavoygroup.com", city: "Lisburn & National", contact: "Ron Clarke", first: "Ron", last: "Clarke", title: "Chief Executive Officer", email: "ron.clarke@mcavoygroup.com" },
-  { sectorTag: "manufacturing-engineering", name: "Portakabin", domain: "portakabin.com", city: "York & National", contact: "Dan Ibbetson", first: "Dan", last: "Ibbetson", title: "Chief Executive Officer", email: "dan.ibbetson@portakabin.com" },
-  { sectorTag: "manufacturing-engineering", name: "Severfield", domain: "severfield.com", city: "Thirsk & North Yorkshire", contact: "Alan Dunsmore", first: "Alan", last: "Dunsmore", title: "Chief Executive Officer", email: "alan.dunsmore@severfield.com" },
-  { sectorTag: "manufacturing-engineering", name: "William Hare", domain: "williamhare.com", city: "Bury & Greater Manchester", contact: "David Hare", first: "David", last: "Hare", title: "Chief Executive Officer", email: "david.hare@williamhare.com" },
-
-  // Sector 8: Architectural & AEC Consultancies
-  { sectorTag: "aec-consultancy", name: "BDP Building Design Partnership", domain: "bdp.com", city: "Manchester & London", contact: "Nick Fairham", first: "Nick", last: "Fairham", title: "Chief Executive", email: "nick.fairham@bdp.com" },
-  { sectorTag: "aec-consultancy", name: "Hawkins\\Brown", domain: "hawkinsbrown.com", city: "London", contact: "Russell Brown", first: "Russell", last: "Brown", title: "Partner", email: "russell.brown@hawkinsbrown.com" },
-  { sectorTag: "aec-consultancy", name: "Allford Hall Monaghan Morris", domain: "ahmm.co.uk", city: "London", contact: "Paul Monaghan", first: "Paul", last: "Monaghan", title: "Director", email: "paul.monaghan@ahmm.co.uk" },
-  { sectorTag: "aec-consultancy", name: "Feilden Clegg Bradley Studios", domain: "fcbstudios.com", city: "Bath & London", contact: "Keith Bradley", first: "Keith", last: "Bradley", title: "Senior Partner", email: "keith.bradley@fcbstudios.com" },
-  { sectorTag: "aec-consultancy", name: "Make Architects", domain: "makearchitects.com", city: "London", contact: "Ken Shuttleworth", first: "Ken", last: "Shuttleworth", title: "Founder & Partner", email: "ken.shuttleworth@makearchitects.com" }
-];
 
 // Strict Role-Based Email Blocklist
 const ROLE_BASED_EMAIL_PREFIXES = new Set([
@@ -303,14 +241,6 @@ function isValidCompanyName(companyName) {
   return true;
 }
 
-function hasCompleteResearch(notes) {
-  if (!notes || typeof notes !== "string" || notes.length < 100) return false;
-  const hasPainPoint = notes.includes("[PAIN POINTS / TRIGGERS]") || notes.toLowerCase().includes("pain point");
-  const hasSolution = notes.includes("[PROPOSED SOLUTION]") || notes.toLowerCase().includes("proposed solution");
-  const hasDraft = notes.includes("[OUTREACH EMAIL DRAFT]") && notes.includes("Subject:");
-  return hasPainPoint && hasSolution && hasDraft;
-}
-
 function extractDomain(email) {
   if (!email || !email.includes("@")) return "";
   return email.split("@")[1].toLowerCase().trim();
@@ -326,89 +256,11 @@ async function verifyDomainMx(domain) {
   }
 }
 
-function formatDirectorName(raw) {
-  if (!raw) return null;
-  const cleaned = raw.replace(/\s+/g, ' ').trim();
-  if (/\b(LTD|LIMITED|SECRETARIES|DIRECTORS|NOMINEE|SERVICES|CORP|HOLDINGS)\b/i.test(cleaned)) {
-    return null;
-  }
-  if (cleaned.includes(',')) {
-    const [last, first] = cleaned.split(',').map(s => s.trim());
-    if (first && last) {
-      const firstParts = first.split(' ');
-      const cleanFirst = firstParts[0].charAt(0).toUpperCase() + firstParts[0].slice(1).toLowerCase();
-      const cleanLast = last.charAt(0).toUpperCase() + last.slice(1).toLowerCase();
-      return { first: cleanFirst, last: cleanLast, full: `${cleanFirst} ${cleanLast}` };
-    }
-  }
-  const parts = cleaned.split(' ');
-  if (parts.length >= 2) {
-    return { first: parts[0], last: parts[parts.length - 1], full: cleaned };
-  }
-  return null;
-}
-
-async function searchLiveCompanies(query) {
-  try {
-    const url = `https://find-and-update.company-information.service.gov.uk/search/companies?q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
-    if (!res.ok) return [];
-    const text = await res.text();
-    const results = [...text.matchAll(/<li class="type-company"[\s\S]*?<\/li>/gi)].map(m => m[0]);
-    
-    const found = [];
-    for (let i = 1; i < results.length; i++) {
-      const li = results[i];
-      const numMatch = li.match(/\/company\/([0-9A-Z]{8})/i);
-      const nameMatch = li.match(/<a[^>]*class="govuk-link"[^>]*>([\s\S]*?)<\/a>/i);
-      const metaMatch = li.match(/<p class="meta crumbtrail">([\s\S]*?)<\/p>/i);
-      const addrMatch = li.match(/<p>([\s\S]*?)<\/p>/i);
-
-      if (!numMatch || !nameMatch || !metaMatch) continue;
-
-      const num = numMatch[1];
-      const name = nameMatch[1].replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
-      const meta = metaMatch[1].trim();
-
-      // Must be active (Incorporated, NOT Dissolved or Liquidation)
-      if (!meta.includes("Incorporated on") || meta.includes("Dissolved") || meta.includes("Liquidation")) {
-        continue;
-      }
-
-      found.push({
-        number: num,
-        name,
-        meta,
-        address: addrMatch ? addrMatch[1].replace(/<[^>]+>/g, '').trim() : ""
-      });
-    }
-    return found;
-  } catch (err) {
-    return [];
-  }
-}
-
-async function getLiveOfficers(companyNumber) {
-  try {
-    const url = `https://find-and-update.company-information.service.gov.uk/company/${companyNumber}/officers`;
-    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
-    if (!res.ok) return [];
-    const text = await res.text();
-    const nameMatches = [...text.matchAll(/id="officer-name-\d+"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/g)].map(m => m[1].trim());
-    const roleMatches = [...text.matchAll(/id="officer-role-\d+"[^>]*>\s*([^<\n]+)/g)].map(m => m[1].trim());
-
-    const officers = [];
-    for (let i = 0; i < nameMatches.length; i++) {
-      const role = roleMatches[i] || "Director";
-      const parsedName = formatDirectorName(nameMatches[i]);
-      if (parsedName && (role.toLowerCase().includes("director") || role.toLowerCase().includes("partner") || role.toLowerCase().includes("member"))) {
-        officers.push({ ...parsedName, role });
-      }
-    }
-    return officers;
-  } catch (err) {
-    return [];
-  }
+// 5 to 10 Second Randomized Cooldown Delay
+async function sleepRandomCooldown(minMs = 5000, maxMs = 10000) {
+  const delay = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+  console.log(`[Cooldown Delay] Waiting ${(delay / 1000).toFixed(1)}s before next dispatch to maintain organic deliverability...`);
+  await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
 function addWorkingDays(from, n) {
@@ -422,8 +274,60 @@ function addWorkingDays(from, n) {
   return d;
 }
 
-// Render Minimal Personal HTML Email with Farhad's Founder Card and 30-min Booking CTA
-function renderMinimalPersonalEmail({ bodyText, bookingUrl, unsubscribeUrl }) {
+// Synthesizes a bespoke pitch if rep did not write an explicit subject/body
+function synthesizePitchFromIntelligence({ lead, rep }) {
+  const notes = lead.notes || "";
+
+  // 1. Check if rep explicitly provided [OUTREACH EMAIL DRAFT]
+  const subjectMatch = notes.match(/\[OUTREACH EMAIL DRAFT\]\s*\nSubject:\s*(.+)/);
+  const bodyMatch = notes.match(/Subject:[^\n]+\n\n([\s\S]+)$/);
+  if (subjectMatch && bodyMatch) {
+    return {
+      subject: subjectMatch[1].trim(),
+      bodyText: bodyMatch[1].trim()
+    };
+  }
+
+  // 2. Extract pain point and solution
+  let painPoint = "";
+  let solution = "";
+  const painMatch = notes.match(/\[PAIN POINTS \/ TRIGGERS\]\s*\n([\s\S]*?)(?=\n\[|$)/i);
+  if (painMatch) painPoint = painMatch[1].trim();
+  const solMatch = notes.match(/\[PROPOSED SOLUTION\]\s*\n([\s\S]*?)(?=\n\[|$)/i);
+  if (solMatch) solution = solMatch[1].trim();
+
+  const firstName = (lead.full_name || "").trim().split(/\s+/)[0] || "there";
+  const company = lead.company_name || "your company";
+
+  const subject = `Custom workflow automation for ${company}`;
+
+  let body = `Hi ${firstName},\n\nI was reviewing ${company}'s operations and wanted to reach out directly.\n\nAt The Digital Dude, we build bespoke workflow management platforms and custom operations CRMs for growing businesses looking to replace rigid per-user software licensing.\n\n`;
+
+  if (painPoint) {
+    const firstPain = painPoint.split("\n")[0].replace(/^\d+[\.\)]\s*/, "").trim();
+    body += `Most founders and operations leaders we partner with were losing dozens of hours every week dealing with ${firstPain.toLowerCase()}.\n\n`;
+  }
+
+  if (solution) {
+    const firstSol = solution.split("\n")[0].replace(/^\d+[\.\)]\s*/, "").trim();
+    body += `We build unified platforms tailored 100% to your workflow: ${firstSol.charAt(0).toLowerCase() + firstSol.slice(1)}—giving your team complete data ownership with zero recurring per-seat fees.\n\n`;
+  }
+
+  body += `Would you be open to a 30-minute discovery call next week to see if custom workflow automation would deliver high ROI for ${company}?`;
+
+  return { subject, bodyText: body };
+}
+
+function stripRedundantBookingLinks(text) {
+  if (!text) return "";
+  return text
+    .replace(/(?:Book a [^\n]*call[^\n]*:?\s*)?https?:\/\/(?:www\.)?digitaldude\.co\.uk\/contact\S*/gi, "")
+    .replace(/^\s*Book a (?:30-minute )?discovery call:?\s*$/gim, "")
+    .trim();
+}
+
+// Render Branded Personal HTML Email tailored to the specific Sales Rep
+function renderRepEmailHtml({ bodyText, bookingUrl, unsubscribeUrl, rep }) {
   const paragraphsHtml = bodyText
     .replace(/\r\n/g, "\n")
     .trim()
@@ -441,15 +345,19 @@ function renderMinimalPersonalEmail({ bodyText, bookingUrl, unsubscribeUrl }) {
     </table>
   `;
 
+  const repPhoto = rep.photo_url || "https://zwiueukitnvbcxylrewv.supabase.co/storage/v1/object/public/rep-photos/c08ff113-c16a-42be-9bc1-147a774135ba/4b788b6d-1ae0-4262-9ebd-fa2c037988d1.jpg";
+  const repName = rep.outreach_display_name || rep.full_name;
+  const repRole = rep.role_title || "Business Development";
+
   const signatureHtml = `
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:24px;border-top:1px solid #eee;padding-top:16px;">
       <tr>
         <td style="padding-right:14px;vertical-align:middle;">
-          <img src="${PHOTO_URL}" alt="Farhad Hossain" width="52" height="52" style="width:52px;height:52px;border-radius:50%;object-fit:cover;display:block;border:0;">
+          <img src="${repPhoto}" alt="${repName}" width="52" height="52" style="width:52px;height:52px;border-radius:50%;object-fit:cover;display:block;border:0;">
         </td>
         <td style="vertical-align:middle;">
-          <p style="margin:0;font-size:15px;font-weight:700;color:#1a1a4e;">Farhad Hossain</p>
-          <p style="margin:2px 0 0 0;font-size:13px;color:#7b61ff;font-weight:600;">Founder &amp; CEO</p>
+          <p style="margin:0;font-size:15px;font-weight:700;color:#1a1a4e;">${repName}</p>
+          <p style="margin:2px 0 0 0;font-size:13px;color:#7b61ff;font-weight:600;">${repRole}</p>
           <p style="margin:3px 0 0 0;font-size:12px;">
             <a href="https://www.digitaldude.co.uk" style="color:#7b61ff;text-decoration:none;">The Digital Dude &bull; Custom Systems &amp; Automation</a>
           </p>
@@ -460,7 +368,7 @@ function renderMinimalPersonalEmail({ bodyText, bookingUrl, unsubscribeUrl }) {
 
   const footerHtml = `
     <div style="margin-top:28px;font-size:11px;color:#8a8aa6;line-height:1.5;">
-      <p style="margin:0;">The Digital Dude &bull; Dhanmondi, Dhaka, Bangladesh</p>
+      <p style="margin:0;">${HEADQUARTERS_FOOTER}</p>
       <p style="margin:6px 0 0 0;"><a href="${unsubscribeUrl}" style="color:#8a8aa6;text-decoration:underline;">Unsubscribe from future emails</a></p>
     </div>
   `;
@@ -468,36 +376,32 @@ function renderMinimalPersonalEmail({ bodyText, bookingUrl, unsubscribeUrl }) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>The Digital Dude</title></head><body style="margin:0;padding:24px 16px;background-color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"><div style="max-width:580px;margin:0 auto;">${paragraphsHtml}${buttonHtml}${signatureHtml}${footerHtml}</div></body></html>`;
 }
 
-function stripRedundantBookingLinks(text) {
-  if (!text) return "";
-  return text
-    // Remove "Book a 30-minute discovery call: https://..." or any digitaldude booking URL
-    .replace(/(?:Book a [^\n]*call[^\n]*:?\s*)?https?:\/\/(?:www\.)?digitaldude\.co\.uk\/contact\S*/gi, "")
-    // Remove standalone "Book a 30-minute discovery call" line if left behind
-    .replace(/^\s*Book a (?:30-minute )?discovery call:?\s*$/gim, "")
-    .trim();
-}
-
-async function sendOutreachEmail({ toEmail, toName, subject, bodyText }) {
+async function sendBrevoOutreach({ toEmail, toName, subject, bodyText, rep }) {
   if (!BREVO_API_KEY) {
-    console.log(`[DRY RUN] No BREVO_API_KEY set. Would send email to ${toEmail}`);
+    console.log(`[DRY RUN] No BREVO_API_KEY configured. Simulated send to ${toEmail}`);
     return { ok: true, messageId: "dry-run" };
   }
 
   const cleanBody = stripRedundantBookingLinks(bodyText);
+  const repBookingUrl = `https://www.digitaldude.co.uk/contact?ref=${rep.referral_code || 'farhad-hossain'}`;
   const unsubscribeUrl = `https://www.digitaldude.co.uk/api/outreach/unsubscribe?email=${encodeURIComponent(toEmail)}`;
-  const htmlContent = renderMinimalPersonalEmail({
+
+  const repSenderName = `${rep.outreach_display_name || rep.full_name} | ${rep.role_title || 'Business Development'}, The Digital Dude`;
+  const repSenderEmail = rep.assigned_outreach_email || "farhad@digitaldude.co.uk";
+
+  const htmlContent = renderRepEmailHtml({
     bodyText: cleanBody,
-    bookingUrl: BOOKING_URL,
-    unsubscribeUrl
+    bookingUrl: repBookingUrl,
+    unsubscribeUrl,
+    rep
   });
 
   const payload = {
-    sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+    sender: { name: repSenderName, email: repSenderEmail },
     to: [{ email: toEmail, name: toName }],
-    replyTo: { name: "The Digital Dude", email: REPLY_TO_EMAIL },
+    replyTo: { name: "The Digital Dude", email: DEFAULT_REPLY_TO },
     subject: subject,
-    textContent: `${cleanBody}\n\nBook a 30-minute discovery call: ${BOOKING_URL}\n\nFarhad Hossain\nFounder & CEO | The Digital Dude\nDhanmondi, Dhaka, Bangladesh\nhttps://www.digitaldude.co.uk\n\nUnsubscribe: ${unsubscribeUrl}`,
+    textContent: `${cleanBody}\n\nBook a 30-minute discovery call: ${repBookingUrl}\n\n${rep.full_name}\n${rep.role_title || 'Business Development'} | The Digital Dude\n${HEADQUARTERS_FOOTER}\nhttps://www.digitaldude.co.uk\n\nUnsubscribe: ${unsubscribeUrl}`,
     htmlContent: htmlContent
   };
 
@@ -523,372 +427,256 @@ async function sendOutreachEmail({ toEmail, toName, subject, bodyText }) {
   }
 }
 
-/**
- * Autonomous Cloud Discovery Engine: Ensures that Farhad's Rep CRM
- * maintains an automated buffer of qualified, research-backed UK SME leads.
- */
-async function ensureLeadBuffer(supabaseInstance, minBuffer = 40) {
-  console.log("\n--- [Autonomous Cloud Discovery Engine: Checking CRM Buffer] ---");
-
-  // Fetch all leads already in Farhad's CRM
-  const { data: existingLeads } = await supabaseInstance
-    .from("rep_leads")
-    .select("id, email, company_name, stage, notes")
-    .eq("employee_id", FARHAD_EMPLOYEE_ID);
-
-  const existingEmailSet = new Set((existingLeads || []).map(l => (l.email || "").toLowerCase().trim()));
-  const existingDomainSet = new Set((existingLeads || []).map(l => extractDomain(l.email)).filter(Boolean));
-
-  // Count how many current 'new' leads pass complete research
-  const readyLeads = (existingLeads || []).filter(l => l.stage === "new" && hasCompleteResearch(l.notes));
-  console.log(`Current ready, research-backed leads in queue: ${readyLeads.length} (Target buffer: >= ${minBuffer})`);
-
-  let addedCount = 0;
-
-  // Replenish buffer from Verified UK Intelligence Reservoir if below threshold
-  for (const comp of VERIFIED_UK_RESERVOIR) {
-    const cleanEmail = comp.email.toLowerCase().trim();
-    const domain = comp.domain.toLowerCase().trim();
-
-    if (existingEmailSet.has(cleanEmail) || existingDomainSet.has(domain)) {
-      continue;
-    }
-
-    const intel = SECTOR_INTELLIGENCE[comp.sectorTag];
-    if (!intel) continue;
-
-    const subject = intel.subject.replace("{company}", comp.name).replace("{city}", comp.city).replace("{first}", comp.first);
-    const emailBody = intel.body(comp);
-    const linkedinUrl = `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(comp.contact + " " + comp.name)}`;
-
-    const notes = `--- LEAD RESEARCH INTELLIGENCE ---
-
-Website: https://${comp.domain}
-LinkedIn: ${linkedinUrl}
-Location: ${comp.city}, UK
-Industry: ${intel.sector}
-Tech Stack: Custom Platform, Workflow Automation, Next.js, PostgreSQL
-Research Fit Score: 95/100
-
-[PAIN POINTS / TRIGGERS]
-${intel.painPoint}
-
-[PROPOSED SOLUTION]
-${intel.solution}
-
-[OUTREACH EMAIL DRAFT]
-Subject: ${subject}
-
-${emailBody}`;
-
-    const { error: insErr } = await supabaseInstance.from("rep_leads").insert({
-      employee_id: FARHAD_EMPLOYEE_ID,
-      full_name: comp.contact,
-      email: cleanEmail,
-      company_name: comp.name,
-      job_title: comp.title,
-      lead_source: "Autonomous Cloud Discovery Engine",
-      stage: "new",
-      status: "new",
-      estimated_deal_value: 3500,
-      currency: "GBP",
-      country: "GB",
-      tags: ["outreach-ready", "uk-sme", comp.sectorTag],
-      fit_score: 95,
-      notes: notes,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-
-    if (!insErr) {
-      existingEmailSet.add(cleanEmail);
-      existingDomainSet.add(domain);
-      addedCount++;
-      console.log(`[Auto-Queued] ${comp.contact} (${comp.title}) — ${comp.name} [${cleanEmail}]`);
-    }
-  }
-
-  // If buffer is still below minBuffer, discover live active UK companies
-  const updatedReadyCount = readyLeads.length + addedCount;
-  if (updatedReadyCount < minBuffer) {
-    console.log(`\nTriggering Live UK Companies House Discovery (Buffer: ${updatedReadyCount} < ${minBuffer})...`);
-    for (const [tag, intel] of Object.entries(SECTOR_INTELLIGENCE)) {
-      if (updatedReadyCount + addedCount >= minBuffer + 10) break;
-      for (const query of intel.searchQueries) {
-        const liveCompanies = await searchLiveCompanies(query);
-        for (const live of liveCompanies) {
-          const officers = await getLiveOfficers(live.number);
-          if (!officers || officers.length === 0) continue;
-          const director = officers[0];
-          
-          // Generate domain slug
-          const domainSlug = live.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 18);
-          const domain = `${domainSlug}.co.uk`;
-          const email = `${director.first.toLowerCase()}.${director.last.toLowerCase()}@${domain}`;
-
-          if (existingEmailSet.has(email) || existingDomainSet.has(domain)) continue;
-
-          // Check live MX before queuing
-          const hasMx = await verifyDomainMx(domain);
-          if (!hasMx) continue;
-
-          const subject = intel.subject.replace("{company}", live.name).replace("{city}", live.address || "UK").replace("{first}", director.first);
-          const emailBody = intel.body({ ...director, name: live.name, city: live.address || "UK" });
-          const linkedinUrl = `https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(director.full + " " + live.name)}`;
-
-          const notes = `--- LEAD RESEARCH INTELLIGENCE ---
-
-Website: https://${domain}
-LinkedIn: ${linkedinUrl}
-Location: ${live.address || "UK"}
-Industry: ${intel.sector}
-Tech Stack: Custom Platform, Workflow Automation, Next.js, PostgreSQL
-Research Fit Score: 92/100
-
-[PAIN POINTS / TRIGGERS]
-${intel.painPoint}
-
-[PROPOSED SOLUTION]
-${intel.solution}
-
-[OUTREACH EMAIL DRAFT]
-Subject: ${subject}
-
-${emailBody}`;
-
-          const { error: insErr } = await supabaseInstance.from("rep_leads").insert({
-            employee_id: FARHAD_EMPLOYEE_ID,
-            full_name: director.full,
-            email: email,
-            company_name: live.name,
-            job_title: director.role,
-            lead_source: "Live UK Companies House Crawler",
-            stage: "new",
-            status: "new",
-            estimated_deal_value: 3500,
-            currency: "GBP",
-            country: "GB",
-            tags: ["outreach-ready", "uk-sme", tag],
-            fit_score: 92,
-            notes: notes,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-
-          if (!insErr) {
-            existingEmailSet.add(email);
-            existingDomainSet.add(domain);
-            addedCount++;
-            console.log(`[Live Crawled & Queued] ${director.full} (${director.role}) — ${live.name} [${email}]`);
-          }
-        }
-      }
-    }
-  }
-
-  console.log(`Autonomous Discovery added ${addedCount} fresh qualified leads to Farhad's CRM.`);
-}
-
 async function main() {
   console.log("==================================================================");
-  console.log(" The Digital Dude — Autonomous Lead Discovery & Outreach Engine   ");
+  console.log(" The Digital Dude — Multi-Rep Time-Optimized Outreach Engine      ");
   console.log("==================================================================");
-  console.log(`Sender: ${SENDER_NAME} <${SENDER_EMAIL}>`);
-  console.log(`Reply-To: ${REPLY_TO_EMAIL}`);
-  console.log(`Operating Headquarters: Dhanmondi, Dhaka, Bangladesh`);
-  console.log(`Mode: ${AUTO_SEND ? "AUTO-SEND (Brevo Active)" : "CRM SYNC ONLY (Ready for Review in Rep Portal)"}`);
+  console.log(`Operating Headquarters: ${HEADQUARTERS_FOOTER}`);
+  console.log(`Target Country Mode:    ${TARGET_COUNTRY_ARG}`);
+  console.log(`Mode:                   ${AUTO_SEND ? "AUTO-SEND (Brevo Active with 5-10s Cooldown)" : "CRM REVIEW / DRY RUN ONLY"}`);
 
-  // Fetch emails that have already been sent to avoid any duplicates
-  const { data: pastSent } = await supabase
+  const targetCountries = resolveTargetCountries(TARGET_COUNTRY_ARG);
+  console.log(`Active Target Filter:   ${targetCountries ? targetCountries.join(", ") : "ALL COUNTRIES"}`);
+
+  // Fetch all active sales representatives
+  const { data: allEmployees, error: empErr } = await supabase
+    .from("employees")
+    .select("id, full_name, email, role_title, status, assigned_outreach_email, outreach_display_name, referral_code, photo_url")
+    .order("created_at", { ascending: true });
+
+  if (empErr || !allEmployees || allEmployees.length === 0) {
+    console.error("No active sales representatives found in employees table.");
+    return;
+  }
+
+  console.log(`Discovered ${allEmployees.length} registered team members in CRM.`);
+
+  // Fetch all past outreach logs for deduplication
+  const { data: pastLogs } = await supabase
     .from("rep_outreach_logs")
-    .select("recipient_email")
-    .eq("employee_id", FARHAD_EMPLOYEE_ID);
-  
-  const sentEmailSet = new Set((pastSent || []).map(r => r.recipient_email.toLowerCase().trim()));
+    .select("recipient_email, employee_id");
 
-  // Track contacted domains to enforce STRICT domain deduplication (max 1 email per company domain)
-  const contactedDomainSet = new Set();
-  (pastSent || []).forEach(r => {
-    const dom = extractDomain(r.recipient_email);
-    if (dom) contactedDomainSet.add(dom);
+  const globalSentEmailSet = new Set((pastLogs || []).map(l => (l.recipient_email || "").toLowerCase().trim()));
+  const globalContactedDomainSet = new Set();
+  (pastLogs || []).forEach(l => {
+    const d = extractDomain(l.recipient_email);
+    if (d) globalContactedDomainSet.add(d);
   });
 
-  // Step 1: Autonomous Buffer Replenishment (Ensures pipeline never runs out of leads)
-  await ensureLeadBuffer(supabase, 40);
+  let totalEmailsSentAllReps = 0;
+  let totalTasksCreatedAllReps = 0;
 
-  // Step 2: Fetch candidate leads for Farhad
-  const { data: rawCandidates, error: fetchErr } = await supabase
-    .from("rep_leads")
-    .select("id, full_name, email, company_name, job_title, notes, tags, created_at")
-    .eq("employee_id", FARHAD_EMPLOYEE_ID)
-    .eq("stage", "new")
-    .order("created_at", { ascending: false });
+  // Process dispatch per sales representative
+  for (const rep of allEmployees) {
+    console.log(`\n------------------------------------------------------------------`);
+    console.log(`Processing Sales Rep: ${rep.full_name} (${rep.role_title})`);
+    console.log(`Outreach Mailbox:     ${rep.assigned_outreach_email}`);
+    console.log(`Booking Reference:    https://www.digitaldude.co.uk/contact?ref=${rep.referral_code}`);
 
-  if (fetchErr) {
-    console.error("Error fetching candidate leads:", fetchErr);
-    return;
-  }
+    // Query candidate leads for this rep
+    let leadQuery = supabase
+      .from("rep_leads")
+      .select("id, full_name, email, company_name, job_title, country, notes, tags, stage, status, created_at")
+      .eq("employee_id", rep.id)
+      .eq("stage", "new")
+      .order("created_at", { ascending: false });
 
-  // Filter candidates strictly through 6 Quality Gates
-  const uncontactedLeads = [];
-  for (const lead of (rawCandidates || [])) {
-    if (uncontactedLeads.length >= 20) break;
+    // Apply country filter if active
+    if (targetCountries && targetCountries.length > 0) {
+      leadQuery = leadQuery.in("country", targetCountries);
+    }
 
-    const email = (lead.email || "").toLowerCase().trim();
-    const domain = extractDomain(email);
+    const { data: rawCandidates, error: candErr } = await leadQuery;
 
-    // Gate 1: Reject duplicate email
-    if (sentEmailSet.has(email)) continue;
-
-    // Gate 2: Reject role-based email addresses
-    if (isRoleBasedEmail(email)) {
+    if (candErr) {
+      console.error(`Error querying candidate leads for ${rep.full_name}:`, candErr);
       continue;
     }
 
-    // Gate 3: Reject non-human or generic names (must be a real person like "Will Davies")
-    if (!isValidHumanName(lead.full_name, email)) {
+    console.log(`Found ${(rawCandidates || []).length} pending leads in ${rep.full_name}'s CRM matching target region.`);
+
+    const qualifiedLeads = [];
+
+    for (const lead of (rawCandidates || [])) {
+      if (qualifiedLeads.length >= MAX_EMAILS_PER_REP_PER_RUN) break;
+
+      const email = (lead.email || "").toLowerCase().trim();
+      const domain = extractDomain(email);
+
+      // Gate 1: Check duplicate
+      if (globalSentEmailSet.has(email)) continue;
+
+      // Gate 2: Check role email (Auto-disqualify if invalid)
+      if (isRoleBasedEmail(email)) {
+        console.log(`[Disqualifying Lead] ${email} is role-based (admin/info/jobs).`);
+        await supabase.from("rep_leads").update({
+          status: "unqualified",
+          notes: `${lead.notes || ""}\n\n[DISQUALIFIED BY OUTREACH ENGINE]: Role-based email prefix (${email.split('@')[0]}) not permitted for cold outreach.`
+        }).eq("id", lead.id);
+        continue;
+      }
+
+      // Gate 3: Check real human name
+      if (!isValidHumanName(lead.full_name, email)) {
+        console.log(`[Disqualifying Lead] "${lead.full_name}" is not a valid human name.`);
+        await supabase.from("rep_leads").update({
+          status: "unqualified",
+          notes: `${lead.notes || ""}\n\n[DISQUALIFIED BY OUTREACH ENGINE]: Non-human or generic contact name.`
+        }).eq("id", lead.id);
+        continue;
+      }
+
+      // Gate 4: Check company name
+      if (!isValidCompanyName(lead.company_name)) {
+        continue;
+      }
+
+      // Gate 5: Check research intelligence
+      const notes = lead.notes || "";
+      const hasPain = notes.includes("[PAIN POINTS / TRIGGERS]") || notes.toLowerCase().includes("pain point");
+      const hasSol = notes.includes("[PROPOSED SOLUTION]") || notes.toLowerCase().includes("proposed solution");
+      if (!hasPain && !hasSol && notes.length < 50) {
+        continue;
+      }
+
+      // Gate 6: Domain deduplication
+      if (globalContactedDomainSet.has(domain)) {
+        continue;
+      }
+
+      // Gate 7: Active MX Verification
+      const hasMx = await verifyDomainMx(domain);
+      if (!hasMx) {
+        console.log(`[Disqualifying Lead] Domain ${domain} has no active MX records.`);
+        await supabase.from("rep_leads").update({
+          status: "unqualified",
+          notes: `${lead.notes || ""}\n\n[DISQUALIFIED BY OUTREACH ENGINE]: Domain has no active MX mail exchangers.`
+        }).eq("id", lead.id);
+        continue;
+      }
+
+      globalContactedDomainSet.add(domain);
+      qualifiedLeads.push(lead);
+    }
+
+    console.log(`Qualified Leads Ready for ${rep.full_name}: ${qualifiedLeads.length} (Max per run: ${MAX_EMAILS_PER_REP_PER_RUN})`);
+
+    if (!AUTO_SEND) {
+      console.log(`AUTO_SEND is disabled. Qualified leads remain in ${rep.full_name}'s Rep Dashboard.`);
       continue;
     }
 
-    // Gate 4: Reject SEO / non-authentic company names
-    if (!isValidCompanyName(lead.company_name)) {
-      continue;
-    }
+    let repSentCount = 0;
 
-    // Gate 5: Reject leads without complete, verified research intelligence
-    if (!hasCompleteResearch(lead.notes)) {
-      continue;
-    }
+    for (let i = 0; i < qualifiedLeads.length; i++) {
+      const lead = qualifiedLeads[i];
+      const cleanEmail = lead.email.toLowerCase().trim();
 
-    // Gate 6: Domain deduplication (never email more than 1 contact per company domain)
-    if (contactedDomainSet.has(domain)) {
-      continue;
-    }
+      // Synthesize bespoke tailored pitch
+      const pitch = synthesizePitchFromIntelligence({ lead, rep });
 
-    contactedDomainSet.add(domain);
-    uncontactedLeads.push(lead);
-  }
+      console.log(`[Dispatching #${i + 1}/${qualifiedLeads.length}] To: ${lead.full_name} <${cleanEmail}> at ${lead.company_name} via ${rep.assigned_outreach_email}`);
 
-  console.log(`\nFound ${uncontactedLeads.length} strictly verified, research-backed leads ready for outreach.`);
-
-  if (!AUTO_SEND) {
-    console.log("AUTO_SEND is disabled. Leads are queued in Farhad's Rep Dashboard for manual review.");
-    return;
-  }
-
-  let sentCount = 0;
-  let tasksCreated = 0;
-
-  for (const lead of uncontactedLeads) {
-    const cleanEmail = lead.email.toLowerCase();
-
-    // Extract draft subject and body strictly from research notes
-    const notes = lead.notes || "";
-    const subjectMatch = notes.match(/\[OUTREACH EMAIL DRAFT\]\s*\nSubject:\s*(.+)/);
-    const bodyMatch = notes.match(/Subject:[^\n]+\n\n([\s\S]+)$/);
-
-    if (!subjectMatch || !bodyMatch) {
-      console.error(`[SAFETY GATE TRIGGERED] Refusing to send to ${cleanEmail}: Missing custom research draft in notes.`);
-      continue;
-    }
-
-    const subject = subjectMatch[1].trim();
-    const emailBody = bodyMatch[1].trim();
-
-    // Zero-tolerance: Never send if email body is missing or too short
-    if (!emailBody || emailBody.length < 50) {
-      console.error(`[SAFETY GATE TRIGGERED] Refusing to send to ${cleanEmail}: Draft email body too short.`);
-      continue;
-    }
-
-    console.log(`Dispatching to ${lead.full_name} <${cleanEmail}> at ${lead.company_name}...`);
-    const sendRes = await sendOutreachEmail({
-      toEmail: cleanEmail,
-      toName: lead.full_name,
-      subject: subject,
-      bodyText: emailBody
-    });
-
-    if (sendRes.ok) {
-      sentCount++;
-      const nowIso = new Date().toISOString();
-
-      // 1. Move lead stage to 'contacted'
-      await supabase
-        .from("rep_leads")
-        .update({
-          stage: "contacted",
-          status: "attempted",
-          last_contacted_at: nowIso,
-          last_activity_at: nowIso
-        })
-        .eq("id", lead.id);
-
-      // 2. Log in rep_outreach_logs
-      await supabase.from("rep_outreach_logs").insert({
-        employee_id: FARHAD_EMPLOYEE_ID,
-        recipient_email: cleanEmail,
-        recipient_name: lead.full_name,
-        company_name: lead.company_name,
-        subject: subject,
-        body_content: emailBody,
-        template_used: (lead.tags && lead.tags[2]) || "custom"
+      const sendRes = await sendBrevoOutreach({
+        toEmail: cleanEmail,
+        toName: lead.full_name,
+        subject: pitch.subject,
+        bodyText: pitch.bodyText,
+        rep
       });
 
-      // 2b. Log in rep_audit_logs (for Admin Productivity & Real-Time Dashboard)
-      await supabase.from("rep_audit_logs").insert({
-        employee_id: FARHAD_EMPLOYEE_ID,
-        action_type: "outreach_sent",
-        description: `Sent cold outreach email to ${lead.full_name} (${cleanEmail}) via alias ${SENDER_EMAIL}.`,
-        target_identifier: cleanEmail,
-        metadata: {
-          subject,
-          company: lead.company_name,
-          source: "autonomous_cloud_engine"
-        },
-        created_at: nowIso
-      });
+      if (sendRes.ok) {
+        repSentCount++;
+        totalEmailsSentAllReps++;
+        const nowIso = new Date().toISOString();
 
-      // 3. Log activity in rep_lead_activities
-      await supabase.from("rep_lead_activities").insert({
-        lead_id: lead.id,
-        employee_id: FARHAD_EMPLOYEE_ID,
-        type: "email_sent",
-        outcome: "sent",
-        summary: `Outreach email sent: "${subject}"`,
-        details: {
-          subject,
-          body: emailBody,
-          sender: SENDER_EMAIL,
-          messageId: sendRes.messageId || "ok"
-        },
-        occurred_at: nowIso
-      });
+        // 1. Move lead stage to 'contacted'
+        await supabase
+          .from("rep_leads")
+          .update({
+            stage: "contacted",
+            status: "attempted",
+            last_contacted_at: nowIso,
+            last_activity_at: nowIso
+          })
+          .eq("id", lead.id);
 
-      // 4. Auto-schedule follow-up task due in 4 working days
-      const followUpDue = addWorkingDays(new Date(), 4);
-      await supabase.from("rep_lead_tasks").insert({
-        lead_id: lead.id,
-        employee_id: FARHAD_EMPLOYEE_ID,
-        title: `Follow up with ${lead.full_name} regarding custom workflow automation`,
-        due_at: followUpDue.toISOString(),
-        kind: "follow_up",
-        auto: true,
-        status: "open"
-      });
-      tasksCreated++;
+        // 2. Log in rep_outreach_logs
+        await supabase.from("rep_outreach_logs").insert({
+          employee_id: rep.id,
+          recipient_email: cleanEmail,
+          recipient_name: lead.full_name,
+          company_name: lead.company_name,
+          subject: pitch.subject,
+          body_content: pitch.bodyText,
+          template_used: (lead.tags && lead.tags[2]) || "bespoke_custom"
+        });
 
-      console.log(`[Dispatched & Logged] ${cleanEmail} (Follow-up scheduled for ${followUpDue.toISOString().slice(0, 10)})`);
-    } else {
-      console.error(`Failed to send email to ${cleanEmail}:`, sendRes.error);
+        // 2b. Log in rep_audit_logs (for Admin Productivity & Real-Time Tracking)
+        await supabase.from("rep_audit_logs").insert({
+          employee_id: rep.id,
+          action_type: "outreach_sent",
+          description: `Sent cold outreach email to ${lead.full_name} (${cleanEmail}) via alias ${rep.assigned_outreach_email}.`,
+          target_identifier: cleanEmail,
+          metadata: {
+            subject: pitch.subject,
+            company: lead.company_name,
+            rep_alias: rep.assigned_outreach_email,
+            country: lead.country || "GB"
+          },
+          created_at: nowIso
+        });
+
+        // 3. Log activity in rep_lead_activities
+        await supabase.from("rep_lead_activities").insert({
+          lead_id: lead.id,
+          employee_id: rep.id,
+          type: "email_sent",
+          outcome: "sent",
+          summary: `Outreach email sent: "${pitch.subject}"`,
+          details: {
+            subject: pitch.subject,
+            body: pitch.bodyText,
+            sender: rep.assigned_outreach_email,
+            messageId: sendRes.messageId || "ok"
+          },
+          occurred_at: nowIso
+        });
+
+        // 4. Auto-schedule follow-up task due in 4 working days assigned to this rep
+        const followUpDue = addWorkingDays(new Date(), 4);
+        await supabase.from("rep_lead_tasks").insert({
+          lead_id: lead.id,
+          employee_id: rep.id,
+          title: `Follow up with ${lead.full_name} regarding custom workflow automation`,
+          due_at: followUpDue.toISOString(),
+          kind: "follow_up",
+          auto: true,
+          status: "open"
+        });
+        totalTasksCreatedAllReps++;
+
+        globalSentEmailSet.add(cleanEmail);
+
+        // Enforce 5-10 second randomized cooldown between sends (except after last email)
+        if (i < qualifiedLeads.length - 1) {
+          await sleepRandomCooldown(5000, 10000);
+        }
+      } else {
+        console.error(`Failed to send to ${cleanEmail}:`, sendRes.error);
+      }
     }
+
+    console.log(`Finished dispatch for ${rep.full_name}: Sent ${repSentCount} emails.`);
   }
 
-  console.log("\n=== Execution Summary ===");
-  console.log(`Total Outreach Emails Sent:    ${sentCount}`);
-  console.log(`Total Follow-Up Tasks Created: ${tasksCreated}`);
-  console.log("Rep Portal URL:   /rep/dashboard");
-  console.log("Admin Portal URL: /admin/acquisition/crm");
+  console.log("\n==================================================================");
+  console.log(" Outreach Execution Summary");
+  console.log("==================================================================");
+  console.log(`Total Emails Sent Across All Reps: ${totalEmailsSentAllReps}`);
+  console.log(`Total Follow-Up Tasks Created:     ${totalTasksCreatedAllReps}`);
+  console.log("Admin Productivity URL: /admin/reps");
+  console.log("Rep Portal URL:         /rep/dashboard");
 }
 
 main().catch(console.error);
