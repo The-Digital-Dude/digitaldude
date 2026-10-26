@@ -41,6 +41,9 @@ export const handlers: Record<string, JobHandler> = {
   },
 };
 
+/** Job types whose permanent failures are routine per-company outcomes and are never announced. */
+export const QUIET_FAILURE_TYPES = new Set(["research", "discover"]);
+
 export const backoffSeconds = (attempts: number) => Math.min(3600, 60 * 2 ** Math.max(0, attempts - 1));
 
 export async function runWorkerTick(opts: { limit?: number; db?: Db; handlers?: Record<string, JobHandler> } = {}) {
@@ -82,8 +85,13 @@ export async function runWorkerTick(opts: { limit?: number; db?: Db; handlers?: 
       log("error", { message: "acquisition job failed", context: { jobId: job.id, type: job.type, attempts: job.attempts }, error: e });
       if (job.attempts >= job.max_attempts) {
         await db.from("acq_jobs").update({ status: "failed", last_error: message.slice(0, 1000) }).eq("id", job.id).eq("status", "running");
-        await notify(`Acquisition job failed permanently: ${job.type} — ${message.slice(0, 200)}`);
-        await alertAdmin(db, { kind: "job_failed", title: `Background job failed: ${job.type}`, body: message.slice(0, 500), link: "/admin/acquisition/settings", dedupeKey: `job_failed:${job.id}` });
+        // Research and discovery fail routinely for reasons outside our control (a site blocks bots, has a bad certificate, forbids crawling,
+        // or the AI provider is briefly busy). That is a per-company outcome, not a system fault, so it does not email or message anyone.
+        // Failures of delivery jobs (sending email, classifying replies) still alert, because someone needs to act on those.
+        if (!QUIET_FAILURE_TYPES.has(job.type)) {
+          await notify(`Acquisition job failed permanently: ${job.type} — ${message.slice(0, 200)}`);
+          await alertAdmin(db, { kind: "job_failed", title: `Background job failed: ${job.type}`, body: message.slice(0, 500), link: "/admin/acquisition/settings", dedupeKey: `job_failed:${job.id}` });
+        }
         summary.failed++;
       } else {
         const runAt = new Date(Date.now() + backoffSeconds(job.attempts) * 1000).toISOString();
