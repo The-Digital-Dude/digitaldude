@@ -95,6 +95,7 @@ const rootJsonLd = {
         "https://www.linkedin.com/company/td-dude",
         "https://www.facebook.com/td.dude/",
         "https://www.instagram.com/td.dude",
+        "https://www.crunchbase.com/organization/the-digital-dude",
       ],
       areaServed: [
         { "@type": "Country", name: "United Kingdom" },
