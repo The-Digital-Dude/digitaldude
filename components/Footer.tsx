@@ -52,7 +52,7 @@ export function Footer() {
               </a>
               <div className="flex items-center gap-2 text-slate-400">
                 <Globe className="h-3.5 w-3.5 text-emerald-400" />
-                <span>UK & Australia Engineering Hubs</span>
+                <span>Serving the UK & Australia</span>
               </div>
             </div>
 
@@ -143,15 +143,15 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Engineering Hubs & Comparisons */}
+          {/* Column 4: Engineering Locations & Comparisons */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-              Hubs & Comparisons
+              Locations & Comparisons
             </h3>
             <ul className="mt-4 space-y-2.5 text-xs">
               <li>
                 <Link href="/locations/london/crm-development" className="hover:text-white transition">
-                  London Tech Hub
+                  London
                 </Link>
               </li>
               <li>
@@ -161,12 +161,12 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/locations/sydney/saas-development" className="hover:text-white transition">
-                  Sydney Innovation Hub
+                  Sydney
                 </Link>
               </li>
               <li>
                 <Link href="/locations/melbourne/crm-development" className="hover:text-white transition">
-                  Melbourne Tech Hub
+                  Melbourne
                 </Link>
               </li>
               <li>

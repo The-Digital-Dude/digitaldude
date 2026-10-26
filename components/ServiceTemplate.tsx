@@ -309,7 +309,7 @@ export function ServiceTemplate({ service }: { service: Service }) {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-purple">
-                UK &amp; Australia Hubs
+                UK &amp; Australia Coverage
               </span>
               <h3 className="text-xl font-bold text-navy mt-0.5">
                 {service.navLabel} in Your Metropolitan Region
@@ -319,7 +319,7 @@ export function ServiceTemplate({ service }: { service: Service }) {
               href="/locations"
               className="text-xs font-bold text-purple hover:underline flex items-center gap-1"
             >
-              All Engineering Hubs <ArrowRight size={14} />
+              All locations we serve <ArrowRight size={14} />
             </Link>
           </div>
 
