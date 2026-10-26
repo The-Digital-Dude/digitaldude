@@ -24,6 +24,7 @@ import {
   X
 } from 'lucide-react';
 import Link from 'next/link';
+import { AUTHOR_NAMES } from '@/lib/content/authors';
 
 export default function EditBlogPostPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function EditBlogPostPage() {
     category: 'SEO & Performance',
     cover_image: '',
     status: 'draft',
-    author: 'The Digital Dude Team',
+    author: 'Farhad Hossain',
     meta_title: '',
     meta_description: ''
   });
@@ -84,7 +85,7 @@ export default function EditBlogPostPage() {
             category: data.post.category || 'SEO & Performance',
             cover_image: data.post.cover_image || '',
             status: data.post.status || 'draft',
-            author: data.post.author || 'The Digital Dude Team',
+            author: data.post.author || 'Farhad Hossain',
             meta_title: data.post.meta_title || '',
             meta_description: data.post.meta_description || ''
           });
@@ -523,12 +524,16 @@ export default function EditBlogPostPage() {
                   </label>
                   <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
                     <User size={14} className="text-navy/40 mr-2" />
-                    <input
-                      type="text"
+                    <select
                       value={formData.author}
                       onChange={(e) => setFormData({ ...formData, author: e.target.value })}
                       className="w-full bg-transparent text-navy text-xs outline-none"
-                    />
+                    >
+                      {!AUTHOR_NAMES.includes(formData.author) && <option value={formData.author}>{formData.author}</option>}
+                      {AUTHOR_NAMES.map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 

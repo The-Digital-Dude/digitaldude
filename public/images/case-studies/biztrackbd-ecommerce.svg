@@ -1,0 +1,34 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="Poppins, Arial, sans-serif" role="img" aria-label="BizTrackBD store builder: sections list, live preview and settings">
+  <rect width="800" height="600" fill="#1A1A4E"/>
+  <rect x="40" y="40" width="720" height="520" rx="14" fill="#12123A"/>
+  <circle cx="70" cy="66" r="5" fill="#F97066"/><circle cx="88" cy="66" r="5" fill="#F5C451"/><circle cx="106" cy="66" r="5" fill="#4ADE80"/>
+  <rect x="140" y="56" width="280" height="20" rx="10" fill="#20204E"/>
+  <text x="152" y="70" fill="#8B87B8" font-size="11">admin / store builder</text>
+  <rect x="40" y="90" width="720" height="1" fill="#2A2A5C"/>
+  <!-- sections list -->
+  <rect x="40" y="91" width="170" height="469" fill="#15153F"/>
+  <g font-size="11" fill="#E8E6FF">
+    <text x="60" y="118" fill="#8B87B8" font-weight="700">SECTIONS</text>
+    <rect x="56" y="130" width="138" height="30" rx="6" fill="#5B4FE8"/><text x="70" y="149">Hero banner</text>
+    <rect x="56" y="168" width="138" height="30" rx="6" fill="#20204E"/><text x="70" y="187" fill="#9490BF">Featured products</text>
+    <rect x="56" y="206" width="138" height="30" rx="6" fill="#20204E"/><text x="70" y="225" fill="#9490BF">Collections</text>
+    <rect x="56" y="244" width="138" height="30" rx="6" fill="#20204E"/><text x="70" y="263" fill="#9490BF">Reviews</text>
+    <rect x="56" y="282" width="138" height="30" rx="6" fill="#20204E"/><text x="70" y="301" fill="#9490BF">Footer</text>
+  </g>
+  <!-- live preview -->
+  <rect x="226" y="108" width="330" height="430" rx="10" fill="#F4F1EA"/>
+  <rect x="226" y="108" width="330" height="30" rx="10" fill="#E6E1D4"/>
+  <rect x="244" y="150" width="294" height="110" rx="8" fill="#5B4FE8"/>
+  <rect x="262" y="176" width="150" height="12" rx="6" fill="#FFFFFF"/><rect x="262" y="198" width="110" height="8" rx="4" fill="#C9C4FF"/><rect x="262" y="222" width="70" height="20" rx="10" fill="#FFFFFF"/>
+  <g fill="#D8D3C4"><rect x="244" y="278" width="92" height="92" rx="8"/><rect x="346" y="278" width="92" height="92" rx="8"/><rect x="448" y="278" width="90" height="92" rx="8"/></g>
+  <g fill="#B8B2A0"><rect x="244" y="378" width="70" height="7" rx="3"/><rect x="346" y="378" width="70" height="7" rx="3"/><rect x="448" y="378" width="70" height="7" rx="3"/></g>
+  <g fill="#E6E1D4"><rect x="244" y="410" width="294" height="40" rx="8"/><rect x="244" y="462" width="294" height="40" rx="8"/></g>
+  <!-- settings -->
+  <rect x="572" y="91" width="188" height="469" fill="#15153F"/>
+  <g font-size="11" fill="#E8E6FF">
+    <text x="588" y="118" fill="#8B87B8" font-weight="700">SETTINGS</text>
+    <rect x="588" y="132" width="156" height="26" rx="6" fill="#20204E"/><rect x="588" y="170" width="156" height="26" rx="6" fill="#20204E"/><rect x="588" y="208" width="100" height="26" rx="6" fill="#20204E"/>
+    <rect x="588" y="262" width="70" height="26" rx="13" fill="#4ADE80"/><text x="606" y="279" fill="#0F2A1A" font-weight="700">Publish</text>
+    <rect x="668" y="262" width="76" height="26" rx="13" fill="#20204E"/><text x="684" y="279" fill="#9490BF">Undo</text>
+  </g>
+</svg>

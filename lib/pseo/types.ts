@@ -132,7 +132,7 @@ export interface ComparisonCalculatorConfig {
 export interface PseoComparison {
   slug: string;
   competitorName: string;
-  category: "CRM" | "Marketplace" | "ERP & Operations" | "Booking Engine" | "No-Code / Low-Code";
+  category: "CRM" | "Marketplace" | "ERP & Operations" | "Booking Engine" | "No-Code / Low-Code" | "E-Commerce";
   targetNiche: string;
   summary: string;
   pricingModel: string;

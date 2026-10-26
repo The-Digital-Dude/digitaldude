@@ -6,7 +6,7 @@ import { MapPin, ArrowRight, CheckCircle2, Globe, ShieldCheck } from "lucide-rea
 import { SITE_URL } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Engineering Hubs & Regional Locations | The Digital Dude",
+  title: "Custom Software Across the UK & Australia | Digital Dude",
   description: "Bespoke software engineering, custom CRM development, and multi-tenant SaaS architecture for high-growth service enterprises across the UK and Australia.",
   alternates: {
     canonical: `${SITE_URL}/locations`,
@@ -24,7 +24,7 @@ export default function LocationsIndexPage() {
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-accent-primary/10 px-4 py-1.5 text-xs font-semibold text-accent-primary">
               <Globe className="h-4 w-4" />
-              United Kingdom & Australia Engineering Hubs
+              Serving the United Kingdom & Australia
             </div>
             <h1 className="text-3xl md:text-5xl font-extrabold text-navy tracking-tight">
               Bespoke Software & Custom Systems in Your Local Market
@@ -37,12 +37,12 @@ export default function LocationsIndexPage() {
           {/* Quick Stats Banner */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="rounded-2xl bg-white p-6 border border-slate-200 shadow-sm text-center">
-              <div className="text-3xl font-extrabold text-navy">10 Hubs</div>
+              <div className="text-3xl font-extrabold text-navy">10 Cities</div>
               <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-1">
                 UK & Australia Coverage
               </div>
               <div className="text-xs text-slate-500 mt-2">
-                Local timezone engineering & compliance alignment (GDPR, APP)
+                Delivered remotely with working-hours overlap; GDPR and Australian Privacy Principles built in
               </div>
             </div>
             <div className="rounded-2xl bg-white p-6 border border-slate-200 shadow-sm text-center">
@@ -114,7 +114,7 @@ export default function LocationsIndexPage() {
                       href={`/locations/${loc.slug}/${pseoServices[0].slug}`}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:text-accent-primary/80 transition"
                     >
-                      Explore {loc.city} Hub
+                      Explore {loc.city}
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>
@@ -172,7 +172,7 @@ export default function LocationsIndexPage() {
                       href={`/locations/${loc.slug}/${pseoServices[0].slug}`}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:text-accent-primary/80 transition"
                     >
-                      Explore {loc.city} Hub
+                      Explore {loc.city}
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Link>
                   </div>

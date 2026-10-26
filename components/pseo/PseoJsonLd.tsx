@@ -44,6 +44,7 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
             name: "Farhad Hossain",
             jobTitle: "Founder & Solutions Architect",
             url: `${SITE_URL}/about`,
+            sameAs: ["https://www.linkedin.com/in/neiloy-farhad/"],
           },
           publisher: {
             "@type": "Organization",
@@ -104,20 +105,12 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
           name: `The Digital Dude - ${page.city} Hub`,
           description: page.metaDescription,
           url: pageUrl,
-          telephone: "+44 20 8123 4567",
           priceRange: "£££",
           address: {
             "@type": "PostalAddress",
             addressLocality: page.city,
             addressRegion: page.region || page.city,
             addressCountry: page.country === "Australia" ? "AU" : "GB",
-          },
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: "4.9",
-            reviewCount: "29",
-            bestRating: "5",
-            worstRating: "1",
           },
         }
       : null;
@@ -132,19 +125,6 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
           applicationCategory: "BusinessApplication",
           operatingSystem: "Cloud, Web, Mobile (iOS/Android)",
           description: page.metaDescription,
-          offers: {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: page.currency || "GBP",
-            description: "Fixed milestone build with zero ongoing per-user license fees",
-          },
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: "4.9",
-            reviewCount: "35",
-            bestRating: "5",
-            worstRating: "1",
-          },
         }
       : null;
 

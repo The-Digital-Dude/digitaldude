@@ -71,7 +71,7 @@ const aboutJsonLd = {
       name: "Farhad Hossain",
       jobTitle: "Founder & Solutions Architect",
       url: `${SITE_URL}/about`,
-      sameAs: ["https://www.linkedin.com/company/td-dude"],
+      sameAs: ["https://www.linkedin.com/in/neiloy-farhad/"],
       worksFor: {
         "@type": "Organization",
         "@id": `${SITE_URL}#organization`,

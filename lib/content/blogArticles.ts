@@ -20,14 +20,14 @@ export const staticBlogArticles: Record<string, BlogArticle> = {
     title: "Making the CRM Switch: Off-the-Shelf CRM vs Custom CRM Architecture",
     slug: "off-the-shelf-crm-vs-custom-crm",
     excerpt: "Thinking of making a CRM switch? Compare pre-built off-the-shelf software with a custom CRM. Discover total cost of ownership, role-based access, and true business workflow alignment.",
-    meta_title: "Making the CRM Switch: Off-the-Shelf vs Custom CRM | The Digital Dude",
+    meta_title: "Off-the-Shelf vs Custom CRM: The CRM Switch | Digital Dude",
     meta_description: "Thinking of making a CRM switch? Compare pre-built off-the-shelf software with a custom CRM. Discover cost savings, role-based access, and true business workflow fit.",
     category: "CRM Development",
     read_time: "8 min read",
     reading_time_minutes: 8,
     published_at: "2026-03-20T00:00:00Z",
     updated_at: "2026-10-10T00:00:00Z",
-    author: "The Digital Dude Team",
+    author: "Farhad Hossain",
     cover_image: "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80",
     content: `## The Modern Dilemma: Off-the-Shelf SaaS vs Building a Custom CRM
 
@@ -138,7 +138,7 @@ If your current CRM software is holding your team back with punitive per-seat li
     reading_time_minutes: 7,
     published_at: "2026-03-18T00:00:00Z",
     updated_at: "2026-10-10T00:00:00Z",
-    author: "The Digital Dude Team",
+    author: "Farhad Hossain",
     cover_image: "https://images.unsplash.com/photo-1556742049-0a67c5574f73?auto=format&fit=crop&w=1200&q=80",
     content: `## The Architecture of a 3 Sided Marketplace App
 
@@ -240,7 +240,7 @@ Building a resilient **3 sided marketplace app** eliminates administrative dispa
     reading_time_minutes: 7,
     published_at: "2026-03-25T00:00:00Z",
     updated_at: "2026-10-10T00:00:00Z",
-    author: "The Digital Dude Team",
+    author: "Farhad Hossain",
     cover_image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80",
     content: `## Separating Practical Engineering from Marketing Rhetoric
 
@@ -311,7 +311,7 @@ When evaluating where to introduce intelligent automation into your software sta
     reading_time_minutes: 5,
     published_at: "2026-03-10T00:00:00Z",
     updated_at: "2026-10-10T00:00:00Z",
-    author: "The Digital Dude Team",
+    author: "Farhad Hossain",
     cover_image: "/blog/crm-outgrow-spreadsheets.jpg",
     content: `## The Inevitable Spreadsheet Ceiling
 
@@ -342,14 +342,14 @@ A custom CRM is mapped directly to how your team operates from day one:
     title: "How We Scaled E-Commerce Organic Revenue by 340% in 90 Days",
     slug: "scaled-ecommerce-organic-revenue-340-percent",
     excerpt: "A step-by-step breakdown of fixing technical crawl bloat, optimizing category facet indexing, and implementing programmatic landing pages.",
-    meta_title: "How We Scaled E-Commerce Organic Revenue by 340% in 90 Days | Digital Dude",
+    meta_title: "E-Commerce Organic Revenue Up 340% in 90 Days | Digital Dude",
     meta_description: "A step-by-step breakdown of fixing technical crawl bloat, optimizing category facet indexing, and implementing programmatic landing pages.",
     category: "E-Commerce Growth",
     read_time: "6 min read",
     reading_time_minutes: 6,
     published_at: "2026-03-15T00:00:00Z",
     updated_at: "2026-10-10T00:00:00Z",
-    author: "The Digital Dude Team",
+    author: "Tanvir Ahmed Shuvo",
     cover_image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
     content: `## The Challenge
 
@@ -395,6 +395,9 @@ Within 90 days of deploying the new architecture:
 Scaling e-commerce revenue requires treating performance engineering as a primary marketing lever. When your site is blazingly fast and architecturally clean, search engines reward you with authority and users convert at significantly higher rates.`
   }
 };
+
+import { newBlogArticles } from "./newBlogArticles";
+for (const article of newBlogArticles) staticBlogArticles[article.slug] = article;
 
 export function getAllStaticBlogArticles(): BlogArticle[] {
   return Object.values(staticBlogArticles);

@@ -14,6 +14,7 @@ interface Props {
 
 import { staticBlogArticles, getStaticBlogArticle, getAllStaticBlogArticles, BlogArticle } from '@/lib/content/blogArticles';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { authorSchema, findAuthor } from '@/lib/content/authors';
 
 interface Article extends BlogArticle {}
 
@@ -174,16 +175,8 @@ export default async function BlogPostDetailPage({ params }: Props) {
       : `${SITE_URL}${post.cover_image.startsWith('/') ? '' : '/'}${post.cover_image}`
     : `${SITE_URL}/og-image.png`;
 
-  const authorSchema = post.author && post.author !== 'The Digital Dude Team' && post.author !== 'The Digital Dude'
-    ? {
-        '@type': 'Person',
-        name: post.author,
-      }
-    : {
-        '@type': 'Organization',
-        name: 'The Digital Dude',
-        url: SITE_URL,
-      };
+  const author = findAuthor(post.author);
+  const authorLd = authorSchema(post.author, SITE_URL);
 
   // Schema.org BlogPosting & BreadcrumbList Structured Data
   const jsonLd = {
@@ -201,7 +194,7 @@ export default async function BlogPostDetailPage({ params }: Props) {
         image: [absoluteCoverImage],
         datePublished: post.published_at,
         dateModified: post.updated_at || post.published_at,
-        author: authorSchema,
+        author: authorLd,
         publisher: {
           '@type': 'Organization',
           name: 'The Digital Dude',
@@ -308,11 +301,19 @@ export default async function BlogPostDetailPage({ params }: Props) {
           <div className="mt-8 pt-6 border-t border-black/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-purple/10 flex items-center justify-center text-purple font-bold text-sm">
-                DD
+                {author ? author.initials : 'DD'}
               </div>
               <div>
-                <p className="text-sm font-semibold text-navy">{post.author || 'The Digital Dude'}</p>
-                <p className="text-xs text-navy/50">Performance Engineering & Growth</p>
+                <p className="text-sm font-semibold text-navy">
+                  {author ? (
+                    <a href={author.linkedin} target="_blank" rel="noopener noreferrer author" className="hover:text-purple underline-offset-2 hover:underline">
+                      {author.name}
+                    </a>
+                  ) : (
+                    post.author || 'The Digital Dude'
+                  )}
+                </p>
+                <p className="text-xs text-navy/50">{author ? author.role : 'Performance Engineering & Growth'}</p>
               </div>
             </div>
           </div>
@@ -341,7 +342,7 @@ export default async function BlogPostDetailPage({ params }: Props) {
             keyPoints={[
               `Core Focus: ${post.category}`,
               `Estimated Reading Time: ${post.read_time || '5 min read'}`,
-              `Author & Technical Review: ${post.author || 'The Digital Dude Team'}`
+              `Written by: ${author ? `${author.name}, ${author.role}` : post.author || 'The Digital Dude Team'}`
             ]}
           />
         )}
@@ -356,32 +357,35 @@ export default async function BlogPostDetailPage({ params }: Props) {
         <div className="mt-12 rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm flex-shrink-0">
-              {post.author ? post.author.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'DD'}
+              {author ? author.initials : 'DD'}
             </div>
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-bold text-navy">
-                  {post.author || 'The Digital Dude Engineering Team'}
+                  {author ? (
+                    <a href={author.linkedin} target="_blank" rel="noopener noreferrer author" className="hover:text-purple underline-offset-2 hover:underline">
+                      {author.name}
+                    </a>
+                  ) : (
+                    post.author || 'The Digital Dude Engineering Team'
+                  )}
                 </h3>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
-                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  Verified Author
-                </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-lavender px-2 py-0.5 text-[11px] font-semibold text-purple">
                   <Award className="w-3 h-3" />
-                  Technical Lead
+                  {author ? author.role : 'The Digital Dude'}
                 </span>
               </div>
               <p className="mt-1 text-xs sm:text-sm text-navy/70 leading-relaxed">
-                Authored and reviewed by senior engineering practitioners at The Digital Dude. Specializing in high-performance web architecture, scalable databases, programmatic SEO, and enterprise conversion systems.
+                {author
+                  ? author.bio
+                  : 'Written by the team at The Digital Dude, specialists in high-performance web architecture, custom CRMs, marketplaces and programmatic SEO.'}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-y-1 gap-x-4 text-[11px] text-navy/50 font-medium">
-                <span className="flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Fact-Checked & Peer Reviewed
-                </span>
-                <span className="flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-purple" /> Tested in Production Deployments
-                </span>
+                {author && (
+                  <a href={author.linkedin} target="_blank" rel="noopener noreferrer author" className="flex items-center gap-1 text-purple hover:underline">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {author.name} on LinkedIn
+                  </a>
+                )}
                 <span>Category: {post.category}</span>
               </div>
             </div>
@@ -406,10 +410,10 @@ export default async function BlogPostDetailPage({ params }: Props) {
             </div>
             <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto flex-shrink-0">
               <Link
-                href="/calculator"
+                href="/blog/custom-software-development-cost-uk"
                 className="inline-flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2.5 text-xs font-bold text-white transition text-center"
               >
-                Instant Quote
+                See Price Ranges
               </Link>
               <Link
                 href="/contact"

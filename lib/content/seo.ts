@@ -176,7 +176,7 @@ export const seo: Record<string, SeoEntry> = {
     description: "The operational terms that govern client agreements, IP ownership, and project warranties.",
   },
   "industries/property": {
-    title: "Deeds Management Software & Property CRM Systems | Digital Dude",
+    title: "Deeds Management Software & Property CRM | Digital Dude",
     description:
       "Bespoke deeds management software and multi-portal property CRMs for real estate professionals, conveyancers, and property managers. Secure deed document workflows.",
     keywords: [

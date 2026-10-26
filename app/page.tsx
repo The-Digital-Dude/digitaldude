@@ -186,26 +186,6 @@ const homeJsonLd = {
         "@id": `${SITE_URL}#organization`,
       },
       priceRange: "£££",
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: "4.9",
-        reviewCount: "32",
-        bestRating: "5",
-        worstRating: "1",
-      },
-      review: clientTestimonials.map((t) => ({
-        "@type": "Review",
-        author: {
-          "@type": "Person",
-          name: t.author,
-        },
-        reviewBody: t.quote,
-        reviewRating: {
-          "@type": "Rating",
-          ratingValue: "5",
-          bestRating: "5",
-        },
-      })),
     },
   ],
 };

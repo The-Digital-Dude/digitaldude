@@ -1,0 +1,27 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="Poppins, Arial, sans-serif" role="img" aria-label="AI restaurant ordering platform: live orders board and call log">
+  <rect width="800" height="600" fill="#1A1A4E"/>
+  <rect x="40" y="40" width="720" height="520" rx="14" fill="#12123A"/>
+  <circle cx="70" cy="66" r="5" fill="#F97066"/><circle cx="88" cy="66" r="5" fill="#F5C451"/><circle cx="106" cy="66" r="5" fill="#4ADE80"/>
+  <rect x="140" y="56" width="280" height="20" rx="10" fill="#20204E"/>
+  <text x="152" y="70" fill="#8B87B8" font-size="11">dashboard / live orders</text>
+  <rect x="40" y="90" width="720" height="1" fill="#2A2A5C"/>
+  <rect x="40" y="91" width="150" height="469" fill="#15153F"/>
+  <g font-size="11" fill="#E8E6FF">
+    <rect x="60" y="116" width="110" height="30" rx="6" fill="#5B4FE8"/><text x="76" y="135">Live orders</text>
+    <text x="76" y="176" fill="#9490BF">Call log</text><text x="76" y="210" fill="#9490BF">Kitchen display</text>
+    <text x="76" y="244" fill="#9490BF">Analytics</text><text x="76" y="278" fill="#9490BF">Settings</text>
+  </g>
+  <g font-size="11">
+    <text x="214" y="124" fill="#8B87B8" font-weight="700">NEW</text>
+    <rect x="210" y="134" width="150" height="96" rx="10" fill="#20204E"/><rect x="222" y="148" width="70" height="8" rx="4" fill="#E8E6FF"/><rect x="222" y="168" width="110" height="6" rx="3" fill="#5A5A8C"/><rect x="222" y="184" width="90" height="6" rx="3" fill="#5A5A8C"/><rect x="222" y="206" width="54" height="14" rx="7" fill="#5B4FE8"/>
+    <rect x="210" y="242" width="150" height="96" rx="10" fill="#20204E"/><rect x="222" y="256" width="60" height="8" rx="4" fill="#E8E6FF"/><rect x="222" y="276" width="100" height="6" rx="3" fill="#5A5A8C"/><rect x="222" y="292" width="80" height="6" rx="3" fill="#5A5A8C"/><rect x="222" y="314" width="54" height="14" rx="7" fill="#5B4FE8"/>
+    <text x="388" y="124" fill="#8B87B8" font-weight="700">PREPARING</text>
+    <rect x="384" y="134" width="150" height="96" rx="10" fill="#20204E"/><rect x="396" y="148" width="64" height="8" rx="4" fill="#E8E6FF"/><rect x="396" y="168" width="104" height="6" rx="3" fill="#5A5A8C"/><rect x="396" y="184" width="84" height="6" rx="3" fill="#5A5A8C"/><rect x="396" y="206" width="54" height="14" rx="7" fill="#F5C451"/>
+    <text x="558" y="124" fill="#8B87B8" font-weight="700">READY</text>
+    <rect x="558" y="134" width="170" height="96" rx="10" fill="#20204E"/><rect x="570" y="148" width="66" height="8" rx="4" fill="#E8E6FF"/><rect x="570" y="168" width="120" height="6" rx="3" fill="#5A5A8C"/><rect x="570" y="184" width="96" height="6" rx="3" fill="#5A5A8C"/><rect x="570" y="206" width="54" height="14" rx="7" fill="#4ADE80"/>
+  </g>
+  <rect x="210" y="370" width="518" height="160" rx="10" fill="#15153F"/>
+  <text x="228" y="396" fill="#E8E6FF" font-size="12" font-weight="700">Call log</text>
+  <g fill="#5A5A8C"><rect x="228" y="412" width="190" height="7" rx="3"/><rect x="228" y="434" width="230" height="7" rx="3"/><rect x="228" y="456" width="170" height="7" rx="3"/><rect x="228" y="478" width="210" height="7" rx="3"/></g>
+  <g fill="#4ADE80"><rect x="650" y="410" width="58" height="12" rx="6"/><rect x="650" y="432" width="58" height="12" rx="6"/><rect x="650" y="454" width="58" height="12" rx="6" fill="#F5C451"/><rect x="650" y="476" width="58" height="12" rx="6"/></g>
+</svg>

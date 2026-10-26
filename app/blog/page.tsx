@@ -7,8 +7,8 @@ import { SITE_URL } from '@/lib/utils';
 import { Clock, Tag, ArrowRight, BookOpen, Search } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Blog & Insights | The Digital Dude - Growth, Web & Performance',
-  description: 'Actionable strategies on e-commerce scaling, technical SEO, conversion rate optimization, and custom software engineering.',
+  title: 'Custom Software, CRM & SEO Insights | The Digital Dude',
+  description: 'Practical guides on custom CRM and marketplace development, AI features, technical SEO and Google Ads, from the team that builds them.',
   openGraph: {
     title: 'The Digital Dude Blog - Insights & Playbooks',
     description: 'Practical guides and deep dives on revenue-focused engineering and performance marketing.',
@@ -44,7 +44,7 @@ const fallbackPosts: Post[] = [
     cover_image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
     read_time: '6 min read',
     published_at: new Date().toISOString(),
-    author: 'The Digital Dude Team'
+    author: 'Tanvir Ahmed Shuvo'
   },
   {
     id: 'f-2',
@@ -55,7 +55,7 @@ const fallbackPosts: Post[] = [
     cover_image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80',
     read_time: '8 min read',
     published_at: new Date().toISOString(),
-    author: 'The Digital Dude Team'
+    author: 'Farhad Hossain'
   },
   {
     id: 'f-3',
@@ -66,7 +66,7 @@ const fallbackPosts: Post[] = [
     cover_image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80',
     read_time: '5 min read',
     published_at: new Date().toISOString(),
-    author: 'The Digital Dude Team'
+    author: 'Tanvir Ahmed Shuvo'
   }
 ];
 
@@ -125,10 +125,10 @@ export default async function BlogPage() {
             Engineering & Growth Playbooks
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-navy leading-[1.15]">
-            Insights on Scaling Digital Revenue
+            Custom Software, CRM and Growth Insights
           </h1>
           <p className="mt-4 text-lg text-navy/70 leading-relaxed max-w-2xl">
-            Practical strategies, technical deep dives, and performance engineering playbooks from our work with high-growth businesses.
+            Practical guides on building custom CRMs, marketplaces and AI features, and on the search and paid-media work that brings in the right customers.
           </p>
         </div>
       </section>

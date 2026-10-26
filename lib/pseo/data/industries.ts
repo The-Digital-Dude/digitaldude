@@ -1,4 +1,5 @@
 import { PseoIndustry } from "../types";
+import { newPseoIndustries } from "./industriesNew";
 
 export const pseoIndustries: PseoIndustry[] = [
   {
@@ -252,3 +253,5 @@ export const pseoIndustries: PseoIndustry[] = [
     ]
   }
 ];
+
+pseoIndustries.push(...newPseoIndustries);

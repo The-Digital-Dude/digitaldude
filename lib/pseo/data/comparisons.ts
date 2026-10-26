@@ -1,4 +1,5 @@
 import { PseoComparison } from "../types";
+import { newPseoComparisons } from "./comparisonsNew";
 
 export const pseoComparisons: PseoComparison[] = [
   {
@@ -1708,3 +1709,5 @@ export const pseoComparisons: PseoComparison[] = [
     ]
   }
 ];
+
+pseoComparisons.push(...newPseoComparisons);

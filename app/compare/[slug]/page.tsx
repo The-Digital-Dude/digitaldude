@@ -119,7 +119,7 @@ export default async function ComparisonDetailPage({ params }: PageProps) {
               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
                 <div className="flex items-center gap-1.5 font-medium text-slate-700">
                   <User className="h-4 w-4 text-accent-primary" />
-                  <span>By <a href="https://www.linkedin.com/in/farhad-hossain-a03522195/" target="_blank" rel="noopener noreferrer" className="hover:text-accent-primary underline">Farhad Hossain</a>, Solutions Architect</span>
+                  <span>By <a href="https://www.linkedin.com/in/neiloy-farhad/" target="_blank" rel="noopener noreferrer author" className="hover:text-accent-primary underline">Farhad Hossain</a>, Solutions Architect</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-4 w-4 text-slate-400" />

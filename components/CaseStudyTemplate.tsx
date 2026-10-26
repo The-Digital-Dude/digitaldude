@@ -22,7 +22,7 @@ export function CaseStudyTemplate({ project }: { project: CaseStudy }) {
           "@type": "Person",
           name: "Farhad Hossain",
           jobTitle: "Founder & Solutions Architect",
-          url: "https://www.linkedin.com/in/farhad-hossain-a03522195/",
+          url: "https://www.linkedin.com/in/neiloy-farhad/",
         },
         publisher: {
           "@type": "Organization",

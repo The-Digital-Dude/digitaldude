@@ -1,0 +1,22 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Programmatic SEO: page matrix with a quality gate before the sitemap">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1A1A4E"/><stop offset="1" stop-color="#12123A"/></linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g font-family="Arial, sans-serif">
+    <text x="80" y="120" fill="#8B7FF0" font-size="20" font-weight="700" letter-spacing="3">SEO &amp; PERFORMANCE</text>
+    <text x="80" y="190" fill="#FFFFFF" font-size="52" font-weight="800">Programmatic SEO</text>
+    <text x="80" y="252" fill="#FFFFFF" font-size="52" font-weight="800">without thin content</text>
+    <g transform="translate(80,330)">
+      <g fill="#20204E"><rect x="0" y="0" width="60" height="60" rx="8"/><rect x="72" y="0" width="60" height="60" rx="8"/><rect x="144" y="0" width="60" height="60" rx="8"/><rect x="0" y="72" width="60" height="60" rx="8"/><rect x="72" y="72" width="60" height="60" rx="8"/><rect x="144" y="72" width="60" height="60" rx="8"/><rect x="0" y="144" width="60" height="60" rx="8"/><rect x="72" y="144" width="60" height="60" rx="8"/><rect x="144" y="144" width="60" height="60" rx="8"/></g>
+      <path d="M230 102 H360" stroke="#5B4FE8" stroke-width="3"/><path d="M352 94 L362 102 L352 110" fill="none" stroke="#5B4FE8" stroke-width="3"/>
+      <rect x="380" y="52" width="230" height="100" rx="14" fill="#5B4FE8"/>
+      <text x="495" y="97" fill="#FFFFFF" font-size="22" font-weight="700" text-anchor="middle">Quality gate</text>
+      <text x="495" y="126" fill="#E8E6FF" font-size="16" text-anchor="middle">unique data per page</text>
+      <path d="M615 102 H745" stroke="#5B4FE8" stroke-width="3"/><path d="M737 94 L747 102 L737 110" fill="none" stroke="#5B4FE8" stroke-width="3"/>
+      <g fill="#4ADE80"><rect x="770" y="40" width="60" height="60" rx="8"/><rect x="842" y="40" width="60" height="60" rx="8"/><rect x="770" y="112" width="60" height="60" rx="8"/></g>
+      <text x="770" y="205" fill="#8B87B8" font-size="18">Only strong pages reach the sitemap</text>
+    </g>
+    <text x="80" y="595" fill="#8B87B8" font-size="18">The Digital Dude</text>
+  </g>
+</svg>

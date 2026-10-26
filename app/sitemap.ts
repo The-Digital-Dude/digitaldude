@@ -91,6 +91,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch {}
 
   const blogPages: MetadataRoute.Sitemap = Array.from(blogUrlMap.values());
+  // The blog hub changes whenever a post does, so its date follows the newest post.
+  const newestPost = blogPages.reduce<Date | null>((m, p) => (p.lastModified && (!m || new Date(p.lastModified) > m) ? new Date(p.lastModified) : m), null);
+  if (newestPost) {
+    const hub = staticPages.find((p) => p.url === `${SITE_URL}/blog`);
+    if (hub) hub.lastModified = newestPost;
+  }
 
   let pseoPages: MetadataRoute.Sitemap = [];
   try {

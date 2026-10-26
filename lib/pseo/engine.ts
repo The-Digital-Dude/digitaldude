@@ -3,7 +3,7 @@ import { pseoLocations } from "./data/locations";
 import { pseoServices } from "./data/services";
 import { pseoIndustries } from "./data/industries";
 import { pseoComparisons } from "./data/comparisons";
-import { PseoPageData, PseoLocation, PseoService, PseoIndustry, PseoComparison } from "./types";
+import { PseoPageData, PseoLocation, PseoService, PseoIndustry, PseoComparison, PseoFaq } from "./types";
 
 export const TIER1_LOCATIONS = new Set([
   "london",
@@ -23,7 +23,15 @@ export const TIER1_INDUSTRIES = new Set([
   "community",
   "travel",
   "recruitment",
+  "hospitality",
+  "ecommerce",
 ]);
+
+/** Industries whose pages are indexed only for these services (the quality gate for combinations we have not written specifically). */
+const INDUSTRY_INDEXED_SERVICES: Record<string, string[]> = {
+  hospitality: ["saas-development", "marketplace-development", "crm-development"],
+  ecommerce: ["marketplace-development", "website-development", "saas-development"],
+};
 
 function getShortServiceName(service: PseoService): string {
   switch (service.slug) {
@@ -56,6 +64,10 @@ function getShortIndustryName(industry: PseoIndustry): string {
       return "Travel & Ticketing";
     case "recruitment":
       return "Recruitment & ATS";
+    case "hospitality":
+      return "Restaurants & Hospitality";
+    case "ecommerce":
+      return "E-Commerce & Retail";
     case "community":
       return "Community & Matchmaking";
     case "education":
@@ -63,6 +75,23 @@ function getShortIndustryName(industry: PseoIndustry): string {
     default:
       return industry.name;
   }
+}
+
+/** Honest, location-specific FAQs: how we work with clients in a city, and (only where it is true) work done in that market. */
+function buildLocationFaqs(location: PseoLocation): PseoFaq[] {
+  const faqs: PseoFaq[] = [
+    {
+      q: `Where is your team based, and how do you work with clients in ${location.city}?`,
+      a: `The Digital Dude Ltd is registered in England & Wales and our engineering studio is in Dhaka, Bangladesh. We work with ${location.city} clients remotely: discovery calls and weekly milestone demos are scheduled in your working hours, work is tracked in a shared staging environment, and the contract and data protection terms are UK-based.`,
+    },
+  ];
+  if (location.slug === "sydney" || location.slug === "melbourne") {
+    faqs.push({
+      q: `Have you built software for ${location.city} businesses?`,
+      a: `Yes. Our property compliance CRM runs for a property management network operating across Melbourne and Sydney, managing 4,000+ rentals across 30+ agencies. You can read the full write-up in our case studies.`,
+    });
+  }
+  return faqs;
 }
 
 /**
@@ -94,7 +123,7 @@ export function buildLocationServicePage(location: PseoLocation, service: PseoSe
     ? "Premier custom website development in Bristol. We build sub-second Next.js web applications, client portals, and bespoke platforms with zero technical debt."
     : `Bespoke ${service.navLabel.toLowerCase()} engineered for ${location.city} businesses. Full IP ownership, custom workflows, zero seat fees, and dedicated support.`;
 
-  const heroBadge = `${location.flag} ${location.city} Engineering Hub • ${service.badge}`;
+  const heroBadge = `${location.flag} Serving ${location.city} • ${service.badge}`;
 
   const heroHeadline = isBirminghamCrm
     ? "Bespoke CRM Development Company in Birmingham"
@@ -154,7 +183,7 @@ export function buildLocationServicePage(location: PseoLocation, service: PseoSe
       ];
 
   const stats = [
-    { metric: "100%", label: "IP Ownership", detail: `You own 100% of the proprietary code and database, hosted securely in ${location.country}.` },
+    { metric: "100%", label: "IP Ownership", detail: `You own 100% of the proprietary code and database, with hosting in the region you choose.` },
     ...service.roiHighlights
   ];
 
@@ -195,7 +224,7 @@ export function buildLocationServicePage(location: PseoLocation, service: PseoSe
     serviceSlug: service.slug,
     serviceName: service.name,
     featuredCaseStudySlug: service.slug === "crm-development" ? "property-compliance-crm" : service.slug === "marketplace-development" ? "cleaning-marketplace" : "logistics-platform",
-    faqs,
+    faqs: [...faqs, ...buildLocationFaqs(location)],
     stats,
     deliverables,
     techStack: service.techStack,
@@ -304,7 +333,9 @@ export function buildIndustryServicePage(industry: PseoIndustry, service: PseoSe
       ]
     : industry.keyWorkflows;
 
-  const isTier1 = TIER1_INDUSTRIES.has(industry.slug);
+  // New industries are indexed only for the services that genuinely apply to them; other combinations still exist for visitors.
+  const allowedServices = INDUSTRY_INDEXED_SERVICES[industry.slug];
+  const isTier1 = TIER1_INDUSTRIES.has(industry.slug) && (!allowedServices || allowedServices.includes(service.slug));
 
   return {
     slug: `solutions/${industry.slug}/${service.slug}`,
@@ -340,7 +371,13 @@ export function buildIndustryServicePage(industry: PseoIndustry, service: PseoSe
  */
 export function buildComparisonPage(comp: PseoComparison): PseoPageData {
   const targetKeyword = `Custom vs ${comp.competitorName}`;
-  const title = `Custom vs ${comp.competitorName}: Complete Guide (2026)`;
+  // Lead with the phrase people search ("<product> alternative"); fall back to shorter forms so the title stays under about 60 characters.
+  const titleOptions = [
+    `${comp.competitorName} Alternative: Custom vs ${comp.competitorName} (2026)`,
+    `Custom vs ${comp.competitorName}: Alternative Guide (2026)`,
+    `Custom vs ${comp.competitorName}: Complete Guide (2026)`,
+  ];
+  const title = titleOptions.find((t) => t.length <= 60) ?? titleOptions[2];
   const metaDescription = `Compare custom software vs ${comp.competitorName} on pricing, workflow fit, IP ownership, and scalability. Honest architectural guide for growing teams.`;
   const heroBadge = `Build vs Buy Guide • ${comp.category} Comparison`;
   const heroHeadline = `Custom Software vs ${comp.competitorName}: The Complete Decision Guide`;

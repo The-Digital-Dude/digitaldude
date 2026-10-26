@@ -17,7 +17,6 @@ export const pseoLocations: PseoLocation[] = [
     topIndustries: ["FinTech & Wealth Portals", "Commercial & Residential Property", "Executive Recruitment", "Luxury Travel & Concierge"],
     suburbsAndAreas: ["City of London", "Canary Wharf", "Shoreditch", "Westminster", "Camden", "Southwark", "King's Cross", "Richmond"],
     techEcosystemNotes: "Fast-paced UK financial, compliance and real estate hub with strict GDPR data sovereignty standards.",
-    sampleClientsOrContext: "Built multi-tenant compliance and CRM workflows for tier-1 London agencies and high-velocity services."
   },
   {
     city: "Manchester",
@@ -34,7 +33,6 @@ export const pseoLocations: PseoLocation[] = [
     topIndustries: ["Logistics & Warehousing", "Media & E-Commerce", "Property Management", "Home Trade Networks"],
     suburbsAndAreas: ["MediaCityUK", "Spinningfields", "Northern Quarter", "Salford", "Didsbury", "Stockport", "Trafford"],
     techEcosystemNotes: "Rapidly growing tech cluster with high demand for scalable operational platforms and field service dispatch.",
-    sampleClientsOrContext: "Engineered dispatch management and booking portals for high-volume Northwest trade operators."
   },
   {
     city: "Birmingham",
@@ -117,7 +115,7 @@ export const pseoLocations: PseoLocation[] = [
     topIndustries: ["Real Estate & Strata Compliance", "Travel Agencies & Airline Ticketing", "Logistics & Fleet Dispatch", "High-Growth SaaS Startups"],
     suburbsAndAreas: ["Sydney CBD", "Barangaroo", "Surry Hills", "North Sydney", "Parramatta", "Eastern Suburbs", "Northern Beaches", "Macquarie Park"],
     techEcosystemNotes: "Australia's primary software capital. High appetite for proprietary IP ownership over per-seat SaaS costs.",
-    sampleClientsOrContext: "Engineered property compliance CRM managing 4,000+ rental assets across 30+ NSW real estate agencies."
+    sampleClientsOrContext: "Built a property compliance CRM for a network of 30+ agencies managing 4,000+ rentals across Melbourne and Sydney."
   },
   {
     city: "Melbourne",

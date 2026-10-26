@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const url = `${SITE_URL}/${page.slug}`;
-  const ogUrl = `${SITE_URL}/api/og?title=${encodeURIComponent(page.heroHeadline)}&category=${encodeURIComponent(`${page.city} Hub • ${page.country}`)}&tag=${encodeURIComponent(`Bespoke ${page.serviceName} • £0 / Seat Licensing`)}`;
+  const ogUrl = `${SITE_URL}/api/og?title=${encodeURIComponent(page.heroHeadline)}&category=${encodeURIComponent(`${page.city} • ${page.country}`)}&tag=${encodeURIComponent(`Bespoke ${page.serviceName} • £0 / Seat Licensing`)}`;
 
   return {
     title: page.title,

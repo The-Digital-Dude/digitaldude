@@ -1,0 +1,36 @@
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" font-family="Poppins, Arial, sans-serif" role="img" aria-label="ReachMira outreach CRM: campaign leads with AI drafts and a sequence timeline">
+  <rect width="800" height="600" fill="#1A1A4E"/>
+  <rect x="40" y="40" width="720" height="520" rx="14" fill="#12123A"/>
+  <circle cx="70" cy="66" r="5" fill="#F97066"/><circle cx="88" cy="66" r="5" fill="#F5C451"/><circle cx="106" cy="66" r="5" fill="#4ADE80"/>
+  <rect x="140" y="56" width="280" height="20" rx="10" fill="#20204E"/>
+  <text x="152" y="70" fill="#8B87B8" font-size="11">campaigns / personalisation</text>
+  <rect x="40" y="90" width="720" height="1" fill="#2A2A5C"/>
+  <!-- leads -->
+  <rect x="40" y="91" width="250" height="469" fill="#15153F"/>
+  <text x="60" y="118" fill="#8B87B8" font-size="11" font-weight="700">LEADS</text>
+  <g>
+    <rect x="56" y="130" width="218" height="52" rx="8" fill="#5B4FE8"/><rect x="70" y="144" width="100" height="8" rx="4" fill="#FFFFFF"/><rect x="70" y="162" width="140" height="6" rx="3" fill="#C9C4FF"/>
+    <rect x="56" y="192" width="218" height="52" rx="8" fill="#20204E"/><rect x="70" y="206" width="90" height="8" rx="4" fill="#E8E6FF"/><rect x="70" y="224" width="150" height="6" rx="3" fill="#5A5A8C"/>
+    <rect x="56" y="254" width="218" height="52" rx="8" fill="#20204E"/><rect x="70" y="268" width="110" height="8" rx="4" fill="#E8E6FF"/><rect x="70" y="286" width="130" height="6" rx="3" fill="#5A5A8C"/>
+    <rect x="56" y="316" width="218" height="52" rx="8" fill="#20204E"/><rect x="70" y="330" width="80" height="8" rx="4" fill="#E8E6FF"/><rect x="70" y="348" width="160" height="6" rx="3" fill="#5A5A8C"/>
+  </g>
+  <!-- draft -->
+  <rect x="306" y="108" width="436" height="250" rx="10" fill="#20204E"/>
+  <text x="326" y="136" fill="#8B7FF0" font-size="11" font-weight="700">AI DRAFT · NEEDS APPROVAL</text>
+  <rect x="326" y="150" width="260" height="10" rx="5" fill="#E8E6FF"/>
+  <g fill="#5A5A8C"><rect x="326" y="178" width="396" height="7" rx="3"/><rect x="326" y="196" width="380" height="7" rx="3"/><rect x="326" y="214" width="396" height="7" rx="3"/><rect x="326" y="232" width="300" height="7" rx="3"/></g>
+  <rect x="326" y="270" width="90" height="28" rx="14" fill="#4ADE80"/><text x="345" y="288" fill="#0F2A1A" font-size="11" font-weight="700">Approve</text>
+  <rect x="428" y="270" width="70" height="28" rx="14" fill="#2A2A5C"/><text x="446" y="288" fill="#9490BF" font-size="11">Edit</text>
+  <!-- sequence -->
+  <rect x="306" y="376" width="436" height="164" rx="10" fill="#15153F"/>
+  <text x="326" y="402" fill="#8B87B8" font-size="11" font-weight="700">SEQUENCE</text>
+  <g font-size="10" fill="#E8E6FF" text-anchor="middle">
+    <circle cx="360" cy="450" r="16" fill="#5B4FE8"/><text x="360" y="454">1</text>
+    <path d="M378 450 H438" stroke="#5B4FE8" stroke-width="2"/>
+    <circle cx="456" cy="450" r="16" fill="#8B7FF0"/><text x="456" y="454" fill="#12123A">2</text>
+    <path d="M474 450 H534" stroke="#5B4FE8" stroke-width="2"/>
+    <circle cx="552" cy="450" r="16" fill="#2A2A5C"/><text x="552" y="454" fill="#9490BF">3</text>
+    <rect x="584" y="438" width="130" height="24" rx="12" fill="#2A2A5C"/><text x="649" y="454" fill="#F5C451">stops on reply</text>
+  </g>
+  <g fill="#5A5A8C"><rect x="326" y="486" width="200" height="6" rx="3"/><rect x="326" y="504" width="260" height="6" rx="3"/></g>
+</svg>

@@ -23,14 +23,14 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Custom CRM vs HubSpot: Which Should You Choose? (2026)",
+  title: "HubSpot Alternative: Custom CRM vs HubSpot (2026)",
   description:
     "Compare HubSpot with a custom CRM on workflow fit, cost, launch speed, ownership, integrations and risk. Includes honest 3-year examples.",
   alternates: {
     canonical: `${SITE_URL}/compare/custom-crm-vs-hubspot`,
   },
   openGraph: {
-    title: "Custom CRM vs HubSpot: Which Should You Choose? (2026)",
+    title: "HubSpot Alternative: Custom CRM vs HubSpot (2026)",
     description:
       "Compare HubSpot with a custom CRM on workflow fit, cost, launch speed, ownership, integrations and risk. Includes honest 3-year examples.",
     url: `${SITE_URL}/compare/custom-crm-vs-hubspot`,
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Custom CRM vs HubSpot: Which Should You Choose? (2026)",
+    title: "HubSpot Alternative: Custom CRM vs HubSpot (2026)",
     description:
       "Compare HubSpot with a custom CRM on workflow fit, cost, launch speed, ownership, integrations and risk. Includes honest 3-year examples.",
     images: [`${SITE_URL}/og-image.png`],
@@ -214,6 +214,7 @@ export default function CustomCrmVsHubspotPage() {
           name: "Farhad Hossain",
           jobTitle: "Founder & Solutions Architect",
           url: `${SITE_URL}/about`,
+            sameAs: ["https://www.linkedin.com/in/neiloy-farhad/"],
         },
         publisher: {
           "@type": "Organization",
@@ -312,7 +313,7 @@ export default function CustomCrmVsHubspotPage() {
                   FH
                 </div>
                 <div>
-                  <div className="font-bold text-navy">Farhad Hossain</div>
+                  <a href="https://www.linkedin.com/in/neiloy-farhad/" target="_blank" rel="noopener noreferrer author" className="font-bold text-navy hover:text-purple hover:underline">Farhad Hossain</a>
                   <div className="text-[11px] text-slate-500">Founder &amp; Solutions Architect</div>
                 </div>
               </div>

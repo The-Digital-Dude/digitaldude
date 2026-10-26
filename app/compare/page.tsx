@@ -8,14 +8,14 @@ import { ComparePortalFilter } from "@/components/compare/ComparePortalFilter";
 export const metadata: Metadata = {
   title: "Build vs Buy Software Comparison Guides | The Digital Dude",
   description:
-    "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
+    "Build vs buy guides: custom software against Salesforce, HubSpot, Zoho, Shopify, Airtable and more. Compare pricing, ownership and scalability.",
   alternates: {
     canonical: `${SITE_URL}/compare`,
   },
   openGraph: {
     title: "Build vs Buy Software Comparison Guides | The Digital Dude",
     description:
-      "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
+      "Build vs buy guides: custom software against Salesforce, HubSpot, Zoho, Shopify, Airtable and more. Compare pricing, ownership and scalability.",
     url: `${SITE_URL}/compare`,
     siteName: "The Digital Dude",
     type: "website",
@@ -51,7 +51,7 @@ export default function CompareIndexPage() {
         name: "Build vs Buy Software Comparison Guides",
         headline: "Bespoke Software vs. Off-The-Shelf SaaS Platforms",
         description:
-          "Detailed comparisons of custom software vs off-the-shelf SaaS (Salesforce, HubSpot, Zoho CRM, Monday.com, Pipedrive, Sharetribe, NetSuite, Bubble). Compare pricing, IP ownership, and scalability.",
+          "Build vs buy guides: custom software against Salesforce, HubSpot, Zoho, Shopify, Airtable and more. Compare pricing, ownership and scalability.",
         isPartOf: {
           "@type": "WebSite",
           "@id": `${SITE_URL}#website`,

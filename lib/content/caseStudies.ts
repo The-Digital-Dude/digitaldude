@@ -5,7 +5,10 @@ export type Industry =
   | "Home services"
   | "Logistics"
   | "Recruitment"
-  | "Education";
+  | "Education"
+  | "Hospitality"
+  | "E-commerce"
+  | "Sales & Marketing";
 
 export type ClientTestimonial = {
   quote: string;
@@ -340,6 +343,9 @@ export const caseStudies: CaseStudy[] = [
     }
   },
 ];
+
+import { newCaseStudies } from "./newCaseStudies";
+caseStudies.push(...newCaseStudies);
 
 export function getCaseStudy(slug: string) {
   return caseStudies.find((c) => c.slug === slug);
