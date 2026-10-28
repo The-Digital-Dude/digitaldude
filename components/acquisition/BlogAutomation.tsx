@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge, Card, Empty, btnCls, btnGhostCls, fmtDate, inputCls, labelCls } from "./ui";
 import { Feedback, api, type ApiResult } from "./client";
 import type { AutomationState, RunResult, TopicState } from "@/lib/blog/automation";
+import type { InsightsReport } from "@/lib/blog/insights";
 
 interface Loaded {
   state: AutomationState;
@@ -21,14 +22,30 @@ export function BlogAutomation() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ slug: "", title: "", keyword: "", category: "Custom Software", author: "Farhad Hossain", angle: "" });
 
+  const [report, setReport] = useState<InsightsReport | null>(null);
+
+  const loadReport = useCallback(async () => {
+    const r = await api("/api/acquisition/blog/insights", "GET");
+    if (r.ok) setReport((r.report as InsightsReport | null) ?? null);
+  }, []);
+
   const load = useCallback(async () => {
     const r = await api("/api/acquisition/blog", "GET");
     if (r.ok) setData({ state: r.state as AutomationState, ai: r.ai as Loaded["ai"], nextRun: r.nextRun as Loaded["nextRun"] });
     else setMsg(r);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); void loadReport(); }, [load, loadReport]);
 
-  async function save(patch: Partial<Pick<AutomationState, "enabled" | "paused" | "weekdaysOnly" | "hourUtc">>) {
+  async function runWeekly() {
+    setBusy("insights");
+    const r = await api("/api/acquisition/blog/insights", "POST");
+    setBusy(null);
+    setMsg(r.ok ? null : r);
+    if (r.ok) setReport(r.report as InsightsReport);
+    void load();
+  }
+
+  async function save(patch: Partial<Pick<AutomationState, "enabled" | "paused" | "weekdaysOnly" | "hourUtc" | "autopilot">>) {
     setBusy("save");
     const r = await api("/api/acquisition/blog", "PUT", patch);
     setBusy(null);
@@ -126,6 +143,25 @@ export function BlogAutomation() {
         </Card>
       )}
 
+      {state.pausedReason && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="alert">
+          <p className="font-semibold">Publishing was paused by the safety brake</p>
+          <p className="mt-1">{state.pausedReason}</p>
+          <p className="mt-1 text-xs">Review the posts under the weekly report. Untick “Pause” above to resume.</p>
+        </div>
+      )}
+
+      <Card title="Autopilot (runs every Monday)" action={<button className={btnGhostCls} disabled={!!busy} onClick={runWeekly}>{busy === "insights" ? "Checking (up to a minute)…" : "Run the weekly check now"}</button>}>
+        <div className="grid gap-3 md:grid-cols-3">
+          <label className="flex items-start gap-2 text-sm font-semibold text-navy"><input type="checkbox" className="mt-1" checked={state.autopilot.discover} disabled={busy === "save"} onChange={(e) => void save({ autopilot: { ...state.autopilot, discover: e.target.checked } })} /><span>Find new topics automatically<span className="block text-xs font-normal text-navy/50">From Search Console and search suggestions; added to the queue.</span></span></label>
+          <label className="flex items-start gap-2 text-sm font-semibold text-navy"><input type="checkbox" className="mt-1" checked={state.autopilot.brake} disabled={busy === "save"} onChange={(e) => void save({ autopilot: { ...state.autopilot, brake: e.target.checked } })} /><span>Safety brake<span className="block text-xs font-normal text-navy/50">Pause publishing if Google is not indexing the posts.</span></span></label>
+          <div><label className={labelCls}>Most new topics per week</label><select className={inputCls} value={state.autopilot.maxNewPerWeek} onChange={(e) => void save({ autopilot: { ...state.autopilot, maxNewPerWeek: Number(e.target.value) } })}>{[0, 3, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n}</option>)}</select></div>
+        </div>
+        <p className="mt-3 text-xs text-navy/50">Each week it reads Search Console, finds phrases people already search for that you do not cover, writes briefs for the best ones, checks how Google is indexing your posts, and asks Google to re-read the sitemap when it is out of date. {state.lastInsightsAt ? `Last run: ${fmtDate(state.lastInsightsAt)}.` : "It has not run yet."}</p>
+      </Card>
+
+      {report && <InsightsView report={report} />}
+
       <Card title="Topic queue" action={<button className={btnGhostCls} onClick={() => setShowAdd((v) => !v)}>{showAdd ? "Close" : "Add a topic"}</button>}>
         {showAdd && (
           <div className="mb-5 grid gap-3 rounded-xl border border-slate-200 p-4 md:grid-cols-2">
@@ -146,7 +182,7 @@ export function BlogAutomation() {
                 {state.topics.map((t: TopicState, i: number) => (
                   <tr key={t.slug} className="border-t border-slate-100 align-top">
                     <td className="py-2 pr-2 text-navy/40">{i + 1}</td>
-                    <td className="py-2 pr-3"><div className="font-semibold text-navy">{t.title}</div><div className="text-xs text-navy/50">{t.keyword}</div>{t.status === "draft" && t.lastProblems && t.lastProblems.length > 0 ? (<ul className="mt-1 list-disc pl-4 text-xs text-red-700">{t.lastProblems.slice(0, 6).map((p) => <li key={p}>{p.slice(0, 200)}</li>)}</ul>) : t.lastError ? <div className="mt-1 text-xs text-red-700">{t.lastError.slice(0, 220)}</div> : null}</td>
+                    <td className="py-2 pr-3"><div className="font-semibold text-navy">{t.title}</div><div className="text-xs text-navy/50">{t.keyword}{t.source && t.source !== "built-in" && t.source !== "manual" ? ` · ${t.source === "search-console" ? "from Search Console" : "from search suggestions"}` : ""}</div>{t.evidence && <div className="text-xs text-navy/40">{t.evidence}</div>}{t.status === "draft" && t.lastProblems && t.lastProblems.length > 0 ? (<ul className="mt-1 list-disc pl-4 text-xs text-red-700">{t.lastProblems.slice(0, 6).map((p) => <li key={p}>{p.slice(0, 200)}</li>)}</ul>) : t.lastError ? <div className="mt-1 text-xs text-red-700">{t.lastError.slice(0, 220)}</div> : null}</td>
                     <td className="py-2 pr-3 text-xs">{t.author}</td>
                     <td className="py-2 pr-3"><Badge tone={tone(t.status)}>{t.status}</Badge>{t.attempts > 0 && t.status !== "published" && <div className="text-xs text-navy/40">{t.attempts} attempt{t.attempts === 1 ? "" : "s"}</div>}{t.publishedAt && <div className="text-xs text-navy/40">{fmtDate(t.publishedAt)}</div>}</td>
                     <td className="py-2 text-right">
@@ -168,12 +204,58 @@ export function BlogAutomation() {
           <ul className="space-y-1.5 text-sm">
             {[...state.log].reverse().slice(0, 25).map((l, i) => (
               <li key={`${l.at}-${i}`} className="flex flex-wrap gap-2 border-b border-slate-100 pb-1.5">
-                <span className="text-xs text-navy/40">{fmtDate(l.at)}</span><Badge tone={l.result === "published" ? "green" : "red"}>{l.result}</Badge><span className="font-semibold text-navy">{l.slug}</span><span className="text-navy/60">{l.detail.slice(0, 200)}</span>
+                <span className="text-xs text-navy/40">{fmtDate(l.at)}</span><Badge tone={l.result === "published" ? "green" : l.result === "info" ? "slate" : "red"}>{l.result}</Badge><span className="font-semibold text-navy">{l.slug}</span><span className="text-navy/60">{l.detail.slice(0, 200)}</span>
               </li>
             ))}
           </ul>
         )}
       </Card>
     </div>
+  );
+}
+
+
+const delta = (cur: number, prev: number) => {
+  if (!prev) return cur ? "new" : "–";
+  const d = Math.round(((cur - prev) / prev) * 100);
+  return `${d > 0 ? "+" : ""}${d}%`;
+};
+
+function InsightsView({ report }: { report: InsightsReport }) {
+  const t = report.totals;
+  return (
+    <Card title={`Weekly report · ${fmtDate(report.at)}`}>
+      {report.warnings.length > 0 && (
+        <ul className="mb-4 list-disc space-y-1 rounded-lg bg-amber-50 p-3 pl-7 text-sm text-amber-900">{report.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+      )}
+      {t ? (
+        <div className="grid gap-3 md:grid-cols-3">
+          {([["Clicks", t.current.clicks, t.previous.clicks], ["Impressions", t.current.impressions, t.previous.impressions]] as const).map(([label, cur, prev]) => (
+            <div key={label} className="rounded-xl border border-slate-200 p-3"><div className="text-xs font-semibold uppercase text-navy/50">{label} (28 days)</div><div className="text-xl font-extrabold text-navy">{cur.toLocaleString()}</div><div className="text-xs text-navy/50">{delta(cur, prev)} vs the 28 days before</div></div>
+          ))}
+          <div className="rounded-xl border border-slate-200 p-3"><div className="text-xs font-semibold uppercase text-navy/50">Average position</div><div className="text-xl font-extrabold text-navy">{t.current.position ? t.current.position.toFixed(1) : "–"}</div><div className="text-xs text-navy/50">before: {t.previous.position ? t.previous.position.toFixed(1) : "–"} (lower is better)</div></div>
+        </div>
+      ) : <p className="text-sm text-navy/60">No search data this week ({report.gsc === "not_connected" ? "Search Console is not connected" : "it could not be read"}).</p>}
+
+      <h3 className="mb-2 mt-5 text-sm font-bold text-navy">Are the automated posts being indexed?</h3>
+      {report.posts.length === 0 ? <Empty>No automated posts are old enough to check yet (they are checked two days after publishing).</Empty> : (
+        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-xs uppercase text-navy/50"><th className="py-1">Post</th><th>Age</th><th>Google says</th><th>Last crawled</th></tr></thead><tbody>
+          {report.posts.map((p) => (
+            <tr key={p.slug} className="border-t border-slate-100"><td className="py-1.5 pr-3"><a className="font-semibold text-purple hover:underline" href={`/blog/${p.slug}`} target="_blank" rel="noopener noreferrer">{p.title}</a></td><td className="pr-3 text-xs">{p.ageDays}d</td><td className="pr-3"><Badge tone={p.indexed ? "green" : "amber"}>{p.coverage}</Badge></td><td className="text-xs text-navy/50">{p.lastCrawl ? p.lastCrawl.slice(0, 10) : "never"}</td></tr>
+          ))}
+        </tbody></table></div>
+      )}
+      <p className="mt-2 text-xs text-navy/50">{report.brake.indexedShare === null ? `Safety brake: needs at least 6 posts older than 21 days (has ${report.brake.sample}).` : `Safety brake: ${Math.round(report.brake.indexedShare * 100)}% of ${report.brake.sample} posts over 21 days old are indexed.`} {report.sitemapResubmitted ? "The sitemap was resubmitted to Google." : ""}</p>
+
+      <h3 className="mb-2 mt-5 text-sm font-bold text-navy">Topics added this week</h3>
+      {report.discovery.added.length === 0 ? <p className="text-sm text-navy/60">{report.discovery.note ?? "None."}</p> : (
+        <ul className="space-y-1 text-sm">{report.discovery.added.map((a) => <li key={a.slug}><span className="font-semibold text-navy">{a.title}</span> <span className="text-xs text-navy/50">· {a.evidence}</span></li>)}</ul>
+      )}
+
+      <div className="mt-5 grid gap-6 md:grid-cols-2">
+        <div><h3 className="mb-2 text-sm font-bold text-navy">Top search queries</h3><ul className="space-y-1 text-xs">{report.topQueries.slice(0, 10).map((q) => <li key={q.key} className="flex justify-between gap-2"><span className="truncate">{q.key}</span><span className="text-navy/50">{q.impressions} impr · pos {q.position.toFixed(0)}</span></li>)}</ul></div>
+        <div><h3 className="mb-2 text-sm font-bold text-navy">Top pages</h3><ul className="space-y-1 text-xs">{report.topPages.slice(0, 10).map((q) => <li key={q.key} className="flex justify-between gap-2"><span className="truncate">{q.key}</span><span className="text-navy/50">{q.impressions} impr · {q.clicks} clicks</span></li>)}</ul></div>
+      </div>
+    </Card>
   );
 }

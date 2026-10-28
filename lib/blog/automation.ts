@@ -21,12 +21,24 @@ export interface TopicState extends BlogTopic {
   publishedAt?: string;
   /** The `posts` row holding this topic's draft, so fixing it in the blog editor and publishing it is noticed. */
   draftId?: string;
+  /** Where the topic came from, and the evidence behind it (for example "Search Console: 84 impressions, position 14"). */
+  source?: "built-in" | "search-console" | "autocomplete" | "manual";
+  evidence?: string;
+}
+
+export interface Autopilot {
+  /** Each week, find new topics from Search Console (and search suggestions) and add them to the queue. */
+  discover: boolean;
+  /** Pause publishing if Google is not indexing the automated posts. */
+  brake: boolean;
+  /** The most topics the weekly check may add. */
+  maxNewPerWeek: number;
 }
 
 export interface LogEntry {
   at: string;
   slug: string;
-  result: "published" | "rejected" | "error" | "preview";
+  result: "published" | "rejected" | "error" | "preview" | "info";
   detail: string;
 }
 
@@ -40,7 +52,13 @@ export interface AutomationState {
   topics: TopicState[];
   lastRunDate: string | null;
   log: LogEntry[];
+  autopilot: Autopilot;
+  /** Why the automation was paused by the safety brake (empty when paused by hand). */
+  pausedReason?: string;
+  lastInsightsAt: string | null;
 }
+
+export const DEFAULT_AUTOPILOT: Autopilot = { discover: true, brake: true, maxNewPerWeek: 7 };
 
 /** A topic is retried at most this many times before it is marked failed and the queue moves on. */
 export const MAX_ATTEMPTS = 3;
@@ -53,9 +71,11 @@ export const defaultState = (): AutomationState => ({
   paused: false,
   weekdaysOnly: true,
   hourUtc: 8,
-  topics: DEFAULT_TOPICS.map((t) => ({ ...t, status: "queued" as const, attempts: 0 })),
+  topics: DEFAULT_TOPICS.map((t) => ({ ...t, status: "queued" as const, attempts: 0, source: "built-in" as const })),
   lastRunDate: null,
   log: [],
+  autopilot: { ...DEFAULT_AUTOPILOT },
+  lastInsightsAt: null,
 });
 
 /** Saved state, with any newly added default topics appended (so adding topics in code takes effect without a reset). */
@@ -75,6 +95,13 @@ export async function loadState(db: Db): Promise<AutomationState> {
     topics: [...topics, ...base.topics.filter((t) => !have.has(t.slug))],
     lastRunDate: typeof saved.lastRunDate === "string" ? saved.lastRunDate : null,
     log: Array.isArray(saved.log) ? (saved.log as LogEntry[]).slice(-LOG_LIMIT) : [],
+    autopilot: {
+      discover: saved.autopilot?.discover !== false,
+      brake: saved.autopilot?.brake !== false,
+      maxNewPerWeek: Number.isInteger(saved.autopilot?.maxNewPerWeek) && (saved.autopilot?.maxNewPerWeek as number) >= 0 && (saved.autopilot?.maxNewPerWeek as number) <= 14 ? (saved.autopilot?.maxNewPerWeek as number) : DEFAULT_AUTOPILOT.maxNewPerWeek,
+    },
+    pausedReason: typeof saved.pausedReason === "string" ? saved.pausedReason : undefined,
+    lastInsightsAt: typeof saved.lastInsightsAt === "string" ? saved.lastInsightsAt : null,
   };
 }
 

@@ -121,4 +121,11 @@ async function housekeeping(db: Db) {
   await step("email notifications", () => emailPendingNotifications(db));
   // Last, because it can take up to a minute: publishes the next blog post when one is due (a no-op unless the automation is switched on).
   await step("blog", async () => (await import("@/lib/blog/automation")).runBlogAutomation(db));
+  // Safety net for the weekly Search Console check: only if the scheduled run has clearly not happened for over nine days.
+  await step("blog insights", async () => {
+    const { loadState } = await import("@/lib/blog/automation");
+    const s = await loadState(db);
+    const last = s.lastInsightsAt ? Date.parse(s.lastInsightsAt) : 0;
+    if (Date.now() - last > 9 * 86_400_000) await (await import("@/lib/blog/insights")).runInsights(db);
+  });
 }
