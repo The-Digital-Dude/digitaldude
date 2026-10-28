@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/acquisition/suggestions", label: "Suggestions" },
   { href: "/admin/acquisition/markets", label: "Markets & countries" },
   { href: "/admin/acquisition/crm", label: "Rep CRM" },
+  { href: "/admin/acquisition/blog", label: "Blog automation" },
   { href: "/admin/acquisition/design", label: "Email design" },
   { href: "/admin/acquisition/landing", label: "Booking page" },
   { href: "/admin/acquisition/reports", label: "Reports" },

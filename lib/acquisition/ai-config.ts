@@ -71,18 +71,19 @@ export async function clearAiConfig(db: Db): Promise<void> {
 }
 
 /** Saved config first, then the AI_* environment variables, otherwise null (manual workflow). */
-export async function resolveAiProvider(db: Db): Promise<AiProvider | null> {
+export async function resolveAiProvider(db: Db, opts: { timeoutMs?: number } = {}): Promise<AiProvider | null> {
   const stored = await loadStored(db);
   if (stored) {
     try {
-      return new OpenAiCompatibleProvider(stored.baseUrl, decryptSecret(stored.apiKeyEnc), stored.model);
+      return new OpenAiCompatibleProvider(stored.baseUrl, decryptSecret(stored.apiKeyEnc), stored.model, opts.timeoutMs);
     } catch (e) {
       // Unreadable saved key (e.g. ACQ_UNSUBSCRIBE_SECRET missing): behave as "AI not configured", never as a crash.
       log("warn", { message: "saved AI config could not be decrypted", error: e });
       return null;
     }
   }
-  return getAiProvider();
+  const env = getAiProvider();
+  return env && opts.timeoutMs && env instanceof OpenAiCompatibleProvider ? new OpenAiCompatibleProvider(process.env.AI_BASE_URL!, process.env.AI_API_KEY!, env.model, opts.timeoutMs) : env;
 }
 
 export interface AiStatus {

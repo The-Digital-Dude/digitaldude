@@ -119,4 +119,6 @@ async function housekeeping(db: Db) {
   await step("crm", async () => (await import("@/lib/crm/jobs")).runCrmHousekeeping(db));
   await step("health checks", () => runHealthChecks(db));
   await step("email notifications", () => emailPendingNotifications(db));
+  // Last, because it can take up to a minute: publishes the next blog post when one is due (a no-op unless the automation is switched on).
+  await step("blog", async () => (await import("@/lib/blog/automation")).runBlogAutomation(db));
 }
