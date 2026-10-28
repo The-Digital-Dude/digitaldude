@@ -141,9 +141,10 @@ describe("publishing flow", () => {
       expect(r.status).toBe("rejected");
       t += 30 * 60_000; // past the retry gap
     }
-    expect(tables.posts).toHaveLength(0);
+    expect(tables.posts).toHaveLength(1); // one draft, updated on each attempt, never published
+    expect(tables.posts[0]).toMatchObject({ slug: topic.slug, status: "draft" });
     const saved = await loadState(db);
-    expect(saved.topics[0]).toMatchObject({ status: "failed", attempts: MAX_ATTEMPTS });
+    expect(saved.topics[0]).toMatchObject({ status: "draft", attempts: MAX_ATTEMPTS });
     expect(saved.topics[1].status).toBe("queued"); // the queue moves on
     expect(saved.log.some((l) => /gave up/.test(l.detail))).toBe(true);
   });

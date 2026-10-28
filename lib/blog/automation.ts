@@ -9,7 +9,8 @@ import type { GeneratedPost } from "./validate";
 
 export const BLOG_AUTOMATION_KEY = "blog_automation";
 
-export type TopicStatus = "queued" | "published" | "failed" | "skipped";
+/** "draft": a written post that failed the check and was saved as a draft for a person to fix and publish. */
+export type TopicStatus = "queued" | "published" | "failed" | "skipped" | "draft";
 
 export interface TopicState extends BlogTopic {
   status: TopicStatus;
@@ -18,6 +19,8 @@ export interface TopicState extends BlogTopic {
   lastError?: string;
   lastProblems?: string[];
   publishedAt?: string;
+  /** The `posts` row holding this topic's draft, so fixing it in the blog editor and publishing it is noticed. */
+  draftId?: string;
 }
 
 export interface LogEntry {
@@ -62,6 +65,7 @@ export async function loadState(db: Db): Promise<AutomationState> {
   const saved = data?.value as Partial<AutomationState> | undefined;
   if (!saved) return base;
   const topics = Array.isArray(saved.topics) ? (saved.topics as TopicState[]) : [];
+  await reconcileDrafts(db, topics);
   const have = new Set(topics.map((t) => t.slug));
   return {
     enabled: saved.enabled === true,
@@ -90,6 +94,83 @@ export function isDue(state: AutomationState, now: Date): { due: boolean; reason
   if (now.getUTCHours() < state.hourUtc) return { due: false, reason: `before ${state.hourUtc}:00 UTC` };
   if (state.lastRunDate === ymd(now)) return { due: false, reason: "already published today" };
   return { due: true, reason: "due" };
+}
+
+/**
+ * Keeps topics in step with their drafts: a draft that a person fixed and published in the blog editor marks its topic published, and a
+ * draft that was deleted is forgotten. One query, and only when some topic has a draft.
+ */
+export async function reconcileDrafts(db: Db, topics: TopicState[]): Promise<void> {
+  const withDraft = topics.filter((t) => t.draftId);
+  if (withDraft.length === 0) return;
+  const { data } = await db.from("posts").select("id,status,published_at").in("id", withDraft.map((t) => t.draftId as string));
+  const rows = new Map(((data ?? []) as { id: string; status: string; published_at: string | null }[]).map((r) => [r.id, r]));
+  for (const t of withDraft) {
+    const row = rows.get(t.draftId as string);
+    if (!row) {
+      t.draftId = undefined;
+      if (t.status === "draft") t.status = "failed";
+    } else if (row.status === "published" && t.status !== "published") {
+      t.status = "published";
+      t.publishedAt = row.published_at ?? new Date().toISOString();
+      t.lastError = undefined;
+      t.lastProblems = undefined;
+    }
+  }
+}
+
+const readingMinutes = (words: number) => Math.max(3, Math.round(words / 200));
+
+/** Saves (or updates) the topic's draft in `posts`, so a rejected article can be fixed in the blog editor. Returns the row id, or null. */
+async function saveDraft(db: Db, topic: TopicState, p: GeneratedPost, words: number, now: Date): Promise<string | null> {
+  const row = {
+    slug: topic.slug,
+    title: p.title || topic.title,
+    excerpt: p.excerpt || p.metaDescription || topic.title,
+    content: p.content || "(no content was returned)",
+    cover_image: coverUrl(p.title || topic.title, topic.category, topic.author),
+    author: topic.author,
+    category: topic.category,
+    status: "draft",
+    reading_time_minutes: readingMinutes(words),
+    meta_title: p.metaTitle || null,
+    meta_description: p.metaDescription || null,
+    updated_at: now.toISOString(),
+  };
+  if (topic.draftId) {
+    const { error } = await db.from("posts").update(row).eq("id", topic.draftId).eq("status", "draft");
+    return error ? null : topic.draftId;
+  }
+  const { data, error } = await db.from("posts").insert({ ...row, published_at: now.toISOString() }).select("id").single();
+  if (error) {
+    log("warn", { message: "blog automation: could not save the draft", error });
+    return null;
+  }
+  return (data as { id: string }).id;
+}
+
+/** The admin's "Save as draft" on a previewed post: keeps the text and the checker's problems so it can be fixed and published later. */
+export async function saveDraftFromPreview(db: Db, slug: string, post: GeneratedPost, problems: string[], now = new Date()): Promise<{ ok: boolean; draftId?: string; error?: string }> {
+  const state = await loadState(db);
+  const topic = state.topics.find((t) => t.slug === slug);
+  if (!topic) return { ok: false, error: "That topic is not in the queue." };
+  if (topic.status === "published") return { ok: false, error: "That topic is already published." };
+  if (!topic.draftId) {
+    const { data: existing } = await db.from("posts").select("id,status").eq("slug", slug).maybeSingle();
+    const e = existing as { id: string; status: string } | null;
+    if (e && e.status !== "draft") return { ok: false, error: "A post with that address already exists." };
+    if (e) topic.draftId = e.id;
+  }
+  const words = post.content.split(/\s+/).filter(Boolean).length;
+  const id = await saveDraft(db, topic, post, words, now);
+  if (!id) return { ok: false, error: "The draft could not be saved." };
+  topic.draftId = id;
+  topic.status = "draft";
+  topic.lastProblems = problems;
+  topic.lastError = problems.length ? `saved as a draft with ${problems.length} problem${problems.length === 1 ? "" : "s"} to fix` : "saved as a draft";
+  addLog(state, { slug, result: "rejected", detail: topic.lastError }, now);
+  await saveState(db, state);
+  return { ok: true, draftId: id };
 }
 
 export const nextTopic = (state: AutomationState): TopicState | undefined => state.topics.find((t) => t.status === "queued");
@@ -129,8 +210,11 @@ export async function runBlogAutomation(db: Db, opts: { now?: Date; force?: bool
     if (!topic) return { status: "no_topics", detail: "the topic queue is empty" };
 
     // A topic that already has a post (written by hand) is skipped, never overwritten.
-    const { data: existing } = await db.from("posts").select("id").eq("slug", topic.slug).maybeSingle();
-    if (existing) {
+    const { data: existingRow } = await db.from("posts").select("id,status").eq("slug", topic.slug).maybeSingle();
+    const existing = existingRow as { id: string; status: string } | null;
+    // This topic's own earlier draft is fine to update; anything else at that address is left alone.
+    if (existing && existing.status === "draft" && (!topic.draftId || topic.draftId === existing.id)) topic.draftId = existing.id;
+    else if (existing) {
       topic.status = "skipped";
       topic.lastError = "a post with this address already exists";
       addLog(state, { slug: topic.slug, result: "error", detail: topic.lastError }, now);
@@ -156,8 +240,14 @@ export async function runBlogAutomation(db: Db, opts: { now?: Date; force?: bool
       topic.lastAttemptAt = now.toISOString();
       topic.lastError = detail;
       topic.lastProblems = problems;
-      if (topic.attempts >= MAX_ATTEMPTS) topic.status = "failed";
-      addLog(state, { slug: topic.slug, result: kind, detail: `${detail}${topic.status === "failed" ? " (gave up after " + MAX_ATTEMPTS + " attempts)" : ""}` }, now);
+      // A post that was written but rejected is kept as a draft (with its problems) so a person can fix it and publish it.
+      if (kind === "rejected" && attempt.post) {
+        const id = await saveDraft(db, topic, attempt.post, attempt.validation?.words ?? 0, now);
+        if (id) topic.draftId = id;
+      }
+      if (topic.attempts >= MAX_ATTEMPTS) topic.status = topic.draftId ? "draft" : "failed";
+      const gaveUp = topic.status === "failed" || topic.status === "draft";
+      addLog(state, { slug: topic.slug, result: kind, detail: `${detail}${gaveUp ? ` (gave up after ${MAX_ATTEMPTS} attempts${topic.draftId ? "; saved as a draft to fix" : ""})` : ""}` }, now);
       await saveState(db, state);
       return { status: kind, slug: topic.slug, detail, problems };
     };
@@ -168,7 +258,7 @@ export async function runBlogAutomation(db: Db, opts: { now?: Date; force?: bool
     const p = attempt.post;
     if (opts.preview) return { status: "preview", slug: topic.slug, detail: "passed the quality check (not saved)", post: p, words: attempt.validation.words };
 
-    const { error } = await db.from("posts").insert({
+    const publishedRow = {
       slug: topic.slug,
       title: p.title,
       excerpt: p.excerpt,
@@ -177,13 +267,17 @@ export async function runBlogAutomation(db: Db, opts: { now?: Date; force?: bool
       author: topic.author,
       category: topic.category,
       status: "published",
-      reading_time_minutes: Math.max(3, Math.round(attempt.validation.words / 200)),
+      reading_time_minutes: readingMinutes(attempt.validation.words),
       meta_title: p.metaTitle,
       meta_description: p.metaDescription,
       published_at: now.toISOString(),
       updated_at: now.toISOString(),
-    });
+    };
+    const { error } = topic.draftId
+      ? await db.from("posts").update(publishedRow).eq("id", topic.draftId)
+      : await db.from("posts").insert(publishedRow);
     if (error) return fail("error", `could not save the post: ${error.message}`);
+    topic.draftId = undefined;
 
     topic.status = "published";
     topic.publishedAt = now.toISOString();

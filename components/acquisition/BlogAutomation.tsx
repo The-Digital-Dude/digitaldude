@@ -11,7 +11,7 @@ interface Loaded {
   nextRun: { due: boolean; reason: string };
 }
 
-const tone = (s: string) => (s === "published" ? "green" : s === "failed" ? "red" : s === "skipped" ? "slate" : "purple");
+const tone = (s: string) => (s === "published" ? "green" : s === "failed" ? "red" : s === "skipped" ? "slate" : s === "draft" ? "amber" : "purple");
 
 export function BlogAutomation() {
   const [data, setData] = useState<Loaded | null>(null);
@@ -45,6 +45,18 @@ export function BlogAutomation() {
     setMsg(r.ok ? null : r);
     if (r.result) setResult(r.result as RunResult);
     void load();
+  }
+
+  async function saveAsDraft() {
+    if (!result?.post || !result.slug) return;
+    setBusy("draft");
+    const r = await api("/api/acquisition/blog/draft", "POST", { slug: result.slug, post: result.post, problems: result.problems ?? [] });
+    setBusy(null);
+    setMsg(r);
+    if (r.ok) {
+      setResult(null);
+      void load();
+    }
   }
 
   async function topic(action: "skip" | "requeue" | "up" | "down", slug: string) {
@@ -96,6 +108,12 @@ export function BlogAutomation() {
           {result.problems && result.problems.length > 0 && (
             <ul className="mt-2 list-disc pl-5 text-sm text-red-700">{result.problems.map((p) => <li key={p}>{p}</li>)}</ul>
           )}
+          {result.post && result.status !== "published" && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button className={btnCls} disabled={!!busy} onClick={saveAsDraft}>{busy === "draft" ? "Saving…" : "Save as draft to fix later"}</button>
+              <span className="text-xs text-navy/50">Keeps this text and the problems listed above. Fix it in the blog editor, publish it there, and the queue marks the topic done.</span>
+            </div>
+          )}
           {result.post && (
             <div className="mt-4 space-y-2">
               <p className="text-sm"><span className="font-semibold">Title:</span> {result.post.title}</p>
@@ -128,12 +146,13 @@ export function BlogAutomation() {
                 {state.topics.map((t: TopicState, i: number) => (
                   <tr key={t.slug} className="border-t border-slate-100 align-top">
                     <td className="py-2 pr-2 text-navy/40">{i + 1}</td>
-                    <td className="py-2 pr-3"><div className="font-semibold text-navy">{t.title}</div><div className="text-xs text-navy/50">{t.keyword}</div>{t.lastError && <div className="mt-1 text-xs text-red-700">{t.lastError.slice(0, 220)}</div>}</td>
+                    <td className="py-2 pr-3"><div className="font-semibold text-navy">{t.title}</div><div className="text-xs text-navy/50">{t.keyword}</div>{t.status === "draft" && t.lastProblems && t.lastProblems.length > 0 ? (<ul className="mt-1 list-disc pl-4 text-xs text-red-700">{t.lastProblems.slice(0, 6).map((p) => <li key={p}>{p.slice(0, 200)}</li>)}</ul>) : t.lastError ? <div className="mt-1 text-xs text-red-700">{t.lastError.slice(0, 220)}</div> : null}</td>
                     <td className="py-2 pr-3 text-xs">{t.author}</td>
                     <td className="py-2 pr-3"><Badge tone={tone(t.status)}>{t.status}</Badge>{t.attempts > 0 && t.status !== "published" && <div className="text-xs text-navy/40">{t.attempts} attempt{t.attempts === 1 ? "" : "s"}</div>}{t.publishedAt && <div className="text-xs text-navy/40">{fmtDate(t.publishedAt)}</div>}</td>
                     <td className="py-2 text-right">
                       {t.status === "queued" && <><button className="px-1 text-xs font-semibold text-purple hover:underline" onClick={() => void topic("up", t.slug)}>↑</button><button className="px-1 text-xs font-semibold text-purple hover:underline" onClick={() => void topic("down", t.slug)}>↓</button><button className="px-1 text-xs font-semibold text-red-600 hover:underline" onClick={() => void topic("skip", t.slug)}>Skip</button></>}
-                      {(t.status === "failed" || t.status === "skipped") && <button className="px-1 text-xs font-semibold text-purple hover:underline" onClick={() => void topic("requeue", t.slug)}>Requeue</button>}
+                      {t.status === "draft" && t.draftId && <a className="px-1 text-xs font-semibold text-purple hover:underline" href={`/admin/blogs/${t.draftId}/edit`}>Open draft</a>}
+                      {(t.status === "failed" || t.status === "skipped" || t.status === "draft") && <button className="px-1 text-xs font-semibold text-purple hover:underline" onClick={() => void topic("requeue", t.slug)}>{t.status === "draft" ? "Rewrite" : "Requeue"}</button>}
                       {t.status === "published" && <a className="px-1 text-xs font-semibold text-purple hover:underline" href={`/blog/${t.slug}`} target="_blank" rel="noopener noreferrer">View</a>}
                     </td>
                   </tr>

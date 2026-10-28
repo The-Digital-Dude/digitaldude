@@ -23,6 +23,7 @@ const BANNED: { re: RegExp; why: string }[] = [
   { re: /\b(?:revolutionary|game[- ]chang\w+|cutting[- ]edge|next[- ]gen\w*)\b/i, why: "hype wording" },
   { re: /\b(?:studies show|research shows|research suggests|according to (?:a|recent) (?:study|survey|report)|surveys? (?:show|found))\b/i, why: "cites an unnamed study" },
   { re: /\b(?:one of our clients|a client of ours|our client[s]? (?:said|told|saw|reported)|we helped a)\b/i, why: "invented client anecdote" },
+  { re: /\b(?:we(?:'ve| have) (?:seen|worked with (?:many|dozens|hundreds))|in our experience|many of our (?:clients|customers))\b/i, why: "claims experience that is not in the fact sheet" },
   { re: /\bas an ai\b|\blanguage model\b/i, why: "mentions being an AI" },
   { re: /lorem ipsum|\bTODO\b|\[INTERNAL LINK|\[EXTERNAL LINK|\{\{|\}\}/i, why: "contains placeholder text" },
   { re: /```/, why: "contains a code fence" },
