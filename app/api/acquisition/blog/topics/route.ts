@@ -42,8 +42,12 @@ export const POST = adminRoute("edit blog topics", async (request, { db }) => {
     if (b.action === "skip") t.status = "skipped";
     if (b.action === "requeue") Object.assign(t, { status: "queued", attempts: 0, lastError: undefined, lastProblems: undefined, lastAttemptAt: undefined });
     if (b.action === "up" || b.action === "down") {
-      const j = b.action === "up" ? i - 1 : i + 1;
-      if (j >= 0 && j < state.topics.length) [state.topics[i], state.topics[j]] = [state.topics[j], state.topics[i]];
+      // Swap with the neighbouring *queued* topic, so the order of what publishes next changes
+      // even when published/skipped topics sit in between.
+      let j = b.action === "up" ? i - 1 : i + 1;
+      const step = b.action === "up" ? -1 : 1;
+      while (j >= 0 && j < state.topics.length && state.topics[j].status !== "queued") j += step;
+      if (t.status === "queued" && j >= 0 && j < state.topics.length) [state.topics[i], state.topics[j]] = [state.topics[j], state.topics[i]];
     }
   }
   await saveState(db, state);

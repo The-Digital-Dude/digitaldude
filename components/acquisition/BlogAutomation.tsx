@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Card, Empty, btnCls, btnGhostCls, fmtDate, inputCls, labelCls } from "./ui";
 import { Feedback, api, type ApiResult } from "./client";
+import { Pagination } from "@/components/admin/Pagination";
 import type { AutomationState, RunResult, TopicState } from "@/lib/blog/automation";
 import type { InsightsReport } from "@/lib/blog/insights";
 
@@ -23,6 +24,12 @@ export function BlogAutomation() {
   const [form, setForm] = useState({ slug: "", title: "", keyword: "", category: "Custom Software", author: "Farhad Hossain", angle: "" });
 
   const [report, setReport] = useState<InsightsReport | null>(null);
+  const [qStatus, setQStatus] = useState("all");
+  const [qSearch, setQSearch] = useState("");
+  const [qPage, setQPage] = useState(1);
+  const [qSize, setQSize] = useState(10);
+  const [logPage, setLogPage] = useState(1);
+  const [logSize, setLogSize] = useState(10);
 
   const loadReport = useCallback(async () => {
     const r = await api("/api/acquisition/blog/insights", "GET");
@@ -94,6 +101,20 @@ export function BlogAutomation() {
 
   if (!data) return <p className="text-sm text-navy/50">{msg?.error ?? "Loading…"}</p>;
   const { state, ai, nextRun } = data;
+
+  const needle = qSearch.trim().toLowerCase();
+  const counts = state.topics.reduce<Record<string, number>>((m, t) => ({ ...m, [t.status]: (m[t.status] ?? 0) + 1 }), {});
+  // Keep each topic's real position in the queue so the # column stays meaningful when filtered.
+  const visible = state.topics
+    .map((t, position) => ({ t, position }))
+    .filter(({ t }) => (qStatus === "all" || t.status === qStatus) && (!needle || `${t.title} ${t.keyword} ${t.slug}`.toLowerCase().includes(needle)));
+  const qPages = Math.max(1, Math.ceil(visible.length / qSize));
+  const qCurrent = Math.min(qPage, qPages);
+  const pageRows = visible.slice((qCurrent - 1) * qSize, qCurrent * qSize);
+  const logAll = [...state.log].reverse();
+  const logPages = Math.max(1, Math.ceil(logAll.length / logSize));
+  const logCurrent = Math.min(logPage, logPages);
+  const logRows = logAll.slice((logCurrent - 1) * logSize, logCurrent * logSize);
   const queued = state.topics.filter((t) => t.status === "queued").length;
   const published = state.topics.filter((t) => t.status === "published").length;
 
@@ -175,13 +196,21 @@ export function BlogAutomation() {
           </div>
         )}
         {state.topics.length === 0 ? <Empty>No topics.</Empty> : (
+          <>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            {(["all", "queued", "draft", "published", "failed", "skipped"] as const).map((k) => (
+              <button key={k} type="button" onClick={() => { setQStatus(k); setQPage(1); }} className={`rounded-full border px-3 py-1 text-xs font-semibold ${qStatus === k ? "border-purple bg-purple text-white" : "border-slate-200 bg-white text-navy/70 hover:bg-slate-50"}`}>{k === "all" ? "All" : k[0].toUpperCase() + k.slice(1)} <span className="opacity-70">{k === "all" ? state.topics.length : counts[k] ?? 0}</span></button>
+            ))}
+            <input className={`${inputCls} ml-auto max-w-xs`} placeholder="Search title, phrase or address" value={qSearch} onChange={(e) => { setQSearch(e.target.value); setQPage(1); }} />
+          </div>
+          {visible.length === 0 ? <Empty>No topics match.</Empty> : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs uppercase text-navy/50"><th className="py-1">#</th><th>Topic</th><th>Author</th><th>Status</th><th /></tr></thead>
               <tbody>
-                {state.topics.map((t: TopicState, i: number) => (
+                {pageRows.map(({ t, position }: { t: TopicState; position: number }) => (
                   <tr key={t.slug} className="border-t border-slate-100 align-top">
-                    <td className="py-2 pr-2 text-navy/40">{i + 1}</td>
+                    <td className="py-2 pr-2 text-navy/40">{position + 1}</td>
                     <td className="py-2 pr-3"><div className="font-semibold text-navy">{t.title}</div><div className="text-xs text-navy/50">{t.keyword}{t.source && t.source !== "built-in" && t.source !== "manual" ? ` · ${t.source === "search-console" ? "from Search Console" : "from search suggestions"}` : ""}</div>{t.evidence && <div className="text-xs text-navy/40">{t.evidence}</div>}{t.status === "draft" && t.lastProblems && t.lastProblems.length > 0 ? (<ul className="mt-1 list-disc pl-4 text-xs text-red-700">{t.lastProblems.slice(0, 6).map((p) => <li key={p}>{p.slice(0, 200)}</li>)}</ul>) : t.lastError ? <div className="mt-1 text-xs text-red-700">{t.lastError.slice(0, 220)}</div> : null}</td>
                     <td className="py-2 pr-3 text-xs">{t.author}</td>
                     <td className="py-2 pr-3"><Badge tone={tone(t.status)}>{t.status}</Badge>{t.attempts > 0 && t.status !== "published" && <div className="text-xs text-navy/40">{t.attempts} attempt{t.attempts === 1 ? "" : "s"}</div>}{t.publishedAt && <div className="text-xs text-navy/40">{fmtDate(t.publishedAt)}</div>}</td>
@@ -196,19 +225,23 @@ export function BlogAutomation() {
               </tbody>
             </table>
           </div>
+          )}
+          <Pagination page={qCurrent} pageSize={qSize} totalCount={visible.length} pageSizeOptions={[10, 25, 50]} onPageChange={setQPage} onPageSizeChange={(n) => { setQSize(n); setQPage(1); }} />
+          </>
         )}
       </Card>
 
       <Card title="Recent activity">
         {state.log.length === 0 ? <Empty>Nothing yet.</Empty> : (
           <ul className="space-y-1.5 text-sm">
-            {[...state.log].reverse().slice(0, 25).map((l, i) => (
+            {logRows.map((l, i) => (
               <li key={`${l.at}-${i}`} className="flex flex-wrap gap-2 border-b border-slate-100 pb-1.5">
                 <span className="text-xs text-navy/40">{fmtDate(l.at)}</span><Badge tone={l.result === "published" ? "green" : l.result === "info" ? "slate" : "red"}>{l.result}</Badge><span className="font-semibold text-navy">{l.slug}</span><span className="text-navy/60">{l.detail.slice(0, 200)}</span>
               </li>
             ))}
           </ul>
         )}
+        {logAll.length > 0 && <Pagination page={logCurrent} pageSize={logSize} totalCount={logAll.length} pageSizeOptions={[10, 25, 50]} onPageChange={setLogPage} onPageSizeChange={(n) => { setLogSize(n); setLogPage(1); }} />}
       </Card>
     </div>
   );
