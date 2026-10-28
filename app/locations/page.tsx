@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${SITE_URL}/locations`,
   },
+  openGraph: { title: "Custom Software Across the UK & Australia | Digital Dude", description: "Bespoke software engineering, custom CRM development and multi-tenant SaaS architecture for service businesses across the UK and Australia.", url: `${SITE_URL}/locations`, type: "website" },
 };
 
 export default function LocationsIndexPage() {

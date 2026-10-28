@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getSupabaseServerClient } from '@/lib/supabaseClient';
 import { SITE_URL } from '@/lib/utils';
+import { fixCover } from '@/lib/content/cover';
+import { clampDescription } from '@/lib/seo/clamp';
 import { TableOfContents } from '@/components/TableOfContents';
 import { AiSummaryBox } from '@/components/AiSummaryBox';
 import { Clock, ArrowLeft, Share2, Sparkles, Calendar, User, ArrowRight, ShieldCheck, Award, CheckCircle2 } from 'lucide-react';
@@ -107,6 +109,7 @@ async function getPost(slug: string): Promise<Article | null> {
       if (!error && data) {
         return {
           ...data,
+          cover_image: fixCover(data.cover_image),
           read_time: data.read_time || (data.reading_time_minutes ? `${data.reading_time_minutes} min read` : '5 min read'),
         };
       }
@@ -129,7 +132,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const title = post.meta_title || `${post.title} | The Digital Dude`;
-  const description = post.meta_description || post.excerpt || `Read ${post.title} on The Digital Dude blog.`;
+  const description = clampDescription(post.meta_description || post.excerpt || `Read ${post.title} on The Digital Dude blog.`);
   const canonicalUrl = `${SITE_URL}/blog/${post.slug}`;
 
   return {

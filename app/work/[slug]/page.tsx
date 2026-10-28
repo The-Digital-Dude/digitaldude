@@ -1,3 +1,4 @@
+import { clampDescription } from "@/lib/seo/clamp";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCaseStudy, getCaseStudies } from "@/lib/caseStudiesServer";
@@ -21,7 +22,7 @@ export async function generateMetadata({
   // via the admin panel that don't have a curated entry yet.
   const seoEntry = (seo as Record<string, SeoEntry>)[`work/${slug}`];
   const title = seoEntry?.title || `${project.title} Case Study | The Digital Dude`;
-  const description = seoEntry?.description || project.pageSummary || project.summary;
+  const description = clampDescription(seoEntry?.description || project.pageSummary || project.summary);
   const canonical = `${SITE_URL}/work/${project.slug}`;
 
   return {

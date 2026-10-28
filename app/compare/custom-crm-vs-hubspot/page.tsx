@@ -194,7 +194,7 @@ export default function CustomCrmVsHubspotPage() {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "TechArticle",
+        "@type": "Article",
         "@id": `${pageUrl}#article`,
         url: pageUrl,
         name: "Custom CRM vs HubSpot: Which Should You Choose? (2026)",

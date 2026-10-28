@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "Careers at The Digital Dude | Software Engineering Jobs",
   description: "Open roles at The Digital Dude — join a team building custom CRMs, SaaS platforms and operational systems for growing businesses.",
   alternates: { canonical: `${SITE_URL}/careers` },
+  openGraph: { title: "Careers at The Digital Dude | Software Engineering Jobs", description: "Open roles at The Digital Dude: join a team building custom CRMs, SaaS platforms and operational systems for growing businesses.", url: `${SITE_URL}/careers`, type: "website" },
 };
 
 export const revalidate = 60;

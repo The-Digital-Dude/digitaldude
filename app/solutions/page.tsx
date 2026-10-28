@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: `${SITE_URL}/solutions`,
   },
+  openGraph: { title: "Industry Vertical Software Solutions | The Digital Dude", description: "Bespoke CRMs, operational portals and cloud software for Property, Logistics, Travel, Recruitment, Home Services and EdTech.", url: `${SITE_URL}/solutions`, type: "website" },
 };
 
 export default function SolutionsIndexPage() {

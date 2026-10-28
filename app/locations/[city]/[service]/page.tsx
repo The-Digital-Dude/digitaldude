@@ -1,3 +1,4 @@
+import { clampDescription } from "@/lib/seo/clamp";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -42,7 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     title: page.title,
-    description: page.metaDescription,
+    description: clampDescription(page.metaDescription),
     robots: page.isTier1
       ? { index: true, follow: true }
       : { index: false, follow: true },
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     openGraph: {
       title: page.title,
-      description: page.metaDescription,
+      description: clampDescription(page.metaDescription),
       url,
       siteName: "The Digital Dude",
       type: "website",
@@ -67,7 +68,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: "summary_large_image",
       title: page.title,
-      description: page.metaDescription,
+      description: clampDescription(page.metaDescription),
       images: [ogUrl],
     },
   };

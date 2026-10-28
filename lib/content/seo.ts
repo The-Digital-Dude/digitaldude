@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/utils";
+import { clampDescription } from "@/lib/seo/clamp";
 
 export type SeoEntry = {
   title: string;
@@ -257,16 +258,17 @@ export function buildMetadata(key: keyof typeof seo, path: string): Metadata {
   if (!entry) throw new Error(`Missing SEO entry for key: "${key}". Add it to lib/content/seo.ts.`);
 
   const canonicalUrl = `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+  const description = clampDescription(entry.description);
   const ogImageUrl = `${SITE_URL}/api/og?title=${encodeURIComponent(entry.title)}&tag=${encodeURIComponent(entry.description.slice(0, 90))}&category=${encodeURIComponent(entry.category || "Engineering")}`;
 
   return {
     title: entry.title,
-    description: entry.description,
+    description,
     keywords: entry.keywords,
     alternates: { canonical: canonicalUrl },
     openGraph: {
       title: entry.title,
-      description: entry.description,
+      description,
       url: canonicalUrl,
       siteName: "The Digital Dude",
       type: "website",

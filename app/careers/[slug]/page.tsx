@@ -43,10 +43,14 @@ export async function generateMetadata({
   const job = await getJob(slug);
   if (!job) return {};
 
+  const title = `${job.title} | Careers | The Digital Dude`;
+  const description = job.compensation_summary || `${job.title} at The Digital Dude: ${job.department}, ${job.location}.`;
+  const url = `${SITE_URL}/careers/${job.slug}`;
   return {
-    title: `${job.title} | Careers | The Digital Dude`,
-    description: job.compensation_summary,
-    alternates: { canonical: `${SITE_URL}/careers/${job.slug}` },
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: "website" },
   };
 }
 

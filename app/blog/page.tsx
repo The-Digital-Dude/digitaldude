@@ -4,6 +4,7 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getSupabaseServerClient } from '@/lib/supabaseClient';
 import { SITE_URL } from '@/lib/utils';
+import { fixCover } from '@/lib/content/cover';
 import { Clock, Tag, ArrowRight, BookOpen, Search } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
     description: 'Practical guides and deep dives on revenue-focused engineering and performance marketing.',
     url: `${SITE_URL}/blog`,
     type: 'website',
+    images: [{ url: `${SITE_URL}/og-image.png`, alt: 'The Digital Dude blog' }],
   },
   alternates: {
     canonical: `${SITE_URL}/blog`,
@@ -97,7 +99,7 @@ export default async function BlogPage() {
           slug: p.slug,
           excerpt: p.excerpt,
           category: p.category || 'Custom Software',
-          cover_image: p.cover_image,
+          cover_image: fixCover(p.cover_image),
           read_time: p.read_time || (p.reading_time_minutes ? `${p.reading_time_minutes} min read` : '5 min read'),
           published_at: p.published_at,
           author: p.author || 'The Digital Dude Team',

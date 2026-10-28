@@ -20,12 +20,12 @@ export function PseoJsonLd({ page }: PseoJsonLdProps) {
     })),
   };
 
-  // 2. Main Entity Schema (TechArticle with author for comparison guides, Service for commercial hubs)
+  // 2. Main Entity Schema (Article with author for comparison guides, Service for commercial hubs)
   const mainEntitySchema =
     page.category === "comparison"
       ? {
           "@context": "https://schema.org",
-          "@type": "TechArticle",
+          "@type": "Article",
           "@id": `${pageUrl}#article`,
           url: pageUrl,
           name: page.title,
