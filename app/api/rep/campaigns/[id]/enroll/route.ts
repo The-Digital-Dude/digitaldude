@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
-import { getOnboardedRep } from "@/lib/repAuth";
+import { getOnboardedRep, repAccessDenial } from "@/lib/repAuth";
 import { enrollLeadInCampaign } from "@/lib/outreachDrip";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,8 @@ export async function POST(
 ) {
   const rep = await getOnboardedRep(request);
   if (!rep) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    const denial = await repAccessDenial(request);
+    return NextResponse.json({ ok: false, error: denial.error }, { status: denial.status });
   }
 
   const { id: campaignId } = await params;

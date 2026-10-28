@@ -74,12 +74,23 @@ export async function getAuthenticatedRep(request: Request): Promise<RepSessionP
 }
 
 /**
- * Reps may log in while onboarding (they need the portal to finish it), but anything that
- * contacts prospects requires completed onboarding. Returns null when not allowed.
+ * The signed-in rep, only when an admin has set their status to Active. Contract, NDA and onboarding are handled by hand outside the
+ * portal, so activation is the single switch that lets a rep email prospects and use the lead pool. (The name is kept so every route
+ * that calls it keeps working.)
  */
 export async function getOnboardedRep(request: Request): Promise<RepSessionPayload | null> {
   const rep = await getAuthenticatedRep(request);
-  return rep && rep.onboarding_completed === true ? rep : null;
+  return rep && rep.status === "active" ? rep : null;
+}
+
+/**
+ * What to tell a rep whose request was refused by getOnboardedRep: signed out (401, the dashboard sends them to log in) or signed in but
+ * not onboarded yet (403 with a message that says what to do, instead of a bare "Unauthorized").
+ */
+export async function repAccessDenial(request: Request): Promise<{ status: number; error: string }> {
+  const rep = await getAuthenticatedRep(request);
+  if (!rep) return { status: 401, error: "Please sign in again." };
+  return { status: 403, error: "Your account has not been activated yet. An admin switches it on once your contract is in place, then you can email prospects and use the lead pool." };
 }
 
 export function generate6DigitOtp(): string {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getOnboardedRep, type RepSessionPayload } from "@/lib/repAuth";
+import { getOnboardedRep, repAccessDenial, type RepSessionPayload } from "@/lib/repAuth";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { logAudit } from "@/lib/acquisition/audit";
 import { log } from "@/lib/logger";
@@ -19,7 +19,10 @@ export function repRoute<P extends Record<string, string> = Record<string, never
 ) {
   return async (request: Request, context: { params: Promise<P> }): Promise<Response> => {
     const rep = await getOnboardedRep(request);
-    if (!rep) return repJsonError("Unauthorized, or onboarding is not completed yet.", 401);
+    if (!rep) {
+      const denial = await repAccessDenial(request);
+      return repJsonError(denial.error, denial.status);
+    }
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
       const origin = request.headers.get("origin");
       const host = request.headers.get("host");

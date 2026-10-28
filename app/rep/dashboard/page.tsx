@@ -50,6 +50,7 @@ import {
 import { SITE_URL } from "@/lib/utils";
 import { RepAnalyticsOverview } from "@/components/rep/RepAnalyticsOverview";
 import { RepPoolPanel } from "@/components/rep/PoolPanel";
+import { RepGuide } from "@/components/rep/RepGuide";
 import { LeadsCrm } from "@/components/rep/crm/LeadsCrm";
 import type { CrmLead, Forecast } from "@/components/rep/crm/shared";
 import { NotificationBell } from "@/components/rep/NotificationBell";
@@ -314,7 +315,6 @@ export default function RepDashboardPage() {
 
   // Onboarding Checklist
   const [onboardingChecklist, setOnboardingChecklist] = useState<ChecklistItem[]>([]);
-  const [togglingOnboarding, setTogglingOnboarding] = useState(false);
 
   // Load Dashboard Data
   useEffect(() => {
@@ -344,9 +344,6 @@ export default function RepDashboardPage() {
             setPayoutNotes(repData.payout_details.notes || "");
           }
 
-          if (!repData.onboarding_completed) {
-            setActiveTab("onboarding");
-          }
         } else {
           router.push("/rep/login");
         }
@@ -944,22 +941,6 @@ export default function RepDashboardPage() {
     }
   }
 
-  async function handleCompleteOnboarding() {
-    setTogglingOnboarding(true);
-    try {
-      const res = await fetch("/api/rep/onboarding/complete", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) {
-        if (profile) {
-          setProfile({ ...profile, onboarding_completed: true });
-        }
-        setActiveTab("overview");
-      }
-    } catch {} finally {
-      setTogglingOnboarding(false);
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#090D16] flex items-center justify-center p-6 text-white">
@@ -1059,10 +1040,10 @@ export default function RepDashboardPage() {
             {[
               { id: "overview", label: "Overview & Metrics", icon: LayoutDashboard },
               { id: "leads", label: "Leads CRM", icon: Users, badge: leads.length },
-              ...(profile.onboarding_completed ? [{ id: "pool", label: "Lead Pool", icon: Layers }] : []),
+              ...(profile.status === "active" ? [{ id: "pool", label: "Lead Pool", icon: Layers }] : []),
               { id: "campaigns", label: "Campaigns & Drips", icon: Layers, badge: campaigns.length },
               { id: "outreach", label: "Cold Outreach", icon: Send, badge: outreachLogs.length },
-              { id: "onboarding", label: "Pitch Deck & Guide", icon: BookOpen, tag: !profile.onboarding_completed ? "START" : undefined },
+              { id: "onboarding", label: "Pitch Deck & Guide", icon: BookOpen, tag: undefined },
               { id: "payouts", label: "Earnings & Payouts", icon: CreditCard },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -1155,7 +1136,7 @@ export default function RepDashboardPage() {
               </button>
             </div>
 
-            {profile.onboarding_completed && <NotificationBell onOpenItem={(kind) => setActiveTab(kind === "assignment" ? "pool" : "leads")} />}
+            {profile.status === "active" && <NotificationBell onOpenItem={(kind) => setActiveTab(kind === "assignment" ? "pool" : "leads")} />}
 
             <button
               onClick={() => {
@@ -1227,7 +1208,7 @@ export default function RepDashboardPage() {
         {/* ===================================================================== */}
         {/* VIEW 3: CAMPAIGNS & DRIP SEQUENCES */}
         {/* ===================================================================== */}
-        {activeTab === "pool" && profile.onboarding_completed && (
+        {activeTab === "pool" && profile.status === "active" && (
           <RepPoolPanel
             onLeadsChanged={() => void fetchLeads()}
             onWriteEmail={(c) => {
@@ -1436,6 +1417,11 @@ export default function RepDashboardPage() {
         {/* ===================================================================== */}
         {activeTab === "outreach" && (
           <div className="space-y-6">
+            {profile.status !== "active" && (
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-200" role="status">
+                <span className="font-bold">Your account is not activated yet.</span> An admin switches it on once your contract is in place. Until then you can read the guide and prepare leads, but sending is switched off.
+              </div>
+            )}
             {/* Outreach Sender Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
               <div>
@@ -1729,63 +1715,17 @@ export default function RepDashboardPage() {
         {/* VIEW 5: PITCH DECK & ONBOARDING GUIDE */}
         {/* ===================================================================== */}
         {activeTab === "onboarding" && (
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-purple/30 bg-gradient-to-r from-purple/20 via-[#131B2E] to-[#131B2E] p-6 space-y-4 shadow-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="rounded-full bg-purple/30 text-purple-300 px-2.5 py-0.5 text-[10px] font-bold uppercase">
-                    Partner Success Onboarding
-                  </span>
-                  <h2 className="text-lg font-bold text-white mt-1">Sales Rep Master Guide &amp; Pitch Deck</h2>
-                  <p className="text-xs text-slate-400">
-                    Review our service architecture, commission milestones, and high-converting objection handlers.
-                  </p>
-                </div>
-                {!profile.onboarding_completed && (
-                  <button
-                    onClick={handleCompleteOnboarding}
-                    disabled={togglingOnboarding}
-                    className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:brightness-110 shadow-md transition disabled:opacity-50"
-                  >
-                    <CheckCircle2 size={14} /> Mark Onboarding Complete
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* 3 Core Guides Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-5 space-y-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple/20 text-purple-400 font-bold text-sm">
-                  1
-                </div>
-                <h3 className="text-sm font-bold text-white">Ideal Customer Profile (ICP)</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Target SaaS founders, e-commerce brands, real estate firms, and growing agencies looking for custom software systems, Next.js web applications, or CRM automations.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-5 space-y-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 font-bold text-sm">
-                  2
-                </div>
-                <h3 className="text-sm font-bold text-white">Discovery Call Goal</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Do not sell code on the email. Sell the <strong>15-minute technical roadmap call</strong> with our lead solutions architect. When they book through your link, it is credited to you.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-white/[0.08] bg-[#131B2E]/60 p-5 space-y-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400 font-bold text-sm">
-                  3
-                </div>
-                <h3 className="text-sm font-bold text-white">Commission Milestones</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Earn qualified meeting bonuses for each held call, plus 10%–20% deal closing commissions on executed software contracts.
-                </p>
-              </div>
-            </div>
-          </div>
+          <RepGuide
+            repName={profile.full_name}
+            currency={profile.currency || "BDT"}
+            meetingBonus={[profile.meeting_bonus_min, profile.meeting_bonus_max]}
+            commissionPct={[profile.deal_commission_percent_min, profile.deal_commission_percent_max]}
+            referralLink={referralLink}
+            senderEmail={repSenderEmail}
+            dailyLimit={profile.daily_outreach_limit}
+            active={profile.status === "active"}
+            onOpenTab={(tab) => setActiveTab(tab as typeof activeTab)}
+          />
         )}
 
         {/* ===================================================================== */}

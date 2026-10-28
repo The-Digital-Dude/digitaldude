@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
-import { getAuthenticatedRep, getOnboardedRep } from "@/lib/repAuth";
+import { getAuthenticatedRep, getOnboardedRep, repAccessDenial } from "@/lib/repAuth";
 import { assertCanEmail, assertEmailDeliverable, assertPoolContactAllowed, OutreachBlockedError, repUnsubscribeApiUrl, repUnsubscribeUrl } from "@/lib/outreachGate";
 import { sendBrevoEmail } from "@/lib/emailBrevo";
 import { buildRepEmail, contactInfoForEmail, resolveDesign, type RepEmployee } from "@/lib/repEmail";
@@ -47,7 +47,8 @@ export async function POST(request: Request) {
   const ip = getClientIp(request);
   const repSession = await getOnboardedRep(request);
   if (!repSession) {
-    return NextResponse.json({ ok: false, error: "Unauthorized, or onboarding is not completed yet." }, { status: 401 });
+    const denial = await repAccessDenial(request);
+    return NextResponse.json({ ok: false, error: denial.error }, { status: denial.status });
   }
 
   // Rate limit: 30 cold emails per hour per rep to prevent spam/abuse
