@@ -29,6 +29,7 @@ export const SECTIONS: Section[] = [
   {
     key: "team", label: "Sales team", pages: [
       { href: "/admin/acquisition/crm", label: "Rep CRM" },
+      { href: "/admin/acquisition/limits", label: "Sending limits" },
       { href: "/admin/acquisition/reports", label: "Reports" },
     ],
   },

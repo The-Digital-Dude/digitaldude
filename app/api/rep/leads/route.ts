@@ -66,8 +66,9 @@ export async function GET(request: Request) {
     for (const t of (tasks ?? []) as { lead_id: string; due_at: string; title?: string; kind?: string }[]) {
       const cur = taskInfo.get(t.lead_id) ?? { open: 0, nextDue: null, overdue: false, nextTitle: null, hasRespondTask: false };
       cur.open++;
+      // The team answers replies: that task still means "something is happening" but is never the rep's due or overdue work.
+      if (t.kind === "respond") { cur.hasRespondTask = true; taskInfo.set(t.lead_id, cur); continue; }
       if (!cur.nextDue || t.due_at < cur.nextDue) { cur.nextDue = t.due_at; cur.nextTitle = t.title ?? null; }
-      if (t.kind === "respond") cur.hasRespondTask = true;
       cur.overdue = cur.overdue || Date.parse(t.due_at) < now.getTime();
       taskInfo.set(t.lead_id, cur);
     }
@@ -124,6 +125,7 @@ export async function GET(request: Request) {
         needs_next_step: lacksNext,
         next_task_title: t.nextTitle,
         follow_up_reasons: reasons,
+        team_answering: t.hasRespondTask,
         pool_contact_status: l.acq_contact_id ? (status.get(l.acq_contact_id) ?? null) : null,
         email_check: checks[String(l.email ?? "").trim().toLowerCase()] ?? null,
         proposal_status: pInfo?.status ?? null,

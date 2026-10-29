@@ -195,7 +195,7 @@ describe("automatic activity and tasks", () => {
     expect(await recordEmailSent(db, { employeeId: "r2", email: "dan@plum.com.au", subject: "x", stage: "cold", now })).toBe(false);
   });
 
-  it("an interested reply cancels the follow-up and asks the rep to respond within hours", async () => {
+  it("an interested reply cancels the follow-up and records the reply for the team to answer", async () => {
     const { db, tables } = fakeDb(seed());
     await recordEmailSent(db, { employeeId: "r1", email: "dan@plum.com.au", subject: "Hi", stage: "cold", now });
     expect(await recordReply(db, { email: "dan@plum.com.au", classification: "interested", snippet: "Yes please", now })).toBe(1);
@@ -203,7 +203,8 @@ describe("automatic activity and tasks", () => {
     expect(follow).toMatchObject({ status: "cancelled", cancel_reason: "they replied" });
     const respond = tables.rep_lead_tasks.find((t) => t.kind === "respond")!;
     expect(respond).toMatchObject({ status: "open", auto: true });
-    expect(Date.parse(String(respond.due_at)) - now.getTime()).toBe(4 * 3_600_000);
+    expect(Date.parse(String(respond.due_at)) - now.getTime()).toBe(3 * 86_400_000);
+    expect(String(respond.title)).toMatch(/the team is answering/);
     expect(tables.rep_leads[0].status).toBe("interested");
   });
 

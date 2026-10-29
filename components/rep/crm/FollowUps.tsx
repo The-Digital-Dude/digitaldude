@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Mail, Search, Send, Sparkles, X } from "lucide-react";
 import { Pagination } from "@/components/admin/Pagination";
 import { FOLLOW_UP_LABELS, FOLLOW_UP_REASONS, type FollowUpReason } from "@/lib/crm/followups";
+import type { Capacity } from "@/lib/crm/sendLimits";
 import { CrmLead, crm, dueLabel } from "./shared";
 
 const field = "rounded-lg bg-[#0D1322] border border-white/[0.08] px-2.5 py-2 text-xs text-white outline-none focus:border-purple";
 const pill = (on: boolean) => `px-3 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition ${on ? "bg-purple text-white shadow-md shadow-purple/20" : "bg-[#131B2E] text-slate-400 hover:text-white"}`;
 const REASON_STYLE: Record<FollowUpReason, string> = {
-  replied: "bg-sky-500/15 text-sky-300",
   overdue: "bg-rose-500/15 text-rose-300",
   due_today: "bg-amber-500/15 text-amber-300",
   no_next_step: "bg-amber-500/15 text-amber-300",
@@ -51,6 +51,13 @@ export function FollowUps({ leads, repName, onRefresh, onEmail }: Props) {
   const [pageSize, setPageSize] = useState(10);
   const [picked, setPicked] = useState<string[]>([]);
   const [composing, setComposing] = useState(false);
+  const [cap, setCap] = useState<Capacity | null>(null);
+
+  const loadCap = useCallback(async () => {
+    const r = await crm<{ capacity: Capacity }>("/api/rep/limits");
+    if (r.ok) setCap(r.capacity);
+  }, []);
+  useEffect(() => { void loadCap(); }, [loadCap]);
 
   const needing = useMemo(() => leads.filter((l) => (l.follow_up_reasons ?? []).length > 0), [leads]);
   const counts = useMemo(() => {
@@ -77,8 +84,21 @@ export function FollowUps({ leads, repName, onRefresh, onEmail }: Props) {
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const setFilter = (r: FollowUpReason | "any") => { setReason(r); setPage(1); };
 
+  const remaining = cap?.followUp.remaining ?? null;
+  const over = remaining !== null && emailable.length > 0 && needing.filter((l) => !blocked(l)).length > remaining;
+
   return (
     <div className="space-y-5">
+      {cap && (
+        <div className={`rounded-xl border p-3 text-xs ${over ? "border-amber-400/40 bg-amber-500/10 text-amber-100" : "border-white/[0.08] bg-[#131B2E]/60 text-slate-300"}`}>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+            <span><strong className="text-white">Follow-ups:</strong> {cap.followUp.used} of {cap.followUp.limit} used in the last 24 hours, <strong className="text-white">{cap.followUp.remaining} left</strong></span>
+            <span><strong className="text-white">Cold:</strong> {cap.cold.used} of {cap.cold.limit}</span>
+            {cap.ramping && <span className="text-slate-400">Your limits rise each week (follow-ups up to {cap.followUp.max}, cold up to {cap.cold.max}).</span>}
+          </div>
+          {over && <p className="mt-1.5">More leads need a follow-up than you can send right now. Do the most urgent first; any you cannot send today move to the next working day, so they never pile up overdue.</p>}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <button onClick={() => setFilter("any")} className={pill(reason === "any")}>All needing follow-up <span className="opacity-70">{counts.any}</span></button>
         {FOLLOW_UP_REASONS.map((r) => <button key={r} onClick={() => setFilter(r)} className={pill(reason === r)}>{FOLLOW_UP_LABELS[r]} <span className="opacity-70">{counts[r]}</span></button>)}
@@ -117,7 +137,7 @@ export function FollowUps({ leads, repName, onRefresh, onEmail }: Props) {
                   <tr key={l.id} className="border-t border-white/[0.06] align-top">
                     <td className="px-3 py-3"><input type="checkbox" className="accent-purple" aria-label={`Select ${l.full_name}`} disabled={!!why} title={why ?? undefined} checked={picked.includes(l.id)} onChange={() => toggle(l.id)} /></td>
                     <td className="px-2 py-3"><div className="font-semibold text-white">{l.full_name}</div><div className="text-xs text-slate-400">{l.company_name ? `${l.company_name} · ` : ""}{l.email}</div></td>
-                    <td className="px-2 py-3"><div className="flex flex-wrap gap-1">{(l.follow_up_reasons ?? []).map((r) => <span key={r} className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${REASON_STYLE[r]}`}>{FOLLOW_UP_LABELS[r]}</span>)}</div></td>
+                    <td className="px-2 py-3"><div className="flex flex-wrap gap-1">{(l.follow_up_reasons ?? []).map((r) => <span key={r} className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${REASON_STYLE[r]}`}>{FOLLOW_UP_LABELS[r]}</span>)}{l.team_answering && <span className="rounded bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-bold text-sky-300">Replied · team answering</span>}</div></td>
                     <td className="px-2 py-3 text-xs">{l.next_task_title ? <><div className="text-slate-200">{l.next_task_title}</div>{d && <div className={d.overdue ? "text-rose-300" : "text-slate-400"}>{d.text}</div>}</> : <span className="font-semibold text-amber-300">None set</span>}</td>
                     <td className="px-2 py-3 text-xs text-slate-300">{l.days_quiet !== undefined ? `${l.days_quiet}d` : "–"}</td>
                     <td className="px-2 py-3 text-right"><button onClick={() => onEmail(l)} disabled={!!why} title={why ?? "Write a follow-up to this lead"} className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-40"><Mail size={12} /> Email</button></td>
@@ -130,14 +150,14 @@ export function FollowUps({ leads, repName, onRefresh, onEmail }: Props) {
         </div>
       )}
 
-      {composing && <BulkFollowUp leads={pickedLeads} repName={repName} onClose={() => setComposing(false)} onDone={() => { setPicked([]); onRefresh(); }} />}
+      {composing && <BulkFollowUp leads={remaining === null ? pickedLeads : pickedLeads.slice(0, remaining)} skipped={remaining === null ? 0 : Math.max(0, pickedLeads.length - remaining)} repName={repName} onClose={() => setComposing(false)} onDone={() => { setPicked([]); onRefresh(); void loadCap(); }} />}
     </div>
   );
 }
 
 type Result = { id: string; state: "pending" | "sending" | "sent" | "skipped" | "failed"; note?: string };
 
-function BulkFollowUp({ leads, repName, onClose, onDone }: { leads: CrmLead[]; repName: string; onClose: () => void; onDone: () => void }) {
+function BulkFollowUp({ leads, skipped, repName, onClose, onDone }: { leads: CrmLead[]; skipped: number; repName: string; onClose: () => void; onDone: () => void }) {
   const [templates, setTemplates] = useState<Template[]>([BUILTIN]);
   const [templateId, setTemplateId] = useState(BUILTIN.id);
   const [subject, setSubject] = useState(BUILTIN.subject);
@@ -207,6 +227,7 @@ function BulkFollowUp({ leads, repName, onClose, onDone }: { leads: CrmLead[]; r
 
         {!results ? (
           <div className="space-y-3">
+            {skipped > 0 && <p className="rounded-lg bg-amber-500/10 p-2.5 text-xs text-amber-200">Your follow-up limit allows {leads.length} more right now, so the first {leads.length} are included and {skipped} will wait.</p>}
             <div>
               <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">Template</label>
               <select className={`${field} w-full`} value={templateId} onChange={(e) => pick(e.target.value)}>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>

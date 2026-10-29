@@ -203,8 +203,17 @@ export async function pollReplies(db: Db, reader: MailReader, now = new Date(), 
       await alertRep(db, owner.employee_id, {
         kind: "reply",
         title: `${owner.recipient_name || email} replied to your email`,
-        body: mail.body.slice(0, 600),
+        body: `The team is answering this one.
+
+${mail.body.slice(0, 500)}`,
         dedupeKey: `gmail:${item.id}`,
+      });
+      // The admin answers every reply, including a rep's one-off prospects (the mail is in the shared inbox).
+      await alertAdmin(db, {
+        kind: "reply",
+        title: `Reply from ${owner.recipient_name || email} (a rep's prospect)`,
+        body: mail.body.slice(0, 600),
+        dedupeKey: `gmail:${item.id}:admin`,
       });
       repNotified++;
       // CRM: the reply goes on the lead's timeline and the rep gets a "reply to them" task.

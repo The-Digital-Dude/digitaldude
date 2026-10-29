@@ -5,6 +5,7 @@ import { OPEN_STAGES } from "./model";
 import { loadCrmSettings, type CrmSettings } from "./settings";
 import { staleness, type HealthLead } from "./health";
 import { computeScores, type ScoredLead } from "./refresh";
+import { rolloverFollowUps } from "./rollover";
 
 type Db = SupabaseClient;
 
@@ -53,6 +54,7 @@ export async function notifyDueTasks(db: Db, now = new Date()): Promise<number> 
     .from("rep_lead_tasks")
     .select("id,employee_id,title,due_at, rep_leads(full_name)")
     .eq("status", "open")
+    .neq("kind", "respond") // the team answers replies; the rep is not chased for them
     .lte("due_at", now.toISOString())
     .gte("due_at", new Date(now.getTime() - DUE_WINDOW_MS).toISOString())
     .order("due_at", { ascending: true })
@@ -126,6 +128,7 @@ export async function runCrmHousekeeping(db: Db, now = new Date()): Promise<void
   };
   await step("due tasks", () => notifyDueTasks(db, now));
   await step("old scores", () => refreshOldScores(db, now));
+  if (await claimDaily(db, "crm_daily_rollover", now).catch(() => false)) await step("follow-up rollover", () => rolloverFollowUps(db, now));
   if (await claimDaily(db, "crm_daily_stale", now).catch(() => false)) await step("stale leads", () => notifyStaleLeads(db, now));
   if (await claimDaily(db, "crm_daily_retention", now).catch(() => false)) await step("retention", () => sweepRetention(db, now));
 }

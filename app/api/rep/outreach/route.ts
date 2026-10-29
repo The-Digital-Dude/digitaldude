@@ -11,6 +11,7 @@ import { rateLimit, getClientIp } from "@/lib/rateLimit";
 import { SITE_URL } from "@/lib/utils";
 import { log } from "@/lib/logger";
 import { recordRepAuditLog } from "@/lib/repAudit";
+import { repCapacity } from "@/lib/crm/sendLimits";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -51,8 +52,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: denial.error }, { status: denial.status });
   }
 
-  // Rate limit: 30 cold emails per hour per rep to prevent spam/abuse
-  const rl = rateLimit(`rep_outreach:${repSession.id}`, 30, 60 * 60 * 1000);
+  // Rate limit: 60 emails per hour per rep to prevent abuse (the per-rep daily limits are the real control)
+  const rl = rateLimit(`rep_outreach:${repSession.id}`, 60, 60 * 60 * 1000);
   if (!rl.ok) {
     return NextResponse.json(
       { ok: false, error: "Hourly outreach limit reached. Please wait before sending more emails." },
@@ -110,20 +111,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Employee account not found." }, { status: 404 });
     }
 
-    // Enforce 24-hour daily outreach volume limit
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: sentLast24h } = await supabase
-      .from("rep_outreach_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("employee_id", employee.id)
-      .gte("sent_at", oneDayAgo);
-
-    const dailyCap = Number(employee.daily_outreach_limit) || 50;
-    if ((sentLast24h || 0) >= dailyCap) {
+    // Enforce the rep's daily limit for THIS kind of email. Cold and follow-ups are counted separately (rolling 24 hours), so cold
+    // outreach can never use up the follow-up quota. The limit may be lower than the rep's maximum while they are warming up.
+    const capacity = await repCapacity(supabase, employee.id).catch(() => null);
+    const lane = capacity ? (stage === "follow_up" ? capacity.followUp : capacity.cold) : null;
+    if (lane && lane.used >= lane.limit) {
+      const kind = stage === "follow_up" ? "follow-up" : "cold outreach";
       return NextResponse.json(
         {
           ok: false,
-          error: `Daily outreach limit reached (${sentLast24h}/${dailyCap} emails sent in the last 24 hours). Limit resets gradually.`,
+          limitReached: stage,
+          error: `Your daily ${kind} limit is reached (${lane.used}/${lane.limit} in the last 24 hours${capacity?.ramping ? `; it rises each week up to ${lane.max}` : ""}). It frees up as earlier emails pass 24 hours.`,
         },
         { status: 429 }
       );
@@ -206,19 +204,20 @@ export async function POST(request: Request) {
     }
 
     // Record outreach log
-    const { data: logRecord, error: logError } = await supabase
-      .from("rep_outreach_logs")
-      .insert({
-        employee_id: employee.id,
-        recipient_email: cleanRecipientEmail,
-        recipient_name: recipientName || null,
-        company_name: companyName || null,
-        subject,
-        body_content: message,
-        template_used: templateUsed || "custom",
-      })
-      .select()
-      .single();
+    const logRow = {
+      employee_id: employee.id,
+      recipient_email: cleanRecipientEmail,
+      recipient_name: recipientName || null,
+      company_name: companyName || null,
+      subject,
+      body_content: message,
+      template_used: templateUsed || "custom",
+    };
+    let { data: logRecord, error: logError } = await supabase.from("rep_outreach_logs").insert({ ...logRow, stage }).select().single();
+    if (logError) {
+      // Migration 0043 (the stage column) may not be applied yet: still keep the log, or the daily limit would stop counting.
+      ({ data: logRecord, error: logError } = await supabase.from("rep_outreach_logs").insert(logRow).select().single());
+    }
 
     if (logError) {
       log("warn", { message: "Could not save rep outreach log", error: logError });

@@ -39,6 +39,8 @@ export interface CrmLead {
   needs_next_step?: boolean;
   next_task_title?: string | null;
   follow_up_reasons?: FollowUpReason[];
+  /** They replied and the team is answering. */
+  team_answering?: boolean;
   /** Set for leads that came from the lead pool: "eligible" means cleared to email. */
   pool_contact_status?: string | null;
   email_check?: { status: "safe" | "risky" | "invalid" | "unknown"; reason: string; source: "builtin" | "reacher" } | null;

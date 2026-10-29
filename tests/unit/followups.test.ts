@@ -18,8 +18,9 @@ describe("which leads need a follow-up", () => {
     expect(followUpReasons(facts({ needsNextStep: true }), now)).toEqual(["no_next_step"]);
     expect(followUpReasons(facts({ stale: true }), now)).toEqual(["quiet"]);
   });
-  it("puts 'replied, awaiting you' first and keeps every reason", () => {
-    expect(followUpReasons(facts({ stale: true, needsNextStep: true, tasks: { open: 1, nextDue: "2026-11-01T09:00:00", hasRespondTask: true } }), now)).toEqual(["replied", "overdue", "no_next_step", "quiet"]);
+  it("keeps every reason, most urgent first, and a reply the team is answering is not the rep's to-do", () => {
+    expect(followUpReasons(facts({ stale: true, needsNextStep: true, tasks: { open: 1, nextDue: "2026-11-01T09:00:00", hasRespondTask: true } }), now)).toEqual(["overdue", "no_next_step", "quiet"]);
+    expect(followUpReasons(facts({ tasks: { open: 1, nextDue: null, hasRespondTask: true } }), now)).toEqual([]);
   });
   it("never flags a closed lead", () => {
     expect(followUpReasons(facts({ closed: true, stale: true, needsNextStep: true, tasks: { open: 1, nextDue: "2026-11-01T09:00:00", hasRespondTask: true } }), now)).toEqual([]);
@@ -28,7 +29,7 @@ describe("which leads need a follow-up", () => {
 
 describe("the Leads CRM follow-up filter", () => {
   const lead = (id: string, follow_up_reasons: CrmLead["follow_up_reasons"]) => ({ id, full_name: id, email: `${id}@x.com`, follow_up_reasons }) as unknown as CrmLead;
-  const leads = [lead("a", ["replied", "overdue"]), lead("b", ["quiet"]), lead("c", [])];
+  const leads = [lead("a", ["quiet", "overdue"]), lead("b", ["quiet"]), lead("c", [])];
   it("filters by reason, or by any reason", () => {
     expect(applyFilters(leads, { followUp: "any" }).map((l) => l.id)).toEqual(["a", "b"]);
     expect(applyFilters(leads, { followUp: "overdue" }).map((l) => l.id)).toEqual(["a"]);

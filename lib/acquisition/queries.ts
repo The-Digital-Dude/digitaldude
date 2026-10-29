@@ -144,12 +144,13 @@ export async function listMeetings() {
 
 export async function settingsOverview() {
   const db = getDb();
-  const [suppressions, jobs, audit, paused, autoFlag] = await Promise.all([
+  const [suppressions, jobs, audit, paused, autoFlag, gmailCursor] = await Promise.all([
     db.from("acq_suppressions").select("*").order("created_at", { ascending: false }).limit(200),
     db.from("acq_jobs").select("id,type,status,attempts,last_error,run_at").in("status", ["pending", "running", "failed"]).order("run_at", { ascending: false }).limit(25),
     db.from("acq_audit_logs").select("*").order("created_at", { ascending: false }).limit(25),
     db.from("acq_settings").select("value").eq("key", "sending_paused").maybeSingle(),
     db.from("acq_settings").select("value").eq("key", "auto_research_enabled").maybeSingle(),
+    db.from("acq_settings").select("value").eq("key", "gmail_cursor").maybeSingle(),
   ]);
   const env = acqEnv();
   return {
@@ -158,6 +159,13 @@ export async function settingsOverview() {
     audit: must(audit, "audit log"),
     sendingPaused: must(paused, "settings")?.value !== false,
     autoResearchEnabled: must(autoFlag, "settings")?.value === true,
+    replyReader: {
+      configured: !!(process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN),
+      lastReadAt: ((): string | null => {
+        const at = Number((gmailCursor.data?.value as { at?: number } | null)?.at ?? 0);
+        return at > 0 ? new Date(at * 1000).toISOString() : null;
+      })(),
+    },
     ai: await aiStatus(db),
     identity: await loadSenderIdentity(db),
     secrets: { hunter: await secretStatus(db, "hunter"), brave: await secretStatus(db, "brave") },

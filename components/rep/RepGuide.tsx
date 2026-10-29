@@ -173,7 +173,7 @@ export function RepGuide({ repName, currency, meetingBonus, commissionPct, refer
           </Block>
           <Block title="A simple daily routine">
             <List items={[
-              "Start with Tasks: do anything overdue first, especially replies. Reply to interested people within a few hours.",
+              "Start with the Follow-ups tab: do anything overdue first, then leads with no next step or gone quiet. When a lead replies, the team answers it and you are told in the bell.",
               "Spend time on new leads: research, verify, write, send. Quality beats volume.",
               "Log calls and notes in the lead so the next step is never a guess.",
               `Respect your daily sending limit${dailyLimit ? ` (${dailyLimit} emails a day)` : ""} and the hourly cap. Spread sends through the day.`,

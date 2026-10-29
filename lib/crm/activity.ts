@@ -138,7 +138,7 @@ export async function recordReply(db: Db, a: { email: string; classification: st
     } else {
       patch.status = a.classification === "interested" ? "interested" : "connected";
       if (lead.stage === "new") patch.stage = "contacted";
-      await createTask(db, { leadId: lead.id, employeeId: lead.employee_id, title: `Reply to ${lead.full_name}`, dueAt: new Date(now.getTime() + 4 * 3_600_000), kind: "respond", auto: true });
+      await createTask(db, { leadId: lead.id, employeeId: lead.employee_id, title: `${lead.full_name} replied: the team is answering`, dueAt: new Date(now.getTime() + 3 * 86_400_000), kind: "respond", auto: true });
     }
     await db.from("rep_leads").update(patch).eq("id", lead.id);
   }

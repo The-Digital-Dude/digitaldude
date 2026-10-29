@@ -67,7 +67,9 @@ export async function applyClassification(db: Db, replyId: string, cls: Classifi
       await alertRep(db, company.owner_employee_id, {
         kind: "reply",
         title: `${contact.name || contact.email} at ${company.name} replied`,
-        body: (reply.body ?? "").slice(0, 600),
+        body: `The team is answering this one.
+
+${(reply.body ?? "").slice(0, 500)}`,
         dedupeKey: `reply:${replyId}:rep`,
       });
       await db.from("acq_companies").update({ pool_status: "replied" }).eq("id", company.id).eq("owner_employee_id", company.owner_employee_id).in("pool_status", ["assigned", "needs_contact", "contacted"]);
@@ -81,10 +83,13 @@ export async function applyClassification(db: Db, replyId: string, cls: Classifi
   } catch {
     /* the CRM mirror is best-effort */
   }
-  if (!humanBy && (cls.classification === "interested" || cls.classification === "uncertain")) {
+  // Every real reply reaches the admin, who answers them all (auto-replies and bounces are filed quietly).
+  if (!humanBy && cls.classification !== "out_of_office" && cls.classification !== "bounce") {
+    const who = contact.name || contact.email;
+    const title = cls.classification === "interested" ? `Positive reply from ${who}` : cls.classification === "not_interested" ? `Declined: reply from ${who}` : cls.classification === "opt_out" ? `Opt-out reply from ${who}` : `Reply needs review from ${who}`;
     await alertAdmin(db, {
       kind: "reply",
-      title: cls.classification === "interested" ? `Positive reply from ${contact.name || contact.email}` : `Reply needs review from ${contact.name || contact.email}`,
+      title,
       body: (reply.body ?? "").slice(0, 600),
       link: "/admin/acquisition/inbox",
       dedupeKey: `reply:${replyId}:admin:${cls.classification}`,

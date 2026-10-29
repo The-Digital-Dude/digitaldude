@@ -27,7 +27,7 @@ interface Detail {
 const STATUSES = ["assigned", "needs_contact", "contacted", "replied", "meeting", "won", "lost", "dead"];
 const label = (s: string) => s.replace(/_/g, " ");
 /** "Lead pool" tab: claim companies from your markets, find and record contacts, then email through the normal tools. */
-export function RepPoolPanel({ onUseReply, onLeadsChanged, onWriteEmail }: { onUseReply?: (r: { email: string; name: string; company: string; message: string }) => void; onLeadsChanged?: () => void; onWriteEmail?: (c: { email: string; name: string; company: string }) => void } = {}) {
+export function RepPoolPanel({ onLeadsChanged, onWriteEmail }: { onLeadsChanged?: () => void; onWriteEmail?: (c: { email: string; name: string; company: string }) => void } = {}) {
   const [view, setView] = useState<"mine" | "available" | "basis" | "replies">("mine");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState("");
@@ -104,7 +104,7 @@ export function RepPoolPanel({ onUseReply, onLeadsChanged, onWriteEmail }: { onU
       <Msg error={msg?.error} note={msg?.note} />
 
       {view === "basis" ? <NeedsBasisPanel onChanged={() => { void load(); onLeadsChanged?.(); }} /> : null}
-      {view === "replies" ? <RepliesPanel onUseReply={onUseReply} /> : null}
+      {view === "replies" ? <RepliesPanel /> : null}
 
       {view === "mine" && companies.length > 0 && (
         <div className={`${card} flex flex-wrap items-center gap-2`}>

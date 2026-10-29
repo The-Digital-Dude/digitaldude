@@ -29,6 +29,18 @@ export default async function SettingsPage() {
         <AutoResearchToggle enabled={s.autoResearchEnabled} />
       </Card>
 
+      <Card title="Reply reader (Gmail)" className="mb-6">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <Badge tone={s.replyReader.configured ? "green" : "amber"}>{s.replyReader.configured ? "connected" : "not connected"}</Badge>
+          <span className="text-navy/70">
+            {s.replyReader.configured
+              ? s.replyReader.lastReadAt ? `Inbox last read ${new Date(s.replyReader.lastReadAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}. It reads every few minutes.` : "Connected, but the inbox has not been read yet. It runs on the next worker tick."
+              : "Replies are not being picked up. Set GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET and GMAIL_REFRESH_TOKEN in Vercel (see docs/acquisition.md), then redeploy."}
+          </span>
+        </div>
+        <p className="mt-3 text-xs text-navy/50">Only mail from people already in your leads or contacts is stored. Every real reply appears in the bell; you answer them from this inbox, and the owning rep is told the team is answering.</p>
+      </Card>
+
       <Card title="Configuration (values are never shown)" className="mb-6">
         <ul className="grid gap-2 sm:grid-cols-2">
           {Object.entries(s.config).map(([k, ok]) => <li key={k} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"><span>{k}</span><Badge tone={ok ? "green" : "amber"}>{ok ? "configured" : "not set"}</Badge></li>)}

@@ -1,9 +1,8 @@
 /** Why a lead needs the rep's attention now. A lead can have several reasons; `primary` is the most urgent one. */
-export const FOLLOW_UP_REASONS = ["replied", "overdue", "due_today", "no_next_step", "quiet"] as const;
+export const FOLLOW_UP_REASONS = ["overdue", "due_today", "no_next_step", "quiet"] as const;
 export type FollowUpReason = (typeof FOLLOW_UP_REASONS)[number];
 
 export const FOLLOW_UP_LABELS: Record<FollowUpReason, string> = {
-  replied: "Replied, awaiting you",
   overdue: "Task overdue",
   due_today: "Due today",
   no_next_step: "No next step",
@@ -15,6 +14,7 @@ export interface FollowUpTaskInfo {
   /** Soonest open task. */
   nextDue: string | null;
   nextTitle: string | null;
+  /** The lead replied and the team is answering: shown to the rep, but not their to-do. */
   hasRespondTask: boolean;
 }
 
@@ -37,7 +37,6 @@ export function followUpReasons(f: FollowUpFacts, now: Date): FollowUpReason[] {
   if (f.closed) return [];
   const out: FollowUpReason[] = [];
   const due = f.tasks.nextDue ? Date.parse(f.tasks.nextDue) : null;
-  if (f.tasks.hasRespondTask) out.push("replied");
   if (due !== null && due < now.getTime()) out.push("overdue");
   else if (due !== null && due <= endOfDay(now)) out.push("due_today");
   if (f.needsNextStep) out.push("no_next_step");

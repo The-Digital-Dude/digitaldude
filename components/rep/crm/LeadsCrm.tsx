@@ -113,6 +113,7 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
 
   const nextStep = (l: CrmLead) => {
     if (l.stage === "won" || l.stage === "lost") return <span className="text-slate-500">—</span>;
+    if (l.team_answering && !l.next_task_due) return <span className="font-semibold text-sky-300">Replied · team answering</span>;
     if (l.next_task_due) {
       const d = dueLabel(l.next_task_due);
       return <span className={d.overdue ? "text-rose-300" : "text-slate-300"}>{l.next_task_title ? `${l.next_task_title} · ` : ""}{d.text}{(l.open_tasks ?? 0) > 1 ? ` (+${(l.open_tasks ?? 1) - 1})` : ""}</span>;

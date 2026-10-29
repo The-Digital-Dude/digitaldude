@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseServerClient } from "@/lib/supabaseClient";
 import { getAuthenticatedRep } from "@/lib/repAuth";
 import { log } from "@/lib/logger";
+import { cleanOffset, loadOutreachStats } from "@/lib/crm/outreachStats";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,8 @@ export async function GET(request: Request) {
       bookings,
       sourcedBookings: bookings,
       outreachLogs: outreachLogsData || [],
+      // Real totals (the list above is only the latest 50): counts per period and the active days for the streak.
+      outreachStats: await loadOutreachStats(supabase, employee.id, new Date(), cleanOffset(new URL(request.url).searchParams.get("tz"))),
       commissionSummary,
     });
   } catch (error) {

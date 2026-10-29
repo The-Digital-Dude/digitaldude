@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Sparkles } from "lucide-react";
-import { btn, btnGhost, call, card, input, Msg } from "./poolShared";
+import { Loader2 } from "lucide-react";
+import { call, card, Msg } from "./poolShared";
 
 interface Reply { id: string; classification: string; body: string; receivedAt: string; contactName: string | null; contactEmail: string; companyName: string }
 
@@ -13,14 +13,11 @@ const TONE: Record<string, string> = {
   uncertain: "bg-amber-500/15 text-amber-300",
 };
 
-/** Replies from the rep's own contacts. "Suggest a reply" drafts text; "Use in composer" opens the normal outreach composer to edit and send. */
-export function RepliesPanel({ onUseReply }: { onUseReply?: (r: { email: string; name: string; company: string; message: string }) => void }) {
+/** Replies from the rep's own contacts. Read-only: the team answers every reply, so there is nothing for the rep to send from here. */
+export function RepliesPanel() {
   const [replies, setReplies] = useState<Reply[]>([]);
   const [loading, setLoading] = useState(true);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ error?: string; note?: string } | null>(null);
-  const [rowErr, setRowErr] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,19 +28,11 @@ export function RepliesPanel({ onUseReply }: { onUseReply?: (r: { email: string;
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  async function suggest(id: string) {
-    setBusy(id);
-    setRowErr((m) => ({ ...m, [id]: "" }));
-    const r = await call(`/api/rep/pool/replies/${id}/suggest`, "POST", {});
-    setBusy(null);
-    if (r.ok) setDrafts((d) => ({ ...d, [id]: String(r.suggestion) }));
-    else setRowErr((m) => ({ ...m, [id]: r.error ?? "Could not suggest a reply" }));
-  }
-
   if (loading) return <div className="flex items-center gap-2 py-10 text-xs text-slate-400"><Loader2 className="animate-spin" size={14} /> Loading…</div>;
   return (
     <div className="space-y-4">
       <Msg error={msg?.error} note={msg?.note} />
+      <p className="rounded-lg bg-sky-500/10 p-3 text-xs text-sky-200">When a contact replies, the team answers it. You can read what they wrote here and on the lead&apos;s timeline, and you will be told when there is a next step for you.</p>
       {replies.length === 0 ? (
         <div className={`${card} text-center text-xs text-slate-400`}>No replies yet. When a contact answers, it appears here (and you get a notification).</div>
       ) : (
@@ -55,24 +44,7 @@ export function RepliesPanel({ onUseReply }: { onUseReply?: (r: { email: string;
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${TONE[r.classification] ?? TONE.uncertain}`}>{r.classification.replace(/_/g, " ")}</span>
               </div>
               <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-2.5 font-sans text-xs text-slate-300">{r.body || "(empty)"}</pre>
-              {r.classification !== "opt_out" && (
-                drafts[r.id] === undefined ? (
-                  <div className="mt-3">
-                    <button className={btnGhost} disabled={busy === r.id} onClick={() => void suggest(r.id)}><Sparkles size={12} className="mr-1 inline" />{busy === r.id ? "Thinking…" : "Suggest a reply"}</button>
-                    <Msg error={rowErr[r.id]} />
-                  </div>
-                ) : (
-                  <div className="mt-3 space-y-2">
-                    <p className="text-[11px] text-slate-500">AI draft. Read and change it as you like. You send it from the outreach composer.</p>
-                    <textarea className={input} rows={6} value={drafts[r.id]} onChange={(e) => setDrafts((d) => ({ ...d, [r.id]: e.target.value }))} />
-                    <div className="flex gap-2">
-                      <button className={btn} disabled={!onUseReply} onClick={() => onUseReply?.({ email: r.contactEmail, name: r.contactName ?? "", company: r.companyName, message: drafts[r.id] })}>Use in composer</button>
-                      <button className={btnGhost} onClick={() => setDrafts((d) => { const n = { ...d }; delete n[r.id]; return n; })}>Discard</button>
-                    </div>
-                  </div>
-                )
-              )}
-              {r.classification === "opt_out" && <p className="mt-2 text-[11px] text-rose-300">They asked not to be contacted. They are on the do-not-contact list.</p>}
+              {r.classification === "opt_out" ? <p className="mt-2 text-[11px] text-rose-300">They asked not to be contacted. They are on the do-not-contact list.</p> : <p className="mt-2 text-[11px] text-slate-500">The team is answering this one.</p>}
             </li>
           ))}
         </ul>

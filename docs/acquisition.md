@@ -191,6 +191,31 @@ known contact is stored (idempotent on the Gmail message id), classified, stops 
 admin. Mail from a rep's own one-off prospect only notifies that rep. Auto-replies and system senders are ignored; nothing else in
 the inbox is stored. Without the three variables this step is skipped.
 
+**Sending limits (migration 0043).** Admin > Acquisition > Sales team > Sending limits. Each rep has a cold limit (`employees.daily_outreach_limit`) and a
+separate follow-up limit (`followup_daily_limit`), each counted over a rolling 24 hours from `rep_outreach_logs` (the new `stage` column records
+cold or follow-up), so cold outreach can never use up the follow-up quota. With **Ramp up** on, a rep starts at the warm-up start values and
+both limits rise by the weekly step until they reach the rep's maximums (settings in `acq_settings` key `send_limits`; reps already sending when
+the migration ran are not ramped). The page also shows the team total against a ceiling (Brevo free allows about 300 emails a day including
+system mail); the ceiling is a warning, not a hard stop. Once a day the worker moves any due follow-up tasks beyond a rep's limit to 07:00 UTC
+on the next working day (oldest due tasks stay), tells the rep, and raises an admin alert linking to that rep's limit. Reps see their remaining
+cold and follow-up capacity at the top of the Follow-ups tab; the outreach API enforces both limits (HTTP 429) and the hourly cap is 60.
+Before the migration is applied everything is counted as cold, as before, and warm-up is off.
+
+**Rep outreach numbers.** The Cold Outreach tab badge shows today's cold sends against the rep's limit (e.g. 38/50). The tab lists every sent email with
+search, Cold/Follow-up and date filters, paged on the server (`/api/rep/outreach/history`). The Overview's period counts and daily streak come from
+server totals (`outreachStats` in `/api/rep/dashboard`, using the browser's timezone for "today"), not from the latest 50 rows.
+
+**Who answers replies.** The admin answers every reply from the shared `info@` inbox. The owning rep is told in the app that the
+team is answering (the lead's timeline shows the reply and an informational task, never an overdue one for the rep). Reps cannot
+answer from the dashboard, and replies are read-only in their Replies tab. Admin Settings shows whether the reply reader is
+connected and when it last read the inbox.
+
+**Connecting the reply reader (once).** As the `info@` Google account: create a Google Cloud project, enable the Gmail API, set the
+OAuth consent screen to **Internal**, create a Web-application OAuth client with `https://developers.google.com/oauthplayground` as an
+authorised redirect URI, then in the OAuth Playground (gear: use your own credentials) authorise scope
+`https://www.googleapis.com/auth/gmail.readonly` and exchange the code for a refresh token. Put the client ID, secret and refresh
+token in Vercel as `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` and redeploy.
+
 **Alerts.** Notifications are stored in `acq_notifications` and shown in the app: the bell in the admin header (every admin page,
 refreshed each minute) and the Overview list; reps see theirs on the rep dashboard. They are **not emailed**, with one exception:
 reps get one email digest per batch of newly assigned companies. This covers replies, failed jobs, the worker watchdog (worker

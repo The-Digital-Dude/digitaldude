@@ -126,6 +126,9 @@ describe("pollReplies", () => {
     expect(record).toHaveBeenCalledTimes(1);
     expect(record.mock.calls[0][1]).toMatchObject({ email: "dan@plum.com.au", providerEventId: "gmail:1", humanMail: true });
     expect(tables.acq_notifications[0]).toMatchObject({ recipient_employee_id: "r1", kind: "reply", dedupe_key: "gmail:5" });
+    expect(String(tables.acq_notifications[0].body)).toMatch(/team is answering/);
+    // the admin answers every reply, including a rep's own prospect
+    expect(tables.acq_notifications[1]).toMatchObject({ recipient_employee_id: null, kind: "reply", dedupe_key: "gmail:5:admin" });
   });
 
   it("does not process a forged sender: it asks a person to look instead of stopping sequences or suppressing anyone", async () => {

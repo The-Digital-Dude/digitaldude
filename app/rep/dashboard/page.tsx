@@ -53,6 +53,9 @@ import { RepPoolPanel } from "@/components/rep/PoolPanel";
 import { RepGuide } from "@/components/rep/RepGuide";
 import { LeadsCrm } from "@/components/rep/crm/LeadsCrm";
 import { FollowUps } from "@/components/rep/crm/FollowUps";
+import { OutreachHistory } from "@/components/rep/OutreachHistory";
+import type { Capacity } from "@/lib/crm/sendLimits";
+import type { OutreachStats } from "@/lib/crm/outreachStats";
 import type { CrmLead, Forecast } from "@/components/rep/crm/shared";
 import { NotificationBell } from "@/components/rep/NotificationBell";
 import { repTemplates } from "@/lib/industryTemplates";
@@ -228,6 +231,9 @@ export default function RepDashboardPage() {
   const [commissionSummary, setCommissionSummary] = useState<CommissionSummary | null>(null);
   const [bookings, setBookings] = useState<SourcedBooking[]>([]);
   const [outreachLogs, setOutreachLogs] = useState<OutreachLog[]>([]);
+  const [outreachStats, setOutreachStats] = useState<OutreachStats | null>(null);
+  const [capacity, setCapacity] = useState<Capacity | null>(null);
+  const [historyKey, setHistoryKey] = useState(0);
   const [leads, setLeads] = useState<RepLead[]>([]);
   const [forecast, setForecast] = useState<Forecast[]>([]);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
@@ -321,7 +327,7 @@ export default function RepDashboardPage() {
   useEffect(() => {
     async function fetchDashboard() {
       try {
-        const res = await fetch("/api/rep/dashboard");
+        const res = await fetch(`/api/rep/dashboard?tz=${new Date().getTimezoneOffset()}`);
         if (res.status === 401) {
           router.push("/rep/login");
           return;
@@ -334,6 +340,7 @@ export default function RepDashboardPage() {
           setCommissionSummary(data.commissionSummary);
           setBookings(data.bookings || data.sourcedBookings || []);
           setOutreachLogs(data.outreachLogs || []);
+          setOutreachStats(data.outreachStats || null);
           setOnboardingChecklist(repData.onboarding_checklist || []);
 
           if (repData.payout_details) {
@@ -368,7 +375,7 @@ export default function RepDashboardPage() {
    */
   const refreshDashboard = useCallback(async () => {
     try {
-      const res = await fetch("/api/rep/dashboard");
+      const res = await fetch(`/api/rep/dashboard?tz=${new Date().getTimezoneOffset()}`);
       if (res.status === 401) {
         router.push("/rep/login");
         return;
@@ -380,9 +387,20 @@ export default function RepDashboardPage() {
         setCommissionSummary(data.commissionSummary);
         setBookings(data.bookings || data.sourcedBookings || []);
         setOutreachLogs(data.outreachLogs || []);
+        setOutreachStats(data.outreachStats || null);
       }
     } catch {}
   }, [router]);
+
+  /** The rep's sending limits today (shown on the Cold Outreach tab badge). Refreshed whenever they change tab or send. */
+  const loadCapacity = useCallback(async () => {
+    try {
+      const res = await fetch("/api/rep/limits");
+      const data = await res.json();
+      if (data.ok) setCapacity(data.capacity as Capacity);
+    } catch {}
+  }, []);
+  useEffect(() => { void loadCapacity(); }, [loadCapacity, activeTab]);
 
   async function fetchCampaigns() {
     setLoadingCampaigns(true);
@@ -894,6 +912,9 @@ export default function RepDashboardPage() {
 
       if (data.ok) {
         setOutreachStatus({ type: "success", message: data.message || "Outreach email sent successfully!" });
+        setHistoryKey((k) => k + 1);
+        void loadCapacity();
+        void refreshDashboard();
         setDuplicateWarning(null);
         setRecipientEmail("");
         setRecipientName("");
@@ -1045,7 +1066,7 @@ export default function RepDashboardPage() {
               { id: "followups", label: "Follow-ups", icon: Clock, badge: leads.filter((l) => (l.follow_up_reasons ?? []).length > 0).length },
               ...(profile.status === "active" ? [{ id: "pool", label: "Lead Pool", icon: Layers }] : []),
               { id: "campaigns", label: "Campaigns & Drips", icon: Layers, badge: campaigns.length },
-              { id: "outreach", label: "Cold Outreach", icon: Send, badge: outreachLogs.length },
+              { id: "outreach", label: "Cold Outreach", icon: Send, badge: capacity ? `${capacity.cold.used}/${capacity.cold.limit}` : undefined },
               { id: "onboarding", label: "Pitch Deck & Guide", icon: BookOpen, tag: undefined },
               { id: "payouts", label: "Earnings & Payouts", icon: CreditCard },
             ].map((tab) => {
@@ -1073,7 +1094,7 @@ export default function RepDashboardPage() {
                       {tab.tag}
                     </span>
                   )}
-                  {typeof tab.badge === "number" && (
+                  {tab.badge !== undefined && (
                     <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${isActive ? "bg-purple text-white" : "bg-white/10 text-slate-400"}`}>
                       {tab.badge}
                     </span>
@@ -1162,6 +1183,7 @@ export default function RepDashboardPage() {
             commissionSummary={commissionSummary}
             bookings={bookings}
             outreachLogs={outreachLogs}
+            outreachStats={outreachStats}
             leads={leads}
             currencySymbol={currencySymbol}
             setActiveTab={setActiveTab}
@@ -1230,15 +1252,6 @@ export default function RepDashboardPage() {
               setCompanyName(c.company);
               setActiveTab("outreach");
               void handleWriteWithAI(c.email);
-            }}
-            onUseReply={(r) => {
-              replyDraft.current = { subject: "Re: your reply", message: r.message };
-              setRecipientName(r.name);
-              setRecipientEmail(r.email);
-              setCompanyName(r.company);
-              setEmailSubject(replyDraft.current.subject);
-              setEmailMessage(r.message);
-              setActiveTab("outreach");
             }}
           />
         )}
@@ -1720,6 +1733,8 @@ export default function RepDashboardPage() {
                 </button>
               </div>
             </form>
+
+            <OutreachHistory refreshKey={historyKey} />
           </div>
         )}
 

@@ -15,6 +15,7 @@ import {
   Layers,
 } from "lucide-react";
 import { Pagination } from "@/components/admin/Pagination";
+import { streakFromDays, type OutreachStats } from "@/lib/crm/outreachStats";
 
 export interface ChecklistItem {
   task: string;
@@ -106,6 +107,8 @@ interface RepAnalyticsOverviewProps {
   commissionSummary: CommissionSummary | null;
   bookings: SourcedBooking[];
   outreachLogs: OutreachLog[];
+  /** Real totals from the server; the logs above are only the latest 50. */
+  outreachStats?: OutreachStats | null;
   leads?: RepLead[];
   currencySymbol: string;
   setActiveTab: (tab: "overview" | "leads" | "campaigns" | "outreach" | "onboarding" | "payouts") => void;
@@ -118,6 +121,7 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
   commissionSummary,
   bookings,
   outreachLogs,
+  outreachStats,
   currencySymbol,
   setActiveTab,
 }) => {
@@ -175,7 +179,9 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
     const dealCommMinTotal = wonDealValue * (commPctMin / 100);
     const dealCommMaxTotal = wonDealValue * (commPctMax / 100);
 
-    const outreachSentCount = filteredOutreach.length;
+    const outreachSentCount = outreachStats
+      ? timeHorizon === "today" ? outreachStats.today : timeHorizon === "7d" ? outreachStats.d7 : timeHorizon === "30d" ? outreachStats.d30 : timeHorizon === "quarter" ? outreachStats.d90 : outreachStats.all
+      : filteredOutreach.length;
 
     return {
       totalBookingsCount,
@@ -187,7 +193,7 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
       outreachSentCount,
       filteredBookings,
     };
-  }, [timeHorizon, bookings, outreachLogs, bonusMin, bonusMax, commPctMin, commPctMax]);
+  }, [timeHorizon, bookings, outreachLogs, outreachStats, bonusMin, bonusMax, commPctMin, commPctMax]);
 
   const paginatedBookings = useMemo(() => {
     const from = (bookingPage - 1) * bookingPageSize;
@@ -196,6 +202,7 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
 
   // 2. Daily Outreach Streak Computation
   const streakDays = useMemo(() => {
+    if (outreachStats) return streakFromDays(outreachStats.activeDays, new Date(), new Date().getTimezoneOffset());
     if (outreachLogs.length === 0) return 0;
     const datesWithActivity = new Set(
       outreachLogs.map((l) => new Date(l.sent_at).toISOString().split("T")[0])
@@ -215,7 +222,7 @@ export const RepAnalyticsOverview: React.FC<RepAnalyticsOverviewProps> = ({
       }
     }
     return streak;
-  }, [outreachLogs]);
+  }, [outreachLogs, outreachStats]);
 
   // 3. Tier Progress Calculation
   const tierInfo = useMemo(() => {
