@@ -4,6 +4,7 @@ import { reserveSend } from "../compliance/suppression";
 import { createUnsubscribeToken } from "../compliance/unsubscribe-token";
 import { brevoSenderEmail, isAllowedRecipient, unsubscribeSecret, unsubscribeUrlFor } from "../env";
 import { logAudit } from "../audit";
+import { alertAdmin } from "../alerts";
 import { notify } from "../providers/notifications";
 import { enqueueJob } from "./enqueue";
 import { log } from "@/lib/logger";
@@ -105,6 +106,8 @@ export async function sendMessage(db: Db, messageId: string, deps: SendDeps = {}
     const leadUpdate = msg.kind === "follow_up" ? { status: "completed", sequence_step: 2, last_message_at: now, next_action_at: null } : { status: "sent", sequence_step: 1, last_message_at: now, next_action_at: null };
     must(await db.from("acq_campaign_leads").update(leadUpdate).eq("id", lead.id).select("id"), "mark lead sent");
     await logAudit(db, "send.sent", "message", messageId, { providerMessageId });
+    // Each follow-up that goes out shows in the admin bell (never emailed).
+    if (msg.kind === "follow_up") await alertAdmin(db, { kind: "follow_up_sent", title: `Follow-up sent to ${to}`, body: `Campaign follow-up email sent.`, link: "/admin/acquisition/campaigns", dedupeKey: `followup:${messageId}` });
     return { status: "sent", providerMessageId };
   } catch (e) {
     const reason = e instanceof Error ? e.message : String(e);

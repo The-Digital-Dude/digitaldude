@@ -13,29 +13,37 @@ describe("notifications", () => {
     expect(tables.acq_notifications).toHaveLength(1);
   });
 
-  it("emails admin items to the alert inbox and rep items to the rep, skipping offboarded or address-less reps", async () => {
+  it("never emails admin alerts; emails only rep assignment digests, skipping offboarded or address-less reps", async () => {
     const { db, tables } = fakeDb({
       acq_notifications: [
-        { id: "a", title: "Admin item", body: "x", link: "/admin/acquisition", recipient_employee_id: null, email_sent_at: null, created_at: "1" },
-        { id: "b", title: "Rep item", body: "y", link: "/rep/dashboard", recipient_employee_id: "r1", email_sent_at: null, created_at: "2", employees: { email: "rep@x.com", full_name: "Rita", status: "active" } },
-        { id: "c", title: "Gone rep", body: "z", link: null, recipient_employee_id: "r2", email_sent_at: null, created_at: "3", employees: { email: "gone@x.com", full_name: "Gone", status: "offboarded" } },
-        { id: "d", title: "No email", body: "", link: null, recipient_employee_id: "r3", email_sent_at: null, created_at: "4", employees: { email: null, full_name: "N", status: "active" } },
+        { id: "a", kind: "reply", title: "Admin item", body: "x", link: "/admin/acquisition", recipient_employee_id: null, email_sent_at: null, created_at: "1" },
+        { id: "b", kind: "assignment", title: "Rep item", body: "y", link: "/rep/dashboard", recipient_employee_id: "r1", email_sent_at: null, created_at: "2", employees: { email: "rep@x.com", full_name: "Rita", status: "active" } },
+        { id: "c", kind: "assignment", title: "Gone rep", body: "z", link: null, recipient_employee_id: "r2", email_sent_at: null, created_at: "3", employees: { email: "gone@x.com", full_name: "Gone", status: "offboarded" } },
+        { id: "d", kind: "assignment", title: "No email", body: "", link: null, recipient_employee_id: "r3", email_sent_at: null, created_at: "4", employees: { email: null, full_name: "N", status: "active" } },
       ],
     });
     const send = vi.fn<MailSender>(async () => ({ ok: true }));
-    expect(await emailPendingNotifications(db, send)).toEqual({ sent: 2, failed: 0 });
-    expect(send.mock.calls.map((c) => c[0].to)).toEqual(["info@digitaldude.co.uk", "rep@x.com"]);
+    expect(await emailPendingNotifications(db, send)).toEqual({ sent: 1, failed: 0 });
+    expect(send.mock.calls.map((c) => c[0].to)).toEqual(["rep@x.com"]);
     expect(tables.acq_notifications.every((n) => n.email_sent_at)).toBe(true); // nowhere-to-send ones are closed out too
   });
 
+  it("keeps every other rep notification (tasks, cold leads, proposal views) in the app", async () => {
+    const { db, tables } = fakeDb({ acq_notifications: [{ id: "a", kind: "task_due", title: "Task due", body: "", link: null, recipient_employee_id: "r1", email_sent_at: null, created_at: "1", employees: { email: "rep@x.com", full_name: "Rita", status: "active" } }] });
+    const send = vi.fn<MailSender>(async () => ({ ok: true }));
+    expect(await emailPendingNotifications(db, send)).toEqual({ sent: 0, failed: 0 });
+    expect(send).not.toHaveBeenCalled();
+    expect(tables.acq_notifications[0].email_sent_at).toBeTruthy(); // closed out, not left to retry
+  });
+
   it("leaves a notification unsent when the email fails, so it is retried", async () => {
-    const { db, tables } = fakeDb({ acq_notifications: [{ id: "a", title: "T", body: "", link: null, recipient_employee_id: null, email_sent_at: null, created_at: "1" }] });
+    const { db, tables } = fakeDb({ acq_notifications: [{ id: "a", kind: "assignment", title: "T", body: "", link: null, recipient_employee_id: "r1", employees: { email: "rep@x.com", full_name: "R", status: "active" }, email_sent_at: null, created_at: "1" }] });
     expect(await emailPendingNotifications(db, async () => ({ ok: false, error: "boom" }))).toEqual({ sent: 0, failed: 1 });
     expect(tables.acq_notifications[0].email_sent_at).toBeNull();
   });
 
   it("escapes HTML in alert text", async () => {
-    const { db } = fakeDb({ acq_notifications: [{ id: "a", title: "<b>x</b>", body: "<script>1</script>", link: null, recipient_employee_id: null, email_sent_at: null, created_at: "1" }] });
+    const { db } = fakeDb({ acq_notifications: [{ id: "a", title: "<b>x</b>", body: "<script>1</script>", link: null, recipient_employee_id: "r1", kind: "assignment", employees: { email: "rep@x.com", full_name: "R", status: "active" }, email_sent_at: null, created_at: "1" }] });
     const send = vi.fn<MailSender>(async () => ({ ok: true }));
     await emailPendingNotifications(db, send);
     expect(send.mock.calls[0][0].html).not.toContain("<script>");
@@ -89,13 +97,13 @@ describe("health checks", () => {
 
 describe("notification emails are sent once", () => {
   it("two overlapping ticks never email the same notification twice", async () => {
-    const { db } = fakeDb({ acq_notifications: [{ id: "a", title: "T", body: "", link: null, recipient_employee_id: null, email_sent_at: null, created_at: "1" }] });
+    const { db } = fakeDb({ acq_notifications: [{ id: "a", title: "T", body: "", link: null, recipient_employee_id: "r1", kind: "assignment", employees: { email: "rep@x.com", full_name: "R", status: "active" }, email_sent_at: null, created_at: "1" }] });
     const send = vi.fn<MailSender>(async () => ({ ok: true }));
     await Promise.all([emailPendingNotifications(db, send), emailPendingNotifications(db, send)]);
     expect(send).toHaveBeenCalledTimes(1);
   });
   it("releases a notification whose email failed so it is retried", async () => {
-    const { db, tables } = fakeDb({ acq_notifications: [{ id: "a", title: "T", body: "", link: null, recipient_employee_id: null, email_sent_at: null, created_at: "1" }] });
+    const { db, tables } = fakeDb({ acq_notifications: [{ id: "a", title: "T", body: "", link: null, recipient_employee_id: "r1", kind: "assignment", employees: { email: "rep@x.com", full_name: "R", status: "active" }, email_sent_at: null, created_at: "1" }] });
     await emailPendingNotifications(db, async () => ({ ok: false, error: "boom" }));
     expect(tables.acq_notifications[0].email_sent_at).toBeNull();
     const send = vi.fn<MailSender>(async () => ({ ok: true }));

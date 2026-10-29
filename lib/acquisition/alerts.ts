@@ -3,8 +3,11 @@ import { sendBrevoEmail } from "@/lib/emailBrevo";
 import { SITE_URL } from "@/lib/utils";
 import { log } from "@/lib/logger";
 
-/** Where admin alerts go: ADMIN_ALERT_EMAIL, or the shared company inbox. */
-export const adminAlertEmail = () => (process.env.ADMIN_ALERT_EMAIL ?? "").trim() || "info@digitaldude.co.uk";
+/**
+ * Notifications are shown in the app (the admin bell, the rep dashboard). Only these kinds are also emailed, and only to reps:
+ * everything else, including every admin alert, stays in the app so the inbox holds only the emails that need a reply.
+ */
+const EMAILED_KINDS = new Set(["assignment"]);
 
 export interface NotificationInput {
   /** null/undefined = the admin. */
@@ -73,12 +76,12 @@ export async function emailPendingNotifications(db: Db, send: MailSender = brevo
   const rows = must(
     await db
       .from("acq_notifications")
-      .select("id,title,body,link,recipient_employee_id, employees(email,full_name,status)")
+      .select("id,kind,title,body,link,recipient_employee_id, employees(email,full_name,status)")
       .is("email_sent_at", null)
       .order("created_at", { ascending: true })
       .limit(limit),
     "load notifications"
-  ) as unknown as { id: string; title: string; body: string; link: string | null; recipient_employee_id: string | null; employees: { email: string | null; full_name: string | null; status: string } | null }[];
+  ) as unknown as { id: string; kind: string; title: string; body: string; link: string | null; recipient_employee_id: string | null; employees: { email: string | null; full_name: string | null; status: string } | null }[];
 
   let sent = 0;
   let failed = 0;
@@ -86,9 +89,10 @@ export async function emailPendingNotifications(db: Db, send: MailSender = brevo
     // Claim the row atomically; if another worker tick got there first, skip it.
     const claim = await db.from("acq_notifications").update({ email_sent_at: new Date().toISOString() }).eq("id", n.id).is("email_sent_at", null).select("id");
     if (claim.error || (claim.data ?? []).length === 0) continue;
-    const repOk = n.recipient_employee_id ? n.employees && n.employees.status !== "offboarded" && n.employees.email : true;
-    const to = n.recipient_employee_id ? n.employees?.email : adminAlertEmail();
-    if (!repOk || !to) continue; // nowhere to send: stays marked as handled
+    // In-app only: the row is already marked handled above, so it is never picked up again.
+    if (!n.recipient_employee_id || !EMAILED_KINDS.has(n.kind)) continue;
+    const to = n.employees && n.employees.status !== "offboarded" ? n.employees.email : null;
+    if (!to) continue; // nowhere to send: stays marked as handled
     const res = await send({ to, toName: n.employees?.full_name ?? undefined, subject: n.title, html: render(n) });
     if (res.ok) {
       sent++;

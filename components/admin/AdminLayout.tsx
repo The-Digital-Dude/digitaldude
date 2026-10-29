@@ -23,6 +23,7 @@ import {
   Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/admin/NotificationBell";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -145,6 +146,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </span>
           </div>
 
+          <div className="flex items-center gap-1">
+          <NotificationBell />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 text-navy hover:text-purple"
@@ -152,6 +155,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
+          </div>
         </header>
 
         {/* Mobile Dropdown Navigation */}
@@ -188,6 +192,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
         )}
+
+        {/* Desktop top bar: the notification bell is on every admin page */}
+        <div className="hidden h-14 shrink-0 items-center justify-end border-b border-slate-200 bg-white px-6 lg:flex">
+          <NotificationBell />
+        </div>
 
         {/* Dynamic Page Content */}
         <main className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">{children}</main>

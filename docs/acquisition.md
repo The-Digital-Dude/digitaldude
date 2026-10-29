@@ -191,10 +191,11 @@ known contact is stored (idempotent on the Gmail message id), classified, stops 
 admin. Mail from a rep's own one-off prospect only notifies that rep. Auto-replies and system senders are ignored; nothing else in
 the inbox is stored. Without the three variables this step is skipped.
 
-**Alerts.** Notifications are stored in `acq_notifications` (shown on the admin Overview) and emailed through Brevo to
-`ADMIN_ALERT_EMAIL` (default `info@digitaldude.co.uk`) or to the rep's own address. Reps get one digest per batch of newly
-assigned companies, and a message when one of their contacts replies. The rep drip cron doubles as a watchdog: if the acquisition
-worker has not ticked for 30 minutes, or 3+ jobs failed in 24 hours, the admin is emailed (once per day per problem).
+**Alerts.** Notifications are stored in `acq_notifications` and shown in the app: the bell in the admin header (every admin page,
+refreshed each minute) and the Overview list; reps see theirs on the rep dashboard. They are **not emailed**, with one exception:
+reps get one email digest per batch of newly assigned companies. This covers replies, failed jobs, the worker watchdog (worker
+stopped, 3+ jobs failed in 24 hours, once per day per problem), cold leads, due tasks, proposal views and every campaign
+follow-up that is sent. The admin inbox only receives new bookings, job applications and client portal tickets.
 
 **AI-drafted lawful basis.** "Draft with AI" fetches the page the address was found on and the company's contact/about/team pages
 and fills the form **only when the address is really on a page**; otherwise the form stays empty and says so. It is a draft: the

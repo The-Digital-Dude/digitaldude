@@ -108,6 +108,7 @@ describe("Sydney day helpers", () => {
 function fakeDb(message: Record<string, unknown>) {
   const updates: { table: string; values: Record<string, unknown> }[] = [];
   const audits: string[] = [];
+  const inserts: { table: string; values: Record<string, unknown> }[] = [];
   const db = {
     from(table: string) {
       let mode: "select" | "update" | "insert" = "select";
@@ -124,6 +125,7 @@ function fakeDb(message: Record<string, unknown>) {
         insert: (v: Record<string, unknown>) => {
           mode = "insert";
           if (table === "acq_audit_logs") audits.push(String(v.action));
+          inserts.push({ table, values: v });
           return b;
         },
         then: (resolve: (v: unknown) => void) => {
@@ -134,7 +136,7 @@ function fakeDb(message: Record<string, unknown>) {
       return b;
     },
   };
-  return { db: db as unknown as Db, updates, audits };
+  return { db: db as unknown as Db, updates, audits, inserts };
 }
 
 const baseMessage = {
@@ -202,10 +204,12 @@ describe("sendMessage", () => {
     expect(await sendMessage(fakeDb({ ...baseMessage, kind: "follow_up" }).db, "m1", { ...deps, provider, reserve: blocked })).toMatchObject({ status: "skipped", reason: "has_reply" });
     expect(provider.send).not.toHaveBeenCalled();
 
-    const { db, updates } = fakeDb({ ...baseMessage, kind: "follow_up" });
+    const { db, updates, inserts } = fakeDb({ ...baseMessage, kind: "follow_up" });
     const r = await sendMessage(db, "m1", { ...deps, provider, reserve: async () => ({ ok: true }) });
     expect(r.status).toBe("sent");
     expect(updates.find((u) => u.table === "acq_campaign_leads")?.values).toMatchObject({ status: "completed", sequence_step: 2 });
+    // each follow-up shows in the admin bell, with a per-message key so it is announced once
+    expect(inserts.find((i) => i.table === "acq_notifications")?.values).toMatchObject({ kind: "follow_up_sent", recipient_employee_id: null, dedupe_key: "followup:m1" });
   });
 
   it("a definite provider rejection marks the message failed", async () => {
