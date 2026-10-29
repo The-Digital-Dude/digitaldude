@@ -52,6 +52,7 @@ import { RepAnalyticsOverview } from "@/components/rep/RepAnalyticsOverview";
 import { RepPoolPanel } from "@/components/rep/PoolPanel";
 import { RepGuide } from "@/components/rep/RepGuide";
 import { LeadsCrm } from "@/components/rep/crm/LeadsCrm";
+import { FollowUps } from "@/components/rep/crm/FollowUps";
 import type { CrmLead, Forecast } from "@/components/rep/crm/shared";
 import { NotificationBell } from "@/components/rep/NotificationBell";
 import { repTemplates } from "@/lib/industryTemplates";
@@ -218,7 +219,7 @@ export default function RepDashboardPage() {
   const router = useRouter();
 
   // Navigation State
-  const [activeTab, setActiveTab] = useState<"overview" | "leads" | "pool" | "campaigns" | "outreach" | "onboarding" | "payouts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "leads" | "followups" | "pool" | "campaigns" | "outreach" | "onboarding" | "payouts">("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Core Data
@@ -788,7 +789,8 @@ export default function RepDashboardPage() {
     }
   }
 
-  function handleEmailLeadShortcut(lead: RepLead, pitch?: { subject: string; body: string }) {
+  function handleEmailLeadShortcut(lead: RepLead, pitch?: { subject: string; body: string }, stage?: "cold" | "follow_up") {
+    if (stage) setOutreachStage(stage);
     setRecipientName(lead.full_name);
     setRecipientEmail(lead.email);
     setCompanyName(lead.company_name || "");
@@ -1040,6 +1042,7 @@ export default function RepDashboardPage() {
             {[
               { id: "overview", label: "Overview & Metrics", icon: LayoutDashboard },
               { id: "leads", label: "Leads CRM", icon: Users, badge: leads.length },
+              { id: "followups", label: "Follow-ups", icon: Clock, badge: leads.filter((l) => (l.follow_up_reasons ?? []).length > 0).length },
               ...(profile.status === "active" ? [{ id: "pool", label: "Lead Pool", icon: Layers }] : []),
               { id: "campaigns", label: "Campaigns & Drips", icon: Layers, badge: campaigns.length },
               { id: "outreach", label: "Cold Outreach", icon: Send, badge: outreachLogs.length },
@@ -1208,6 +1211,15 @@ export default function RepDashboardPage() {
         {/* ===================================================================== */}
         {/* VIEW 3: CAMPAIGNS & DRIP SEQUENCES */}
         {/* ===================================================================== */}
+        {activeTab === "followups" && (
+          <FollowUps
+            leads={leads}
+            repName={(profile?.outreach_display_name || "").trim() || "The Digital Dude Partnerships"}
+            onRefresh={() => void fetchLeads()}
+            onEmail={(lead) => handleEmailLeadShortcut(lead, undefined, "follow_up")}
+          />
+        )}
+
         {activeTab === "pool" && profile.status === "active" && (
           <RepPoolPanel
             onLeadsChanged={() => void fetchLeads()}

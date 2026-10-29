@@ -9,6 +9,7 @@ import { COLLEAGUE_MESSAGE, isWorkedByColleague, ownDuplicate, prepareLeadUpdate
 import { computeScores, scoresAreFresh, type ScoredLead } from "@/lib/crm/refresh";
 import { loadCrmSettings } from "@/lib/crm/settings";
 import { needsNextStep, staleness, weightedPipeline } from "@/lib/crm/health";
+import { followUpReasons } from "@/lib/crm/followups";
 import { gradeFor, nextMove, priorityScore } from "@/lib/crm/scoring";
 import { logActivity, safely } from "@/lib/crm/activity";
 import { hasRequiredLeadIntelligence } from "@/lib/crm/intelligence";
@@ -60,12 +61,13 @@ export async function GET(request: Request) {
     const checks = await loadChecks(supabase, rows.map((l) => l.email ?? "")).catch(() => ({}) as Awaited<ReturnType<typeof loadChecks>>);
 
     // Open tasks per lead (count and the soonest due), for the "needs a next step" flag and the list.
-    const taskInfo = new Map<string, { open: number; nextDue: string | null; overdue: boolean }>();
-    const { data: tasks } = await safely("list tasks", async () => await supabase.from("rep_lead_tasks").select("lead_id,due_at").eq("employee_id", rep.id).eq("status", "open")).then((r) => r ?? { data: [] });
-    for (const t of (tasks ?? []) as { lead_id: string; due_at: string }[]) {
-      const cur = taskInfo.get(t.lead_id) ?? { open: 0, nextDue: null, overdue: false };
+    const taskInfo = new Map<string, { open: number; nextDue: string | null; overdue: boolean; nextTitle: string | null; hasRespondTask: boolean }>();
+    const { data: tasks } = await safely("list tasks", async () => await supabase.from("rep_lead_tasks").select("lead_id,due_at,title,kind").eq("employee_id", rep.id).eq("status", "open")).then((r) => r ?? { data: [] });
+    for (const t of (tasks ?? []) as { lead_id: string; due_at: string; title?: string; kind?: string }[]) {
+      const cur = taskInfo.get(t.lead_id) ?? { open: 0, nextDue: null, overdue: false, nextTitle: null, hasRespondTask: false };
       cur.open++;
-      if (!cur.nextDue || t.due_at < cur.nextDue) cur.nextDue = t.due_at;
+      if (!cur.nextDue || t.due_at < cur.nextDue) { cur.nextDue = t.due_at; cur.nextTitle = t.title ?? null; }
+      if (t.kind === "respond") cur.hasRespondTask = true;
       cur.overdue = cur.overdue || Date.parse(t.due_at) < now.getTime();
       taskInfo.set(t.lead_id, cur);
     }
@@ -100,9 +102,11 @@ export async function GET(request: Request) {
       const engagement = s?.engagement ?? l.engagement_score ?? null;
       const fitGrade = fit === null ? null : gradeFor(fit);
       const label = engagement === null ? null : engagement >= 60 ? "hot" : engagement >= 30 ? "warm" : "cold";
-      const t = taskInfo.get(l.id) ?? { open: 0, nextDue: null, overdue: false };
+      const t = taskInfo.get(l.id) ?? { open: 0, nextDue: null, overdue: false, nextTitle: null, hasRespondTask: false };
       const stale = staleness(l as never, now, settings);
       const pInfo = proposalInfo.get(l.id);
+      const lacksNext = needsNextStep(l as never, t.open);
+      const reasons = followUpReasons({ tasks: t, stale: stale.stale, needsNextStep: lacksNext, closed: ["won", "lost"].includes(l.stage) || ["unqualified"].includes(String((l as { status?: string }).status ?? "")) }, now);
       return {
         ...l,
         fit_score: fit,
@@ -117,7 +121,9 @@ export async function GET(request: Request) {
         stale: stale.stale,
         days_quiet: stale.days,
         stale_after: stale.threshold,
-        needs_next_step: needsNextStep(l as never, t.open),
+        needs_next_step: lacksNext,
+        next_task_title: t.nextTitle,
+        follow_up_reasons: reasons,
         pool_contact_status: l.acq_contact_id ? (status.get(l.acq_contact_id) ?? null) : null,
         email_check: checks[String(l.email ?? "").trim().toLowerCase()] ?? null,
         proposal_status: pInfo?.status ?? null,

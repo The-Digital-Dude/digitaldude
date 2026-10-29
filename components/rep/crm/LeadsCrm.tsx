@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Edit3, Layers, Plus, Search, Send, Trash2, Upload, Users, FileCheck2, FileText, Eye } from "lucide-react";
 import { LOST_REASONS, LOST_REASON_LABELS, STAGES, STAGE_LABELS, STATUSES, STATUS_LABELS, type Stage } from "@/lib/crm/model";
 import { parseLeadIntelligence } from "@/lib/crm/intelligence";
+import { FOLLOW_UP_LABELS, FOLLOW_UP_REASONS, type FollowUpReason } from "@/lib/crm/followups";
 import { Pagination } from "@/components/admin/Pagination";
 import { CrmLead, Forecast, GRADE_STYLE, HEAT_STYLE, SavedView, ViewFilters, applyFilters, crm, dueLabel, money } from "./shared";
 import { LeadDrawer } from "./LeadDrawer";
@@ -114,7 +115,7 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
     if (l.stage === "won" || l.stage === "lost") return <span className="text-slate-500">—</span>;
     if (l.next_task_due) {
       const d = dueLabel(l.next_task_due);
-      return <span className={d.overdue ? "text-rose-300" : "text-slate-300"}>{d.text}{(l.open_tasks ?? 0) > 1 ? ` (+${(l.open_tasks ?? 1) - 1})` : ""}</span>;
+      return <span className={d.overdue ? "text-rose-300" : "text-slate-300"}>{l.next_task_title ? `${l.next_task_title} · ` : ""}{d.text}{(l.open_tasks ?? 0) > 1 ? ` (+${(l.open_tasks ?? 1) - 1})` : ""}</span>;
     }
     if (l.needs_next_step) return <span className="font-semibold text-amber-300">No next step</span>;
     return <span className="text-slate-500">—</span>;
@@ -173,6 +174,7 @@ export function LeadsCrm({ leads, forecast, selectedIds, setSelectedIds, onRefre
             <div className="flex flex-wrap items-center gap-2">
               <select className={field} value={filters.status ?? ""} onChange={(e) => set({ status: e.target.value || undefined })} aria-label="Status"><option value="">Any status</option>{STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}</select>
               <select className={field} value={filters.grade ?? ""} onChange={(e) => set({ grade: e.target.value || undefined })} aria-label="Fit grade"><option value="">Any fit</option>{["A", "B", "C", "D"].map((g) => <option key={g} value={g}>Fit {g}</option>)}</select>
+              <select className={field} value={filters.followUp ?? ""} onChange={(e) => set({ followUp: (e.target.value || undefined) as FollowUpReason | "any" | undefined })} aria-label="Follow-up needed"><option value="">Any follow-up status</option><option value="any">Needs a follow-up</option>{FOLLOW_UP_REASONS.map((r) => <option key={r} value={r}>{FOLLOW_UP_LABELS[r]}</option>)}</select>
               {tags.length > 0 && <select className={field} value={filters.tag ?? ""} onChange={(e) => set({ tag: e.target.value || undefined })} aria-label="Tag"><option value="">Any tag</option>{tags.map((t) => <option key={t} value={t}>{t}</option>)}</select>}
               {countries.length > 0 && <select className={field} value={filters.country ?? ""} onChange={(e) => set({ country: e.target.value || undefined })} aria-label="Country"><option value="">Any country</option>{countries.map((c) => <option key={c} value={c}>{c}</option>)}</select>}
               <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300"><input type="checkbox" className="accent-purple" checked={!!filters.stale} onChange={(e) => set({ stale: e.target.checked || undefined })} /> Gone quiet</label>

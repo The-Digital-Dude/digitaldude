@@ -1,4 +1,5 @@
 import type { LeadStatus, Stage } from "@/lib/crm/model";
+import type { FollowUpReason } from "@/lib/crm/followups";
 
 /** A lead as the rep dashboard receives it (the lead row plus the computed CRM fields from GET /api/rep/leads). */
 export interface CrmLead {
@@ -36,6 +37,8 @@ export interface CrmLead {
   days_quiet?: number;
   stale_after?: number | null;
   needs_next_step?: boolean;
+  next_task_title?: string | null;
+  follow_up_reasons?: FollowUpReason[];
   /** Set for leads that came from the lead pool: "eligible" means cleared to email. */
   pool_contact_status?: string | null;
   email_check?: { status: "safe" | "risky" | "invalid" | "unknown"; reason: string; source: "builtin" | "reacher" } | null;
@@ -57,7 +60,7 @@ export interface CrmTask {
 export interface Forecast { currency: string; open: number; weighted: number; won: number; openCount: number }
 
 export interface SavedView { id: string; name: string; filters: ViewFilters }
-export interface ViewFilters { stage?: string; status?: string; tag?: string; country?: string; stale?: boolean; grade?: string; q?: string; noNextStep?: boolean }
+export interface ViewFilters { stage?: string; status?: string; tag?: string; country?: string; stale?: boolean; grade?: string; q?: string; noNextStep?: boolean; followUp?: FollowUpReason | "any" }
 
 export async function crm<T = Record<string, unknown>>(url: string, method = "GET", body?: unknown): Promise<{ ok: boolean; error?: string } & T> {
   try {
@@ -109,6 +112,10 @@ export function applyFilters(leads: CrmLead[], f: ViewFilters): CrmLead[] {
     if (f.stale && !l.stale) return false;
     if (f.grade && l.fit_grade !== f.grade) return false;
     if (f.noNextStep && !l.needs_next_step) return false;
+    if (f.followUp) {
+      const r = l.follow_up_reasons ?? [];
+      if (f.followUp === "any" ? r.length === 0 : !r.includes(f.followUp)) return false;
+    }
     if (q && !`${l.full_name} ${l.email} ${l.company_name ?? ""} ${l.job_title ?? ""}`.toLowerCase().includes(q)) return false;
     return true;
   });
